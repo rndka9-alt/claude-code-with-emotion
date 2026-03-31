@@ -1,0 +1,47 @@
+export interface TerminalBootstrapRequest {
+  sessionId: string;
+  title: string;
+  cwd: string;
+  command: string;
+}
+
+export interface TerminalBootstrapResponse {
+  initialOutput: string;
+}
+
+export interface TerminalInputRequest {
+  sessionId: string;
+  data: string;
+}
+
+export interface TerminalResizeRequest {
+  sessionId: string;
+  cols: number;
+  rows: number;
+}
+
+export interface TerminalOutputEvent {
+  sessionId: string;
+  data: string;
+}
+
+export interface TerminalBridge {
+  bootstrapSession: (
+    request: TerminalBootstrapRequest,
+  ) => Promise<TerminalBootstrapResponse>;
+  sendInput: (request: TerminalInputRequest) => Promise<void>;
+  resizeSession: (request: TerminalResizeRequest) => Promise<void>;
+  onOutput: (listener: (event: TerminalOutputEvent) => void) => (() => void);
+}
+
+export const TERMINAL_CHANNELS: {
+  bootstrap: string;
+  input: string;
+  resize: string;
+  output: string;
+} = {
+  bootstrap: 'terminal:bootstrap',
+  input: 'terminal:input',
+  resize: 'terminal:resize',
+  output: 'terminal:output',
+};

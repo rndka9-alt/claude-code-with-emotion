@@ -1,5 +1,12 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import { MockTerminalService } from './terminal/mock-terminal-service';
+import {
+  TERMINAL_CHANNELS,
+  type TerminalBootstrapRequest,
+  type TerminalInputRequest,
+  type TerminalResizeRequest,
+} from '../shared/terminal-bridge';
 
 const WINDOW_SIZE = {
   width: 1440,
@@ -58,12 +65,54 @@ function hasOpenWindows(): boolean {
   return BrowserWindow.getAllWindows().length > 0;
 }
 
+function registerTerminalBridge(mainWindow: BrowserWindow): void {
+  const terminalService = new MockTerminalService();
+
+  ipcMain.handle(
+    TERMINAL_CHANNELS.bootstrap,
+    (_event, request: TerminalBootstrapRequest) => {
+      return terminalService.bootstrapSession(request);
+    },
+  );
+
+  ipcMain.handle(
+    TERMINAL_CHANNELS.input,
+    (event, request: TerminalInputRequest) => {
+      const output = terminalService.handleInput(request);
+
+      if (output.length > 0) {
+        event.sender.send(TERMINAL_CHANNELS.output, {
+          sessionId: request.sessionId,
+          data: output,
+        });
+      }
+    },
+  );
+
+  ipcMain.handle(
+    TERMINAL_CHANNELS.resize,
+    (_event, request: TerminalResizeRequest) => {
+      terminalService.handleResize(request);
+    },
+  );
+
+  mainWindow.on('closed', () => {
+    ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
+    ipcMain.removeHandler(TERMINAL_CHANNELS.input);
+    ipcMain.removeHandler(TERMINAL_CHANNELS.resize);
+  });
+}
+
 void app.whenReady().then(() => {
-  createMainWindow();
+  const mainWindow = createMainWindow();
+
+  registerTerminalBridge(mainWindow);
 
   app.on('activate', () => {
     if (!hasOpenWindows()) {
-      createMainWindow();
+      const nextMainWindow = createMainWindow();
+
+      registerTerminalBridge(nextMainWindow);
     }
   });
 });

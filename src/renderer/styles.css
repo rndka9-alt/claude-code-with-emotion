@@ -235,33 +235,50 @@ button {
   min-height: 0;
 }
 
-.terminal-pane__surface {
+.terminal-surface {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  justify-content: center;
   gap: 12px;
-  padding: 18px;
   min-width: 0;
-  background:
-    linear-gradient(180deg, rgba(11, 16, 25, 0.66), rgba(7, 10, 17, 0.9));
+  min-height: 0;
 }
 
-.terminal-pane__eyebrow,
-.terminal-pane__copy,
+.terminal-surface__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 18px 0;
+  min-width: 0;
+}
+
+.terminal-surface__viewport {
+  flex: 1;
+  min-height: 0;
+  margin: 0 18px 18px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(151, 175, 235, 0.12);
+  background:
+    linear-gradient(180deg, rgba(11, 16, 25, 0.66), rgba(7, 10, 17, 0.96));
+}
+
+.terminal-surface__eyebrow,
+.terminal-surface__copy,
 .terminal-pane__details,
 .terminal-pane__detail dt,
 .terminal-pane__detail dd {
   margin: 0;
 }
 
-.terminal-pane__eyebrow {
+.terminal-surface__eyebrow {
   color: #8ea0d7;
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
-.terminal-pane__copy {
+.terminal-surface__copy {
   color: #d6deff;
   max-width: 56ch;
 }

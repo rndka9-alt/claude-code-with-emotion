@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ReactElement } from 'react';
 import type { SessionTab } from './model';
+import { TerminalSurface } from './TerminalSurface';
 
 interface PaneStackProps {
   activeTabId: string;
@@ -94,13 +95,7 @@ export function PaneStack({
               </button>
 
               <div className="terminal-pane__body">
-                <div className="terminal-pane__surface">
-                  <p className="terminal-pane__eyebrow">Terminal Surface</p>
-                  <p className="terminal-pane__copy">
-                    여기에 xterm.js 인스턴스가 들어올 예정이에요. 지금은 pane
-                    레이아웃과 리사이즈 동작을 먼저 잡고 잇어요.
-                  </p>
-                </div>
+                <TerminalSurface isActive={isActive} session={tab} />
                 <dl className="terminal-pane__details">
                   <div className="terminal-pane__detail">
                     <dt>cwd</dt>
