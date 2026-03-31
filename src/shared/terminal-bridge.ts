@@ -3,6 +3,8 @@ export interface TerminalBootstrapRequest {
   title: string;
   cwd: string;
   command: string;
+  cols: number;
+  rows: number;
 }
 
 export interface TerminalBootstrapResponse {

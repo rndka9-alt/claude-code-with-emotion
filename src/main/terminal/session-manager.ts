@@ -1,0 +1,194 @@
+import { spawn } from 'node-pty';
+import type { IPty } from 'node-pty';
+import type {
+  TerminalBootstrapRequest,
+  TerminalBootstrapResponse,
+  TerminalInputRequest,
+  TerminalResizeRequest,
+} from '../../shared/terminal-bridge';
+
+interface TerminalDisposable {
+  dispose: () => void;
+}
+
+interface TerminalSessionRuntime {
+  write: (data: string) => void;
+  resize: (cols: number, rows: number) => void;
+  kill: () => void;
+  onData: (listener: (data: string) => void) => TerminalDisposable;
+  onExit: (
+    listener: (event: { exitCode: number; signal?: number }) => void,
+  ) => TerminalDisposable;
+}
+
+interface TerminalSessionRecord {
+  runtime: TerminalSessionRuntime;
+  disposables: TerminalDisposable[];
+}
+
+interface RuntimeFactoryOptions {
+  cols: number;
+  rows: number;
+  cwd: string;
+  shell: string;
+  shellArgs: string[];
+  env: NodeJS.ProcessEnv;
+}
+
+type RuntimeFactory = (options: RuntimeFactoryOptions) => TerminalSessionRuntime;
+type OutputListener = (sessionId: string, data: string) => void;
+
+function adaptPty(ptyProcess: IPty): TerminalSessionRuntime {
+  return {
+    write: (data) => {
+      ptyProcess.write(data);
+    },
+    resize: (cols, rows) => {
+      ptyProcess.resize(cols, rows);
+    },
+    kill: () => {
+      ptyProcess.kill();
+    },
+    onData: (listener) => {
+      return ptyProcess.onData(listener);
+    },
+    onExit: (listener) => {
+      return ptyProcess.onExit(listener);
+    },
+  };
+}
+
+function createNodePtyRuntime(options: RuntimeFactoryOptions): TerminalSessionRuntime {
+  const ptyProcess = spawn(options.shell, options.shellArgs, {
+    cols: options.cols,
+    rows: options.rows,
+    cwd: options.cwd,
+    env: options.env,
+    name: 'xterm-256color',
+  });
+
+  return adaptPty(ptyProcess);
+}
+
+export function resolveShell(env: NodeJS.ProcessEnv): string {
+  const shell = env.SHELL;
+
+  if (typeof shell === 'string' && shell.length > 0) {
+    return shell;
+  }
+
+  return '/bin/zsh';
+}
+
+export function createRuntimeEnv(
+  env: NodeJS.ProcessEnv,
+  cwd: string,
+): NodeJS.ProcessEnv {
+  return {
+    ...env,
+    PWD: cwd,
+    TERM: 'xterm-256color',
+    TERM_PROGRAM: 'claude-code-with-emotion',
+  };
+}
+
+export class TerminalSessionManager {
+  private readonly sessions = new Map<string, TerminalSessionRecord>();
+
+  constructor(
+    private readonly runtimeFactory: RuntimeFactory,
+    private readonly emitOutput: OutputListener,
+  ) {}
+
+  bootstrapSession(
+    request: TerminalBootstrapRequest,
+  ): TerminalBootstrapResponse {
+    const existingSession = this.sessions.get(request.sessionId);
+
+    if (existingSession !== undefined) {
+      existingSession.runtime.resize(request.cols, request.rows);
+
+      return { initialOutput: '' };
+    }
+
+    const shell = resolveShell(process.env);
+    const runtime = this.runtimeFactory({
+      cols: request.cols,
+      rows: request.rows,
+      cwd: request.cwd,
+      env: createRuntimeEnv(process.env, request.cwd),
+      shell,
+      shellArgs: ['-l'],
+    });
+
+    const dataSubscription = runtime.onData((data) => {
+      this.emitOutput(request.sessionId, data);
+    });
+    const exitSubscription = runtime.onExit((event) => {
+      this.emitOutput(
+        request.sessionId,
+        `\r\n[session exited: code ${event.exitCode}, signal ${event.signal ?? 0}]\r\n`,
+      );
+      this.disposeSession(request.sessionId);
+    });
+
+    this.sessions.set(request.sessionId, {
+      runtime,
+      disposables: [dataSubscription, exitSubscription],
+    });
+
+    runtime.write(`${request.command}\r`);
+
+    return {
+      initialOutput:
+        `Launching ${request.command} in ${shell}\r\n` +
+        `cwd: ${request.cwd}\r\n`,
+    };
+  }
+
+  sendInput(request: TerminalInputRequest): void {
+    const session = this.sessions.get(request.sessionId);
+
+    if (session !== undefined) {
+      session.runtime.write(request.data);
+    }
+  }
+
+  resizeSession(request: TerminalResizeRequest): void {
+    const session = this.sessions.get(request.sessionId);
+
+    if (session !== undefined) {
+      session.runtime.resize(
+        Math.max(2, request.cols),
+        Math.max(1, request.rows),
+      );
+    }
+  }
+
+  dispose(): void {
+    for (const sessionId of [...this.sessions.keys()]) {
+      this.disposeSession(sessionId);
+    }
+  }
+
+  private disposeSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+
+    if (session === undefined) {
+      return;
+    }
+
+    for (const disposable of session.disposables) {
+      disposable.dispose();
+    }
+
+    this.sessions.delete(sessionId);
+    session.runtime.kill();
+  }
+}
+
+export function createTerminalSessionManager(
+  emitOutput: OutputListener,
+): TerminalSessionManager {
+  return new TerminalSessionManager(createNodePtyRuntime, emitOutput);
+}

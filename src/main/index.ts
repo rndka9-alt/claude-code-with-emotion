@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
-import { MockTerminalService } from './terminal/mock-terminal-service';
+import { createTerminalSessionManager } from './terminal/session-manager';
 import {
   TERMINAL_CHANNELS,
   type TerminalBootstrapRequest,
@@ -66,37 +66,38 @@ function hasOpenWindows(): boolean {
 }
 
 function registerTerminalBridge(mainWindow: BrowserWindow): void {
-  const terminalService = new MockTerminalService();
+  const terminalSessionManager = createTerminalSessionManager(
+    (sessionId, data) => {
+      mainWindow.webContents.send(TERMINAL_CHANNELS.output, {
+        sessionId,
+        data,
+      });
+    },
+  );
 
   ipcMain.handle(
     TERMINAL_CHANNELS.bootstrap,
     (_event, request: TerminalBootstrapRequest) => {
-      return terminalService.bootstrapSession(request);
+      return terminalSessionManager.bootstrapSession(request);
     },
   );
 
   ipcMain.handle(
     TERMINAL_CHANNELS.input,
-    (event, request: TerminalInputRequest) => {
-      const output = terminalService.handleInput(request);
-
-      if (output.length > 0) {
-        event.sender.send(TERMINAL_CHANNELS.output, {
-          sessionId: request.sessionId,
-          data: output,
-        });
-      }
+    (_event, request: TerminalInputRequest) => {
+      terminalSessionManager.sendInput(request);
     },
   );
 
   ipcMain.handle(
     TERMINAL_CHANNELS.resize,
     (_event, request: TerminalResizeRequest) => {
-      terminalService.handleResize(request);
+      terminalSessionManager.resizeSession(request);
     },
   );
 
   mainWindow.on('closed', () => {
+    terminalSessionManager.dispose();
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);

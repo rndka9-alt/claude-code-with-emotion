@@ -88,6 +88,8 @@ export function TerminalSurface({
           title: session.title,
           cwd: session.cwd,
           command: session.command,
+          cols: terminal.cols,
+          rows: terminal.rows,
         })
         .then((response) => {
           terminal.write(response.initialOutput);
