@@ -1,66 +1,84 @@
 import type { ReactElement } from 'react';
-
-const INITIAL_TABS = [
-  {
-    id: 'session-1',
-    title: 'Claude Code Session',
-    activity: 'Scaffold baseline app shell',
-  },
-];
+import { StatusPanel } from './features/workspace/StatusPanel';
+import { TabBar } from './features/workspace/TabBar';
+import { getActiveTab } from './features/workspace/model';
+import { useWorkspaceState } from './features/workspace/use-workspace-state';
 
 export function App(): ReactElement {
-  const activeTab = INITIAL_TABS[0];
+  const {
+    state,
+    activeTabTitle,
+    activeTaskElapsedLabel,
+    appElapsedLabel,
+    activateTab,
+    createTab,
+  } = useWorkspaceState();
   const appVersion = window.claudeApp?.appVersion ?? 'unknown';
-  const activeTitle = activeTab?.title ?? 'No session';
-  const activeActivity = activeTab?.activity ?? 'Waiting for session';
+  const activeTab = getActiveTab(state);
+  const lifecycle = activeTab !== null ? activeTab.lifecycle : 'bootstrapping';
+  const sessionCommand = activeTab !== null ? activeTab.command : 'claude';
+  const sessionCwd = activeTab !== null ? activeTab.cwd : '.';
+  const panelId = activeTab !== null ? `panel-${activeTab.id}` : 'panel-empty';
 
   return (
     <div className="app-shell">
-      <header className="tab-bar" aria-label="Terminal sessions">
-        <div className="tab-strip">
-          {INITIAL_TABS.map((tab) => {
-            return (
-              <button
-                key={tab.id}
-                className="tab-button tab-button--active"
-                type="button"
-              >
-                <span className="tab-button__label">{tab.title}</span>
-              </button>
-            );
-          })}
-        </div>
-      </header>
+      <TabBar
+        activeTabId={state.activeTabId}
+        onActivateTab={activateTab}
+        onCreateTab={createTab}
+        tabs={state.tabs}
+      />
 
       <main className="workspace">
-        <section className="workspace__terminal-area" aria-label="Terminal workspace">
-          <div className="terminal-placeholder">
-            <p className="terminal-placeholder__eyebrow">Bootstrap milestone</p>
-            <h1 className="terminal-placeholder__title">{activeTitle}</h1>
-            <p className="terminal-placeholder__copy">
-              Electron, React, TypeScript, and preload wiring are in place.
-              Terminal sessions, PTY integration, and semantic status updates come next.
+        <section
+          aria-labelledby="workspace-heading"
+          className="workspace__terminal-area"
+          id={panelId}
+          role="tabpanel"
+        >
+          <div className="workspace__hero">
+            <p className="workspace__eyebrow">Session Workspace</p>
+            <h1 className="workspace__title" id="workspace-heading">
+              {activeTabTitle}
+            </h1>
+            <p className="workspace__copy">
+              탭 제목은 앱 상태가 들고 있고, 앞으로 들어올 terminal title
+              change나 <code>/rename</code> 신호는 보조 힌트로만 취급할 거예요.
             </p>
-            <p className="terminal-placeholder__meta">
-              Electron runtime: {appVersion}
-            </p>
+          </div>
+
+          <div className="workspace__details">
+            <article className="workspace-card">
+              <p className="workspace-card__label">Command</p>
+              <p className="workspace-card__value">{sessionCommand}</p>
+            </article>
+            <article className="workspace-card">
+              <p className="workspace-card__label">Lifecycle</p>
+              <p className="workspace-card__value">{lifecycle}</p>
+            </article>
+            <article className="workspace-card workspace-card--wide">
+              <p className="workspace-card__label">Workspace</p>
+              <p className="workspace-card__value workspace-card__value--path">
+                {sessionCwd}
+              </p>
+            </article>
+            <article className="workspace-card workspace-card--wide">
+              <p className="workspace-card__label">Next Up</p>
+              <ul className="workspace-card__list">
+                <li>Vertically stacked terminal panes with drag handles</li>
+                <li>xterm.js surface and typed preload bridge</li>
+                <li>node-pty sessions that can launch Claude Code</li>
+              </ul>
+            </article>
           </div>
         </section>
 
-        <aside className="status-panel" aria-label="Assistant status panel">
-          <div className="status-panel__avatar" aria-hidden="true">
-            <div className="status-panel__avatar-orb" />
-          </div>
-
-          <div className="status-panel__content">
-            <p className="status-panel__line">
-              일단 뼈대는 세웟어요. 이제 진짜 공사 들어가요...!
-            </p>
-            <p className="status-panel__meta">
-              state: working · task: {activeActivity} · phase: bootstrap
-            </p>
-          </div>
-        </aside>
+        <StatusPanel
+          activeSessionElapsedLabel={appElapsedLabel}
+          assistantStatus={state.assistantStatus}
+          runtimeVersion={appVersion}
+          taskElapsedLabel={activeTaskElapsedLabel}
+        />
       </main>
     </div>
   );
