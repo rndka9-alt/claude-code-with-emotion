@@ -1,0 +1,50 @@
+{
+  "name": "claude-code-with-emotion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "macOS Electron desktop app embedding Claude Code terminals with an assistant status panel",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "concurrently -k -n renderer,main,electron -c cyan,green,magenta \"pnpm dev:renderer\" \"pnpm dev:main\" \"pnpm dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:main": "tsc -p tsconfig.node.json --watch --preserveWatchOutput",
+    "dev:electron": "wait-on tcp:5173 file:dist/main/index.js file:dist/preload/index.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "build": "pnpm build:renderer && pnpm build:main",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.node.json",
+    "typecheck": "tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "node-pty": "^1.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "xterm": "^5.3.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.15.17",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^35.0.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.6",
+    "vitest": "^3.1.1",
+    "wait-on": "^8.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "node-pty"
+    ]
+  }
+}
