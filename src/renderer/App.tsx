@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { PaneStack } from './features/workspace/PaneStack';
 import { StatusPanel } from './features/workspace/StatusPanel';
 import { TabBar } from './features/workspace/TabBar';
 import { getActiveTab } from './features/workspace/model';
@@ -12,13 +13,11 @@ export function App(): ReactElement {
     appElapsedLabel,
     activateTab,
     createTab,
+    resizePane,
   } = useWorkspaceState();
   const appVersion = window.claudeApp?.appVersion ?? 'unknown';
   const activeTab = getActiveTab(state);
-  const lifecycle = activeTab !== null ? activeTab.lifecycle : 'bootstrapping';
-  const sessionCommand = activeTab !== null ? activeTab.command : 'claude';
-  const sessionCwd = activeTab !== null ? activeTab.cwd : '.';
-  const panelId = activeTab !== null ? `panel-${activeTab.id}` : 'panel-empty';
+  const panelId = activeTab !== null ? `panel-${activeTab.id}` : 'panel-stack';
 
   return (
     <div className="app-shell">
@@ -36,41 +35,24 @@ export function App(): ReactElement {
           id={panelId}
           role="tabpanel"
         >
-          <div className="workspace__hero">
-            <p className="workspace__eyebrow">Session Workspace</p>
+          <div className="workspace__header">
+            <p className="workspace__eyebrow">Terminal Workspace</p>
             <h1 className="workspace__title" id="workspace-heading">
               {activeTabTitle}
             </h1>
             <p className="workspace__copy">
-              탭 제목은 앱 상태가 들고 있고, 앞으로 들어올 terminal title
-              change나 <code>/rename</code> 신호는 보조 힌트로만 취급할 거예요.
+              탭은 세션 포커스를 바꾸고, 아래 pane stack은 각 세션을 세로로
+              쌓아 보여줘요. 높이 조절은 drag handle로 바로 만질 수 잇어요.
             </p>
           </div>
 
-          <div className="workspace__details">
-            <article className="workspace-card">
-              <p className="workspace-card__label">Command</p>
-              <p className="workspace-card__value">{sessionCommand}</p>
-            </article>
-            <article className="workspace-card">
-              <p className="workspace-card__label">Lifecycle</p>
-              <p className="workspace-card__value">{lifecycle}</p>
-            </article>
-            <article className="workspace-card workspace-card--wide">
-              <p className="workspace-card__label">Workspace</p>
-              <p className="workspace-card__value workspace-card__value--path">
-                {sessionCwd}
-              </p>
-            </article>
-            <article className="workspace-card workspace-card--wide">
-              <p className="workspace-card__label">Next Up</p>
-              <ul className="workspace-card__list">
-                <li>Vertically stacked terminal panes with drag handles</li>
-                <li>xterm.js surface and typed preload bridge</li>
-                <li>node-pty sessions that can launch Claude Code</li>
-              </ul>
-            </article>
-          </div>
+          <PaneStack
+            activeTabId={state.activeTabId}
+            onActivateTab={activateTab}
+            onResizePane={resizePane}
+            paneSizes={state.paneSizes}
+            tabs={state.tabs}
+          />
         </section>
 
         <StatusPanel

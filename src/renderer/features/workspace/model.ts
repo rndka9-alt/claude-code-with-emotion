@@ -29,6 +29,7 @@ export interface AssistantStatus {
 
 export interface WorkspaceState {
   tabs: SessionTab[];
+  paneSizes: number[];
   activeTabId: string;
   nextTabNumber: number;
   assistantStatus: AssistantStatus;
@@ -36,7 +37,14 @@ export interface WorkspaceState {
 
 export type WorkspaceAction =
   | { type: 'activateTab'; tabId: string; nowMs: number }
-  | { type: 'createTab'; nowMs: number };
+  | { type: 'createTab'; nowMs: number }
+  | { type: 'resizePane'; index: number; deltaRatio: number };
+
+const MIN_PANE_SIZE = 0.18;
+
+function roundPaneSize(size: number): number {
+  return Math.round(size * 10_000) / 10_000;
+}
 
 function createSessionTitle(tabNumber: number): string {
   if (tabNumber === 1) {
@@ -75,12 +83,23 @@ function createAssistantStatus(
   };
 }
 
+function createBalancedPaneSizes(count: number): number[] {
+  if (count <= 0) {
+    return [];
+  }
+
+  const size = 1 / count;
+
+  return Array.from({ length: count }, () => size);
+}
+
 export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
   const firstTab = createSessionTab(1, nowMs - 8_000);
   const secondTab = createSessionTab(2, nowMs - 2_500);
 
   return {
     tabs: [firstTab, secondTab],
+    paneSizes: [0.56, 0.44],
     activeTabId: firstTab.id,
     nextTabNumber: 3,
     assistantStatus: createAssistantStatus(
@@ -124,6 +143,39 @@ export function formatElapsedLabel(elapsedMs: number): string {
   return `${hours}h ${remainingMinutes}m`;
 }
 
+export function resizePaneSizes(
+  paneSizes: number[],
+  index: number,
+  deltaRatio: number,
+): number[] {
+  const currentSize = paneSizes[index];
+  const nextSize = paneSizes[index + 1];
+
+  if (currentSize === undefined || nextSize === undefined) {
+    return paneSizes;
+  }
+
+  const minDelta = -(currentSize - MIN_PANE_SIZE);
+  const maxDelta = nextSize - MIN_PANE_SIZE;
+  const boundedDelta = Math.min(Math.max(deltaRatio, minDelta), maxDelta);
+
+  if (boundedDelta === 0) {
+    return paneSizes;
+  }
+
+  return paneSizes.map((size, paneIndex) => {
+    if (paneIndex === index) {
+      return roundPaneSize(size + boundedDelta);
+    }
+
+    if (paneIndex === index + 1) {
+      return roundPaneSize(size - boundedDelta);
+    }
+
+    return size;
+  });
+}
+
 export function workspaceReducer(
   state: WorkspaceState,
   action: WorkspaceAction,
@@ -147,10 +199,23 @@ export function workspaceReducer(
     };
   }
 
+  if (action.type === 'resizePane') {
+    return {
+      ...state,
+      paneSizes: resizePaneSizes(
+        state.paneSizes,
+        action.index,
+        action.deltaRatio,
+      ),
+    };
+  }
+
   const nextTab = createSessionTab(state.nextTabNumber, action.nowMs);
+  const nextTabs = [...state.tabs, nextTab];
 
   return {
-    tabs: [...state.tabs, nextTab],
+    tabs: nextTabs,
+    paneSizes: createBalancedPaneSizes(nextTabs.length),
     activeTabId: nextTab.id,
     nextTabNumber: state.nextTabNumber + 1,
     assistantStatus: createAssistantStatus(

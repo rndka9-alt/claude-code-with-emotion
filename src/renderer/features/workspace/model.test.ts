@@ -1,6 +1,7 @@
 import {
   createInitialWorkspaceState,
   formatElapsedLabel,
+  resizePaneSizes,
   workspaceReducer,
 } from './model';
 
@@ -40,5 +41,12 @@ describe('formatElapsedLabel', () => {
     expect(formatElapsedLabel(9_000)).toBe('9s');
     expect(formatElapsedLabel(125_000)).toBe('2m 5s');
     expect(formatElapsedLabel(4_200_000)).toBe('1h 10m');
+  });
+});
+
+describe('resizePaneSizes', () => {
+  it('resizes adjacent panes while preserving minimum size', () => {
+    expect(resizePaneSizes([0.5, 0.5], 0, 0.12)).toEqual([0.62, 0.38]);
+    expect(resizePaneSizes([0.5, 0.5], 0, 0.4)).toEqual([0.82, 0.18]);
   });
 });

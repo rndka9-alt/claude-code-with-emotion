@@ -105,11 +105,11 @@ button {
 }
 
 .workspace__terminal-area {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
-  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-  gap: 18px;
+  gap: 20px;
   border-radius: 24px;
   padding: 24px;
   border: 1px solid rgba(133, 158, 219, 0.16);
@@ -120,12 +120,11 @@ button {
     0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
-.workspace__hero {
+.workspace__header {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   min-width: 0;
-  gap: 12px;
+  gap: 10px;
 }
 
 .workspace__eyebrow {
@@ -153,52 +152,156 @@ button {
   font-size: 1.05rem;
 }
 
-.workspace__details {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+.pane-stack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  gap: 10px;
 }
 
-.workspace-card {
+.pane-stack__slot {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   gap: 10px;
-  min-width: 0;
-  padding: 16px;
-  border-radius: 20px;
-  background: rgba(18, 24, 38, 0.72);
+}
+
+.terminal-pane {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 140px;
+  border-radius: 22px;
   border: 1px solid rgba(151, 175, 235, 0.14);
+  background:
+    linear-gradient(180deg, rgba(14, 19, 31, 0.92), rgba(8, 11, 19, 0.92));
+  overflow: hidden;
 }
 
-.workspace-card--wide {
-  grid-column: span 2;
+.terminal-pane--active {
+  border-color: rgba(140, 179, 255, 0.36);
+  box-shadow: 0 0 0 1px rgba(126, 169, 255, 0.14);
 }
 
-.workspace-card__label {
+.terminal-pane__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 18px;
+  text-align: left;
+  color: inherit;
+  background: rgba(20, 27, 40, 0.74);
+  border-bottom: 1px solid rgba(151, 175, 235, 0.12);
+}
+
+.terminal-pane__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.terminal-pane__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f5f8ff;
   margin: 0;
+  font-size: 1rem;
+}
+
+.terminal-pane__meta {
+  color: #8ea0d7;
+  font-size: 0.9rem;
+}
+
+.terminal-pane__badge {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #dce6ff;
+  font-size: 0.82rem;
+  background: rgba(72, 98, 158, 0.28);
+}
+
+.terminal-pane__body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  min-height: 0;
+}
+
+.terminal-pane__surface {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px;
+  min-width: 0;
+  background:
+    linear-gradient(180deg, rgba(11, 16, 25, 0.66), rgba(7, 10, 17, 0.9));
+}
+
+.terminal-pane__eyebrow,
+.terminal-pane__copy,
+.terminal-pane__details,
+.terminal-pane__detail dt,
+.terminal-pane__detail dd {
+  margin: 0;
+}
+
+.terminal-pane__eyebrow {
   color: #8ea0d7;
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
-.workspace-card__value {
-  margin: 0;
-  color: #f5f8ff;
-  font-size: 1rem;
+.terminal-pane__copy {
+  color: #d6deff;
+  max-width: 56ch;
 }
 
-.workspace-card__value--path {
+.terminal-pane__details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px;
+  min-width: 0;
+  border-left: 1px solid rgba(151, 175, 235, 0.12);
+}
+
+.terminal-pane__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.terminal-pane__detail dt {
+  color: #8ea0d7;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.terminal-pane__detail dd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #f5f8ff;
 }
 
-.workspace-card__list {
-  margin: 0;
-  padding-left: 18px;
-  color: #d6deff;
+.pane-resizer {
+  flex: 0 0 10px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(104, 134, 207, 0.14), rgba(104, 134, 207, 0.04));
+  cursor: row-resize;
 }
 
 .status-panel {
@@ -282,8 +385,16 @@ button {
   }
 
   .workspace__terminal-area {
-    grid-template-columns: 1fr;
     padding: 18px;
+  }
+
+  .terminal-pane__body {
+    grid-template-columns: 1fr;
+  }
+
+  .terminal-pane__details {
+    border-left: 0;
+    border-top: 1px solid rgba(151, 175, 235, 0.12);
   }
 
   .status-panel {

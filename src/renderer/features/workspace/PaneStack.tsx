@@ -1,0 +1,132 @@
+import { useEffect, useRef } from 'react';
+import type { ReactElement } from 'react';
+import type { SessionTab } from './model';
+
+interface PaneStackProps {
+  activeTabId: string;
+  paneSizes: number[];
+  tabs: SessionTab[];
+  onActivateTab: (tabId: string) => void;
+  onResizePane: (index: number, deltaRatio: number) => void;
+}
+
+export function PaneStack({
+  activeTabId,
+  paneSizes,
+  tabs,
+  onActivateTab,
+  onResizePane,
+}: PaneStackProps): ReactElement {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const dragStateRef = useRef<{ index: number; lastY: number } | null>(null);
+
+  useEffect(() => {
+    function handlePointerMove(event: PointerEvent): void {
+      const dragState = dragStateRef.current;
+      const container = containerRef.current;
+
+      if (dragState === null || container === null) {
+        return;
+      }
+
+      const { height } = container.getBoundingClientRect();
+
+      if (height <= 0) {
+        return;
+      }
+
+      const deltaRatio = (event.clientY - dragState.lastY) / height;
+
+      if (deltaRatio !== 0) {
+        onResizePane(dragState.index, deltaRatio);
+        dragStateRef.current = { index: dragState.index, lastY: event.clientY };
+      }
+    }
+
+    function handlePointerUp(): void {
+      dragStateRef.current = null;
+    }
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [onResizePane]);
+
+  return (
+    <div
+      aria-label="Terminal pane stack"
+      className="pane-stack"
+      ref={containerRef}
+    >
+      {tabs.map((tab, index) => {
+        const paneHeight = paneSizes[index];
+        const isActive = tab.id === activeTabId;
+        const paneStyle =
+          paneHeight !== undefined ? { flexGrow: paneHeight, flexBasis: 0 } : undefined;
+
+        return (
+          <div className="pane-stack__slot" key={tab.id} style={paneStyle}>
+            <article
+              aria-label={tab.title}
+              className={`terminal-pane${isActive ? ' terminal-pane--active' : ''}`}
+              data-active={isActive ? 'true' : 'false'}
+            >
+              <button
+                className="terminal-pane__header"
+                onClick={() => {
+                  onActivateTab(tab.id);
+                }}
+                type="button"
+              >
+                <div className="terminal-pane__title-group">
+                  <span className="terminal-pane__title">{tab.title}</span>
+                  <span className="terminal-pane__meta">
+                    {tab.command} · {tab.lifecycle}
+                  </span>
+                </div>
+                <span className="terminal-pane__badge">
+                  {isActive ? 'Focused' : 'Background'}
+                </span>
+              </button>
+
+              <div className="terminal-pane__body">
+                <div className="terminal-pane__surface">
+                  <p className="terminal-pane__eyebrow">Terminal Surface</p>
+                  <p className="terminal-pane__copy">
+                    여기에 xterm.js 인스턴스가 들어올 예정이에요. 지금은 pane
+                    레이아웃과 리사이즈 동작을 먼저 잡고 잇어요.
+                  </p>
+                </div>
+                <dl className="terminal-pane__details">
+                  <div className="terminal-pane__detail">
+                    <dt>cwd</dt>
+                    <dd>{tab.cwd}</dd>
+                  </div>
+                  <div className="terminal-pane__detail">
+                    <dt>session</dt>
+                    <dd>{tab.id}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+
+            {index < tabs.length - 1 ? (
+              <div
+                aria-label={`Resize ${tab.title}`}
+                className="pane-resizer"
+                onPointerDown={(event) => {
+                  dragStateRef.current = { index, lastY: event.clientY };
+                }}
+                role="separator"
+              />
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

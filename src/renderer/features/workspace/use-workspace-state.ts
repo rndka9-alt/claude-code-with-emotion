@@ -13,6 +13,7 @@ export interface WorkspaceViewModel {
   state: ReturnType<typeof createInitialWorkspaceState>;
   activateTab: (tabId: string) => void;
   createTab: () => void;
+  resizePane: (index: number, deltaRatio: number) => void;
 }
 
 export function useWorkspaceState(): WorkspaceViewModel {
@@ -52,6 +53,9 @@ export function useWorkspaceState(): WorkspaceViewModel {
     },
     createTab: () => {
       dispatch({ type: 'createTab', nowMs: Date.now() });
+    },
+    resizePane: (index: number, deltaRatio: number) => {
+      dispatch({ type: 'resizePane', index, deltaRatio });
     },
   };
 }

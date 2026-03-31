@@ -27,4 +27,14 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
+
+  it('renders vertically stacked terminal panes for each session', () => {
+    render(<App />);
+
+    expect(screen.getByLabelText('Terminal pane stack')).toBeInTheDocument();
+    expect(
+      screen.getAllByLabelText(/claude-code-with-emotion/i).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+  });
 });
