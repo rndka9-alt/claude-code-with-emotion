@@ -173,6 +173,7 @@ button {
 }
 
 .terminal-pane__body {
+  display: flex;
   flex: 1;
   min-height: 0;
 }
@@ -186,6 +187,7 @@ button {
 }
 
 .terminal-surface__viewport {
+  display: flex;
   flex: 1;
   min-height: 0;
   margin: 0;
@@ -194,6 +196,17 @@ button {
   border: 0;
   background:
     linear-gradient(180deg, rgba(11, 16, 25, 0.66), rgba(7, 10, 17, 0.96));
+}
+
+.terminal-surface__viewport > .terminal {
+  flex: 1;
+}
+
+.terminal-surface__viewport .xterm,
+.terminal-surface__viewport .xterm-viewport,
+.terminal-surface__viewport .xterm-screen,
+.terminal-surface__viewport .xterm-scroll-area {
+  width: 100% !important;
 }
 
 .pane-resizer {

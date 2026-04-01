@@ -50,13 +50,14 @@ describe('createRuntimeEnv', () => {
     expect(env.TERM).toBe('xterm-256color');
     expect(env.TERM_PROGRAM).toBe('claude-code-with-emotion');
     expect(env.PATH).toBe('/tmp/helper-bin:/usr/bin');
+    expect(env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH).toBe('/usr/bin');
     expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
     expect(Object.hasOwn(env, 'INVALID')).toBe(false);
   });
 });
 
 describe('TerminalSessionManager', () => {
-  it('bootstraps a runtime and auto-launches the requested command', () => {
+  it('bootstraps a runtime without auto-launching the requested command', () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputEvents: string[] = [];
     const manager = new TerminalSessionManager(
@@ -128,8 +129,8 @@ describe('TerminalSessionManager', () => {
     const response = manager.bootstrapSession(createBootstrapRequest());
 
     expect(createdRuntimes).toHaveLength(1);
-    expect(createdRuntimes[0]?.writes).toEqual(['claude\r']);
-    expect(response.initialOutput).toContain('Launching claude');
+    expect(createdRuntimes[0]?.writes).toEqual([]);
+    expect(response.initialOutput).toContain('Shell ready');
 
     const inputRequest: TerminalInputRequest = {
       sessionId: 'session-1',

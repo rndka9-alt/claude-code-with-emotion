@@ -104,6 +104,7 @@ export function createRuntimeEnv(
   return {
     ...Object.fromEntries(sanitizedEnvEntries),
     CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
+    CLAUDE_WITH_EMOTION_ORIGINAL_PATH: existingPath ?? '',
     PWD: cwd,
     PATH: pathSegments.join(':'),
     TERM: 'xterm-256color',
@@ -176,12 +177,9 @@ export class TerminalSessionManager {
       disposables: [dataSubscription, exitSubscription],
     });
 
-    runtime.write(`${request.command}\r`);
-
     return {
       initialOutput:
-        `Launching ${request.command} in ${shell}\r\n` +
-        `cwd: ${request.cwd}\r\n`,
+        `Shell ready in ${shell}\r\n` + `cwd: ${request.cwd}\r\n`,
     };
   }
 

@@ -20,8 +20,9 @@
 - The renderer shell now manages multiple session tabs in app state and keeps the bottom status panel fixed while reflecting the active session.
 - The terminal workspace now renders vertically stacked panes with drag handles, and pane sizing is tracked in renderer state.
 - Each pane now mounts an xterm.js surface through a typed preload bridge, with a temporary mock Electron backend standing in until node-pty is wired.
-- The Electron main process now owns real node-pty shell sessions and auto-launches `claude` inside each bootstrapped terminal pane.
+- The Electron main process now owns real node-pty shell sessions and starts an interactive shell in each bootstrapped terminal pane.
 - The app now exposes a semantic assistant-status bridge, maps states to visuals in the status panel, and injects a `claude-status` helper command into terminal sessions.
+- Terminal sessions now leave Claude launch under user control and wrap the `claude` command so session start and exit can update the status panel automatically.
 - The Electron main process now preflights `node-pty` `spawn-helper` permissions at startup and sanitizes PTY environment variables before shell launch.
 - `pnpm package:macos` now produces an unsigned local `.app` bundle, but Electron smoke-launch still aborts in this sandbox environment even for trivial `electron -e` commands.
 - Packaging is intentionally deferred until the core multi-terminal flow is working.

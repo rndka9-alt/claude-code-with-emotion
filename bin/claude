@@ -1,0 +1,118 @@
+#!/usr/bin/env node
+
+const { accessSync, constants } = require('node:fs');
+const { join } = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+function isExecutable(pathname) {
+  try {
+    accessSync(pathname, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveClaudeBinary(pathValue) {
+  const segments = typeof pathValue === 'string' ? pathValue.split(':') : [];
+
+  for (const segment of segments) {
+    if (segment.length === 0) {
+      continue;
+    }
+
+    const candidate = join(segment, 'claude');
+
+    if (isExecutable(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function publishStatus(args) {
+  const statusResult = spawnSync('claude-status', args, {
+    stdio: 'ignore',
+  });
+
+  if (statusResult.status === 0) {
+    return;
+  }
+
+  if (typeof statusResult.error?.message === 'string') {
+    process.stderr.write(`${statusResult.error.message}\n`);
+  }
+}
+
+function main() {
+  const originalPath = process.env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH;
+  const realClaude = resolveClaudeBinary(originalPath);
+
+  if (realClaude === null) {
+    process.stderr.write(
+      'Unable to locate the real `claude` binary on CLAUDE_WITH_EMOTION_ORIGINAL_PATH.\n',
+    );
+    process.exit(1);
+  }
+
+  publishStatus([
+    '--state',
+    'working',
+    '--line',
+    'Claude 세션 실행 중이에요...!',
+    '--task',
+    'Running Claude in the active terminal',
+    '--intensity',
+    'medium',
+  ]);
+
+  const child = spawnSync(realClaude, process.argv.slice(2), {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      PATH: originalPath ?? process.env.PATH ?? '',
+    },
+  });
+
+  if (child.status === 0) {
+    publishStatus([
+      '--state',
+      'waiting',
+      '--line',
+      '세션 대기 중이에요. 말 걸리면 바로 움직여요...!',
+      '--task',
+      'Waiting for the next Claude run',
+      '--intensity',
+      'low',
+    ]);
+  } else {
+    publishStatus([
+      '--state',
+      'error',
+      '--line',
+      'Claude 세션이 에러로 끝낫어요...!',
+      '--task',
+      'Claude command exited with an error',
+      '--intensity',
+      'high',
+    ]);
+  }
+
+  if (typeof child.status === 'number') {
+    process.exit(child.status);
+  }
+
+  if (typeof child.signal === 'string') {
+    process.kill(process.pid, child.signal);
+    return;
+  }
+
+  if (child.error instanceof Error) {
+    process.stderr.write(`${child.error.message}\n`);
+  }
+
+  process.exit(1);
+}
+
+main();

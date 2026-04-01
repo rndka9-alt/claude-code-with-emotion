@@ -1,4 +1,3 @@
-import { FitAddon } from '@xterm/addon-fit';
 import { useEffect, useRef } from 'react';
 import type { ReactElement } from 'react';
 import { Terminal } from '@xterm/xterm';
@@ -16,6 +15,10 @@ interface TerminalSize {
 
 interface ScheduledTask {
   cancel: () => void;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 function supportsXtermRuntime(): boolean {
@@ -39,14 +42,88 @@ function getTerminalSize(terminal: Terminal): TerminalSize {
   };
 }
 
+function readNestedNumber(
+  value: unknown,
+  keys: string[],
+): number | null {
+  let current: unknown = value;
+
+  for (const key of keys) {
+    if (!isObjectRecord(current)) {
+      return null;
+    }
+
+    current = current[key];
+  }
+
+  return typeof current === 'number' && Number.isFinite(current)
+    ? current
+    : null;
+}
+
+function measureTerminalSize(
+  terminal: Terminal,
+  host: HTMLDivElement,
+): TerminalSize | null {
+  const core = Reflect.get(terminal, '_core');
+  const cellWidth = readNestedNumber(core, [
+    '_renderService',
+    'dimensions',
+    'css',
+    'cell',
+    'width',
+  ]);
+  const cellHeight = readNestedNumber(core, [
+    '_renderService',
+    'dimensions',
+    'css',
+    'cell',
+    'height',
+  ]);
+
+  if (
+    cellWidth === null ||
+    cellHeight === null ||
+    cellWidth <= 0 ||
+    cellHeight <= 0
+  ) {
+    return null;
+  }
+
+  const scrollBarWidth =
+    terminal.options.scrollback === 0
+      ? 0
+      : readNestedNumber(core, ['viewport', 'scrollBarWidth']) ?? 0;
+  const cols = Math.max(
+    2,
+    Math.floor((host.clientWidth - scrollBarWidth) / cellWidth),
+  );
+  const rows = Math.max(1, Math.floor(host.clientHeight / cellHeight));
+
+  return {
+    cols,
+    rows,
+  };
+}
+
 function fitTerminalViewport(
-  fitAddon: FitAddon,
+  terminal: Terminal,
+  host: HTMLDivElement,
   sessionId: string,
   reason: string,
-): boolean {
+): TerminalSize | null {
   try {
-    fitAddon.fit();
-    return true;
+    const nextSize = measureTerminalSize(terminal, host);
+
+    if (nextSize === null) {
+      return null;
+    }
+
+    if (terminal.cols !== nextSize.cols || terminal.rows !== nextSize.rows) {
+      terminal.resize(nextSize.cols, nextSize.rows);
+    }
+
+    return nextSize;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown terminal fit error';
@@ -54,7 +131,7 @@ function fitTerminalViewport(
     console.warn(
       `Skipped terminal fit for ${sessionId} during ${reason}: ${message}`,
     );
-    return false;
+    return null;
   }
 }
 
@@ -104,13 +181,11 @@ export function TerminalSurface({
         green: '#8fe4b6',
       },
     });
-    const fitAddon = new FitAddon();
     const bridge = window.claudeApp?.terminals;
     const scheduledTasks: ScheduledTask[] = [];
     let disposed = false;
     terminalRef.current = terminal;
 
-    terminal.loadAddon(fitAddon);
     terminal.open(host);
 
     const syncTerminalSize = (): void => {
@@ -131,17 +206,22 @@ export function TerminalSurface({
           return;
         }
 
-        const fitSucceeded = fitTerminalViewport(fitAddon, session.id, reason);
+        const nextSize = fitTerminalViewport(terminal, host, session.id, reason);
+
+        if (nextSize !== null) {
+          syncTerminalSize();
+          return;
+        }
 
         syncTerminalSize();
 
-        if (!fitSucceeded && !disposed) {
+        if (!disposed) {
           const retryTask = scheduleTask(() => {
             if (disposed) {
               return;
             }
 
-            fitTerminalViewport(fitAddon, session.id, `${reason}-retry`);
+            fitTerminalViewport(terminal, host, session.id, `${reason}-retry`);
             syncTerminalSize();
           }, 32);
 

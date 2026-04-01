@@ -8,9 +8,10 @@ macOS Electron desktop app that embeds Claude Code in vertically stacked termina
 - Chrome-style top tab bar with app-owned session titles
 - Vertically stacked terminal panes with drag resizing
 - `xterm.js` terminals wired through a typed preload bridge
-- `node-pty` shell sessions that auto-launch `claude`
+- `node-pty` shell sessions that start in an interactive shell inside the selected workspace
 - Fixed bottom status panel with semantic state-to-visual mapping
 - Internal `claude-status` helper command for updating assistant state from inside a terminal session
+- A `claude` wrapper on session `PATH` that updates the bottom status panel when a Claude session starts or exits
 
 ## Requirements
 
