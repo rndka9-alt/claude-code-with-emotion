@@ -23,6 +23,19 @@ export function shouldUseMultilineShortcut(
   );
 }
 
+export function shouldCreateSessionShortcut(
+  event: TerminalShortcutKeyEvent,
+): boolean {
+  return (
+    (event.type === undefined || event.type === 'keydown') &&
+    event.repeat !== true &&
+    event.key.toLowerCase() === 't' &&
+    ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey)) &&
+    !event.altKey &&
+    !event.shiftKey
+  );
+}
+
 export function handleTerminalShortcut(
   event: TerminalShortcutKeyEvent,
   sendData: (data: string) => void,

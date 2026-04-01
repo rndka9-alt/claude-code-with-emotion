@@ -29,6 +29,50 @@ describe('App', () => {
     ).toHaveAttribute('title', 'new session 3 · claude-code-with-emotion');
   });
 
+  it('creates a new session tab when cmd+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: 't',
+      metaKey: true,
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(
+      screen.getByRole('tab', {
+        name: 'new session 3 · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('creates a new session tab when ctrl+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      ctrlKey: true,
+      key: 't',
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(
+      screen.getByRole('tab', {
+        name: 'new session 3 · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('does not create a new session tab when cmd+shift+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: 't',
+      metaKey: true,
+      shiftKey: true,
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+  });
+
   it('closes a tab from the tab strip close button', () => {
     render(<App />);
 

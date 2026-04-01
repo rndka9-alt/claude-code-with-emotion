@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react';
 import { createInitialWorkspaceState, workspaceReducer } from './model';
+import { shouldCreateSessionShortcut } from './terminal-keyboard';
 
 export interface WorkspaceViewModel {
   state: ReturnType<typeof createInitialWorkspaceState>;
@@ -31,6 +32,23 @@ export function useWorkspaceState(): WorkspaceViewModel {
         reason: 'exit',
       });
     });
+  }, []);
+
+  useEffect(() => {
+    const handleWindowKeyDown = (event: KeyboardEvent): void => {
+      if (!shouldCreateSessionShortcut(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      dispatch({ type: 'createTab', nowMs: Date.now() });
+    };
+
+    window.addEventListener('keydown', handleWindowKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleWindowKeyDown);
+    };
   }, []);
 
   return {
