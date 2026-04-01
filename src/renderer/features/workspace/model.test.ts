@@ -100,6 +100,38 @@ describe('workspaceReducer', () => {
       'Moved "new session 3 · claude-code-with-emotion"',
     );
   });
+
+  it('renames a tab manually with trimmed title', () => {
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: 'updateTabTitle',
+      tabId: 'session-1',
+      title: '  docs  ',
+      nowMs: 21_000,
+      source: 'manual',
+    });
+
+    expect(state.tabs[0]?.title).toBe('docs');
+    expect(state.assistantStatus.currentTask).toBe(
+      'Renamed "new session 1 · claude-code-with-emotion" to "docs"',
+    );
+  });
+
+  it('syncs a terminal title into the tab title', () => {
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: 'updateTabTitle',
+      tabId: 'session-1',
+      title: 'claude-code-with-emotion · main workspace',
+      nowMs: 21_000,
+      source: 'terminal',
+    });
+
+    expect(state.tabs[0]?.title).toBe(
+      'claude-code-with-emotion · main workspace',
+    );
+    expect(state.assistantStatus.line).toBe(
+      '터미널 타이틀을 탭 이름으로 동기화햇어요...!',
+    );
+  });
 });
 
 describe('formatElapsedLabel', () => {

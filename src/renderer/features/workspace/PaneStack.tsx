@@ -7,12 +7,14 @@ interface PaneStackProps {
   paneSizes: number[];
   tabs: SessionTab[];
   onResizePane: (index: number, deltaRatio: number) => void;
+  onSyncTabTitle: (tabId: string, title: string) => void;
 }
 
 export function PaneStack({
   paneSizes,
   tabs,
   onResizePane,
+  onSyncTabTitle,
 }: PaneStackProps): ReactElement {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<{ index: number; lastY: number } | null>(null);
@@ -74,7 +76,11 @@ export function PaneStack({
               data-active="true"
             >
               <div className="terminal-pane__body">
-                <TerminalSurface isActive={true} session={tab} />
+                <TerminalSurface
+                  isActive={true}
+                  onTitleChange={onSyncTabTitle}
+                  session={tab}
+                />
               </div>
             </article>
 

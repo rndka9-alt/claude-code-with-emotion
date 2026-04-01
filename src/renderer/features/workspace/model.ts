@@ -30,6 +30,13 @@ export type WorkspaceAction =
   | { type: 'activateTab'; tabId: string; nowMs: number }
   | { type: 'createTab'; nowMs: number }
   | { type: 'closeTab'; tabId: string; nowMs: number; reason: 'manual' | 'exit' }
+  | {
+      type: 'updateTabTitle';
+      tabId: string;
+      title: string;
+      nowMs: number;
+      source: 'manual' | 'terminal';
+    }
   | { type: 'reorderTab'; tabId: string; targetTabId: string; nowMs: number }
   | { type: 'resizePane'; index: number; deltaRatio: number };
 
@@ -291,6 +298,35 @@ export function workspaceReducer(
 
   if (action.type === 'closeTab') {
     return closeTabState(state, action.tabId, action.nowMs, action.reason);
+  }
+
+  if (action.type === 'updateTabTitle') {
+    const normalizedTitle = action.title.trim();
+
+    if (normalizedTitle.length === 0) {
+      return state;
+    }
+
+    const tabToRename = state.tabs.find((tab) => tab.id === action.tabId);
+
+    if (tabToRename === undefined || tabToRename.title === normalizedTitle) {
+      return state;
+    }
+
+    return {
+      ...state,
+      tabs: state.tabs.map((tab) =>
+        tab.id === action.tabId ? { ...tab, title: normalizedTitle } : tab,
+      ),
+      assistantStatus: createAssistantStatus(
+        action.source === 'manual' ? 'happy' : 'working',
+        action.source === 'manual'
+          ? '탭 이름 바꿧어요. 더 알아보기 쉬워요...!'
+          : '터미널 타이틀을 탭 이름으로 동기화햇어요...!',
+        `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
+        action.nowMs,
+      ),
+    };
   }
 
   if (action.type === 'reorderTab') {

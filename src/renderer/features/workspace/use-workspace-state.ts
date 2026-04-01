@@ -1,6 +1,9 @@
 import { useEffect, useReducer } from 'react';
 import { createInitialWorkspaceState, workspaceReducer } from './model';
-import { shouldUseCloseSessionShortcut } from './terminal-keyboard';
+import {
+  shouldCreateSessionShortcut,
+  shouldUseCloseSessionShortcut,
+} from './terminal-keyboard';
 
 export interface WorkspaceViewModel {
   state: ReturnType<typeof createInitialWorkspaceState>;
@@ -9,6 +12,11 @@ export interface WorkspaceViewModel {
   createTab: () => void;
   reorderTab: (tabId: string, targetTabId: string) => void;
   resizePane: (index: number, deltaRatio: number) => void;
+  updateTabTitle: (
+    tabId: string,
+    title: string,
+    source: 'manual' | 'terminal',
+  ) => void;
 }
 
 export function useWorkspaceState(): WorkspaceViewModel {
@@ -37,6 +45,12 @@ export function useWorkspaceState(): WorkspaceViewModel {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (shouldCreateSessionShortcut(event)) {
+        event.preventDefault();
+        dispatch({ type: 'createTab', nowMs: Date.now() });
+        return;
+      }
+
       if (!shouldUseCloseSessionShortcut(event)) {
         return;
       }
@@ -95,6 +109,9 @@ export function useWorkspaceState(): WorkspaceViewModel {
     },
     resizePane: (index: number, deltaRatio: number) => {
       dispatch({ type: 'resizePane', index, deltaRatio });
+    },
+    updateTabTitle: (tabId, title, source) => {
+      dispatch({ type: 'updateTabTitle', tabId, title, nowMs: Date.now(), source });
     },
   };
 }

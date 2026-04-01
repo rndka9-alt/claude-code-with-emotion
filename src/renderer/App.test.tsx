@@ -29,6 +29,50 @@ describe('App', () => {
     ).toHaveAttribute('title', 'new session 2 · claude-code-with-emotion');
   });
 
+  it('creates a new session tab when cmd+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: 't',
+      metaKey: true,
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(
+      screen.getByRole('tab', {
+        name: 'new session 2 · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('creates a new session tab when ctrl+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      ctrlKey: true,
+      key: 't',
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(
+      screen.getByRole('tab', {
+        name: 'new session 2 · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('does not create a new session tab when cmd+shift+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: 't',
+      metaKey: true,
+      shiftKey: true,
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+  });
+
   it('closes a tab from the tab strip close button', () => {
     render(<App />);
 
@@ -70,13 +114,15 @@ describe('App', () => {
 
   it('reorders tabs via drag and drop in the tab strip', () => {
     render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'New Session' }));
     fireEvent.click(screen.getByRole('button', { name: 'New Session' }));
 
     const firstTab = screen.getByRole('tab', {
       name: 'new session 1 · claude-code-with-emotion',
     });
     const secondTab = screen.getByRole('tab', {
-      name: 'new session 2 · claude-code-with-emotion',
+      name: 'new session 3 · claude-code-with-emotion',
     });
 
     fireEvent.dragStart(secondTab.parentElement as HTMLElement);
@@ -85,6 +131,8 @@ describe('App', () => {
     fireEvent.dragEnd(secondTab.parentElement as HTMLElement);
 
     const tabs = screen.getAllByRole('tab');
-    expect(tabs[0]).toHaveAccessibleName('new session 2 · claude-code-with-emotion');
+    expect(tabs[0]).toHaveAccessibleName(
+      'new session 3 · claude-code-with-emotion',
+    );
   });
 });
