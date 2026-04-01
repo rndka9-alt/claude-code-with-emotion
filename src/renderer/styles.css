@@ -92,29 +92,7 @@ button {
 
 .tab-button--active::before,
 .tab-button--active::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  width: 14px;
-  height: 14px;
-  background: transparent;
-  pointer-events: none;
-}
-
-.tab-button--active::before {
-  left: -14px;
-  border-bottom-right-radius: 14px;
-  box-shadow:
-    6px 6px 0 4px var(--tab-background),
-    7px 7px 0 4px var(--tab-border);
-}
-
-.tab-button--active::after {
-  right: -14px;
-  border-bottom-left-radius: 14px;
-  box-shadow:
-    -6px 6px 0 4px var(--tab-background),
-    -7px 7px 0 4px var(--tab-border);
+  content: none;
 }
 
 .tab-create-button {
