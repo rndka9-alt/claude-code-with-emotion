@@ -31,10 +31,10 @@ import {
 } from '../shared/terminal-bridge';
 
 const WINDOW_SIZE = {
-  width: 1440,
-  height: 960,
-  minWidth: 960,
-  minHeight: 720,
+  width: 1040,
+  height: 720,
+  minWidth: 860,
+  minHeight: 620,
 };
 
 function getRendererEntry():
