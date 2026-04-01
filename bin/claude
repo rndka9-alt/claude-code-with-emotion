@@ -3,6 +3,7 @@
 const { accessSync, constants } = require('node:fs');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { createVisualToolUsagePrompt } = require('./lib/claude-session-prompts');
 
 function appendTrace(message) {
   const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
@@ -67,6 +68,7 @@ function main() {
     process.env.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE;
   const visualMcpConfigFilePath =
     process.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE;
+  const visualToolUsagePrompt = createVisualToolUsagePrompt();
   const realClaude = resolveClaudeBinary(originalPath);
 
   if (realClaude === null) {
@@ -107,10 +109,14 @@ function main() {
     runtimeArgs.push('--mcp-config', visualMcpConfigFilePath);
   }
 
+  if (visualToolUsagePrompt.trim().length > 0) {
+    runtimeArgs.push('--append-system-prompt', visualToolUsagePrompt);
+  }
+
   const claudeArgs = [...runtimeArgs, ...process.argv.slice(2)];
 
   appendTrace(
-    `starting Claude with ${claudeArgs.length} argv entries hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'} visualMcp=${typeof visualMcpConfigFilePath === 'string' && visualMcpConfigFilePath.length > 0 ? visualMcpConfigFilePath : 'none'}`,
+    `starting Claude with ${claudeArgs.length} argv entries hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'} visualMcp=${typeof visualMcpConfigFilePath === 'string' && visualMcpConfigFilePath.length > 0 ? visualMcpConfigFilePath : 'none'} visualPrompt=${visualToolUsagePrompt.trim().length > 0 ? 'present' : 'none'}`,
   );
 
   const child = spawnSync(realClaude, claudeArgs, {

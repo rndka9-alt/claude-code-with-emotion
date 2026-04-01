@@ -189,6 +189,7 @@ Current tools:
 The MCP surface now splits its guidance across dedicated prompt files in `bin/prompts/`, so emotion selection and one-line copy rules can evolve independently without bloating the server script.
 
 When Claude is launched through the embedded terminal, the wrapper now writes a temporary MCP config file and passes it through `--mcp-config`, so the local visual MCP server is attached automatically instead of requiring a manual Claude-side setup step.
+The wrapper also appends a session-level visual-tool usage prompt, loaded from dedicated files in `bin/prompts/`, so Claude gets explicit guidance about when to call the emotion and one-line tools.
 
 ## Verification
 
