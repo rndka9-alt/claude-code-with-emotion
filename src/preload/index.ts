@@ -14,6 +14,10 @@ import {
   type TerminalExitEvent,
   type TerminalOutputEvent,
 } from '../shared/terminal-bridge';
+import {
+  VISUAL_ASSET_CHANNELS,
+} from '../shared/visual-assets-bridge';
+import type { VisualAssetCatalog } from '../shared/visual-assets';
 
 const claudeAppApi: ClaudeAppApi = {
   appVersion: process.versions.electron,
@@ -92,6 +96,31 @@ const claudeAppApi: ClaudeAppApi = {
       return () => {
         ipcRenderer.removeListener(TERMINAL_CHANNELS.exit, subscription);
       };
+    },
+  },
+  visualAssets: {
+    getAvailableOptions: () => {
+      return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.getAvailableOptions);
+    },
+    getCatalog: () => {
+      return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.getCatalog);
+    },
+    onCatalog: (listener) => {
+      const subscription = (
+        _event: IpcRendererEvent,
+        payload: VisualAssetCatalog,
+      ) => {
+        listener(payload);
+      };
+
+      ipcRenderer.on(VISUAL_ASSET_CHANNELS.catalog, subscription);
+
+      return () => {
+        ipcRenderer.removeListener(VISUAL_ASSET_CHANNELS.catalog, subscription);
+      };
+    },
+    saveCatalog: (catalog) => {
+      return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.saveCatalog, catalog);
     },
   },
 };

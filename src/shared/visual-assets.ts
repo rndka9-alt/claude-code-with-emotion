@@ -41,6 +41,14 @@ export interface AvailableVisualOptions {
   states: VisualStatePresetId[];
 }
 
+export function createEmptyVisualAssetCatalog(): VisualAssetCatalog {
+  return {
+    version: 1,
+    assets: [],
+    mappings: [],
+  };
+}
+
 function findAssetRecord(
   assets: ReadonlyArray<VisualAssetRecord>,
   assetId: string,

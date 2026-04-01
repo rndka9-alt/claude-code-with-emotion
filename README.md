@@ -113,6 +113,7 @@ The next asset-system layer is being built around shared preset catalogs:
 - lifecycle-oriented visual `state` presets that stay aligned with Claude hook outputs
 - optional `emotion` presets that can refine the visual without changing the underlying task state
 - a resolver order of `state + emotion` -> `state` -> `emotion` -> default asset
+- a persisted `visual-assets.json` catalog in Electron `userData`, exposed through a typed preload bridge for the upcoming import/mapping UI and MCP surface
 
 When Claude itself is launched through the embedded terminal, the app also injects a Claude Code hook settings file so coarse state transitions can be tracked automatically:
 

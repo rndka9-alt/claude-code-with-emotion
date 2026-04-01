@@ -16,6 +16,7 @@ import { AssistantStatusFileBridge } from './status/assistant-status-file-bridge
 import { AssistantStatusStore } from './status/assistant-status-store';
 import { ensureNodePtySpawnHelpersExecutable } from './terminal/node-pty-runtime';
 import { createTerminalSessionManager } from './terminal/session-manager';
+import { VisualAssetStore } from './visual-assets/visual-asset-store';
 import {
   ASSISTANT_STATUS_CHANNELS,
   type AssistantStatusSnapshot,
@@ -33,6 +34,10 @@ import {
   type TerminalInputRequest,
   type TerminalResizeRequest,
 } from '../shared/terminal-bridge';
+import {
+  VISUAL_ASSET_CHANNELS,
+} from '../shared/visual-assets-bridge';
+import type { VisualAssetCatalog } from '../shared/visual-assets';
 
 const WINDOW_SIZE = {
   width: 920,
@@ -152,6 +157,10 @@ function registerTerminalBridge(
   );
   const assistantStatusTraceFilePath = runtimeLog.filePath;
   const assistantStatusHelperBinDir = path.join(app.getAppPath(), 'bin');
+  const visualAssetCatalogFilePath = path.join(
+    app.getPath('userData'),
+    'visual-assets.json',
+  );
   const assistantStatusFileBridge = new AssistantStatusFileBridge(
     assistantStatusFilePath,
     assistantStatusStore,
@@ -181,6 +190,12 @@ function registerTerminalBridge(
     assistantStatusFilePath,
     assistantStatusTraceFilePath,
   );
+  const visualAssetStore = new VisualAssetStore(
+    visualAssetCatalogFilePath,
+    (message) => {
+      runtimeLog.write('visual-assets', message);
+    },
+  );
   const unsubscribeAssistantStatus = assistantStatusStore.subscribe(
     (snapshot: AssistantStatusSnapshot) => {
       runtimeLog.write(
@@ -190,16 +205,39 @@ function registerTerminalBridge(
       mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, snapshot);
     },
   );
+  const unsubscribeVisualAssets = visualAssetStore.subscribe((catalog) => {
+    runtimeLog.write(
+      'visual-assets',
+      `snapshot assets=${catalog.assets.length} mappings=${catalog.mappings.length}`,
+    );
+    mainWindow.webContents.send(VISUAL_ASSET_CHANNELS.catalog, catalog);
+  });
 
   assistantStatusFileBridge.start();
   runtimeLog.write(
     'assistant-status',
     `watching helper file ${assistantStatusFilePath}`,
   );
+  runtimeLog.write(
+    'visual-assets',
+    `watching catalog file ${visualAssetCatalogFilePath}`,
+  );
 
   ipcMain.handle(ASSISTANT_STATUS_CHANNELS.getSnapshot, () => {
     return assistantStatusStore.getSnapshot();
   });
+  ipcMain.handle(VISUAL_ASSET_CHANNELS.getCatalog, () => {
+    return visualAssetStore.getCatalog();
+  });
+  ipcMain.handle(VISUAL_ASSET_CHANNELS.getAvailableOptions, () => {
+    return visualAssetStore.getAvailableOptions();
+  });
+  ipcMain.handle(
+    VISUAL_ASSET_CHANNELS.saveCatalog,
+    (_event, catalog: VisualAssetCatalog) => {
+      return visualAssetStore.replaceCatalog(catalog);
+    },
+  );
 
   ipcMain.handle(
     TERMINAL_CHANNELS.bootstrap,
@@ -263,15 +301,20 @@ function registerTerminalBridge(
   ipcMain.on(DIAGNOSTICS_CHANNELS.rendererEvent, rendererDiagnosticListener);
 
   mainWindow.on('closed', () => {
+    unsubscribeVisualAssets();
     unsubscribeAssistantStatus();
     assistantStatusFileBridge.stop();
     assistantStatusStore.dispose();
+    visualAssetStore.dispose();
     terminalSessionManager.dispose();
     ipcMain.removeListener(
       DIAGNOSTICS_CHANNELS.rendererEvent,
       rendererDiagnosticListener,
     );
     ipcMain.removeHandler(ASSISTANT_STATUS_CHANNELS.getSnapshot);
+    ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getCatalog);
+    ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getAvailableOptions);
+    ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.saveCatalog);
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);

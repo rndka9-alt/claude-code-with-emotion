@@ -1,6 +1,7 @@
 import type { AssistantStatusBridge } from './assistant-status';
 import type { RuntimeDiagnosticPayload } from './diagnostics';
 import type { TerminalBridge } from './terminal-bridge';
+import type { VisualAssetBridge } from './visual-assets-bridge';
 
 export interface DiagnosticsBridge {
   onRuntimeEvent: (
@@ -13,6 +14,7 @@ export interface ClaudeAppApi {
   readonly assistantStatus: AssistantStatusBridge;
   readonly diagnostics: DiagnosticsBridge;
   readonly terminals: TerminalBridge;
+  readonly visualAssets: VisualAssetBridge;
 }
 
 declare global {
