@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { X } from 'lucide-react';
 import type { SessionTab } from './model';
 
 interface TabBarProps {
@@ -55,7 +56,7 @@ export function TabBar({
                 }}
                 type="button"
               >
-                <span aria-hidden="true">×</span>
+                <X aria-hidden="true" className="tab-close-button__icon" strokeWidth={2.25} />
               </button>
             </div>
           );

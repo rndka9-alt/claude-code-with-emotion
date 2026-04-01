@@ -125,7 +125,8 @@ button {
   transform: translateY(-50%);
   transition:
     opacity 120ms ease,
-    background-color 120ms ease;
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .tab-chip:hover .tab-close-button,
@@ -135,7 +136,13 @@ button {
 }
 
 .tab-close-button:hover {
+  color: #f4f8ff;
   background: rgba(82, 101, 143, 0.96);
+}
+
+.tab-close-button__icon {
+  width: 13px;
+  height: 13px;
 }
 
 .workspace {
