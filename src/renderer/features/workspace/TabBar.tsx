@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { SessionTab } from './model';
 
@@ -8,6 +8,7 @@ interface TabBarProps {
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
+  onReorderTab: (tabId: string, targetTabId: string) => void;
 }
 
 export function TabBar({
@@ -16,7 +17,10 @@ export function TabBar({
   onActivateTab,
   onCloseTab,
   onCreateTab,
+  onReorderTab,
 }: TabBarProps): ReactElement {
+  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+
   return (
     <header className="tab-bar">
       <div
@@ -30,7 +34,27 @@ export function TabBar({
           return (
             <div
               className={`tab-chip${isActive ? ' tab-chip--active' : ''}`}
+              draggable
               key={tab.id}
+              onDragEnd={() => {
+                setDraggingTabId(null);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+              }}
+              onDragStart={() => {
+                setDraggingTabId(tab.id);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+
+                if (draggingTabId === null) {
+                  return;
+                }
+
+                onReorderTab(draggingTabId, tab.id);
+                setDraggingTabId(null);
+              }}
               role="presentation"
             >
               <button

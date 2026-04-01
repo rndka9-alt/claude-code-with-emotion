@@ -2,6 +2,7 @@ import {
   handleTerminalShortcut,
   MULTILINE_TERMINAL_INPUT,
   shouldCreateSessionShortcut,
+  shouldUseCloseSessionShortcut,
   shouldUseMultilineShortcut,
 } from './terminal-keyboard';
 
@@ -149,6 +150,48 @@ describe('terminal keyboard shortcuts', () => {
         metaKey: true,
         repeat: false,
         shiftKey: true,
+        type: 'keydown',
+      }),
+    ).toBe(false);
+  });
+
+  it('detects cmd+w as a session close shortcut', () => {
+    expect(
+      shouldUseCloseSessionShortcut({
+        altKey: false,
+        ctrlKey: false,
+        key: 'w',
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBe(true);
+  });
+
+  it('detects ctrl+w as a session close shortcut', () => {
+    expect(
+      shouldUseCloseSessionShortcut({
+        altKey: false,
+        ctrlKey: true,
+        key: 'w',
+        metaKey: false,
+        repeat: false,
+        shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBe(true);
+  });
+
+  it('does not treat alt+cmd+w as a session close shortcut', () => {
+    expect(
+      shouldUseCloseSessionShortcut({
+        altKey: true,
+        ctrlKey: false,
+        key: 'w',
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
         type: 'keydown',
       }),
     ).toBe(false);

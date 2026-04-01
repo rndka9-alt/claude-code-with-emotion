@@ -14,16 +14,19 @@ describe('workspaceReducer', () => {
       nowMs: 12_000,
     });
 
-    expect(nextState.tabs).toHaveLength(3);
-    expect(nextState.activeTabId).toBe('session-3');
+    expect(nextState.tabs).toHaveLength(2);
+    expect(nextState.activeTabId).toBe('session-2');
     expect(nextState.assistantStatus.visualState).toBe('happy');
   });
 
   it('activates an existing tab and keeps unknown tabs ignored', () => {
-    const state = createInitialWorkspaceState(20_000);
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: 'createTab',
+      nowMs: 20_500,
+    });
     const activatedState = workspaceReducer(state, {
       type: 'activateTab',
-      tabId: 'session-2',
+      tabId: 'session-1',
       nowMs: 21_000,
     });
     const unchangedState = workspaceReducer(state, {
@@ -32,12 +35,15 @@ describe('workspaceReducer', () => {
       nowMs: 21_000,
     });
 
-    expect(activatedState.activeTabId).toBe('session-2');
+    expect(activatedState.activeTabId).toBe('session-1');
     expect(unchangedState).toBe(state);
   });
 
   it('closes a tab and keeps the neighboring tab active', () => {
-    const state = createInitialWorkspaceState(20_000);
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: 'createTab',
+      nowMs: 20_500,
+    });
     const nextState = workspaceReducer(state, {
       type: 'closeTab',
       tabId: 'session-1',
@@ -48,17 +54,12 @@ describe('workspaceReducer', () => {
     expect(nextState.tabs).toHaveLength(1);
     expect(nextState.activeTabId).toBe('session-2');
     expect(nextState.assistantStatus.currentTask).toBe(
-      'Closed "claude-code-with-emotion · main workspace"',
+      'Closed "new session 1 · claude-code-with-emotion"',
     );
   });
 
   it('creates a replacement session when the last tab closes', () => {
-    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
-      type: 'closeTab',
-      tabId: 'session-2',
-      nowMs: 20_500,
-      reason: 'manual',
-    });
+    const state = createInitialWorkspaceState(20_000);
     const nextState = workspaceReducer(state, {
       type: 'closeTab',
       tabId: 'session-1',
@@ -67,9 +68,32 @@ describe('workspaceReducer', () => {
     });
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.activeTabId).toBe('session-3');
+    expect(nextState.activeTabId).toBe('session-2');
     expect(nextState.assistantStatus.line).toBe(
       '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!',
+    );
+  });
+
+  it('reorders tabs when a tab is dragged over another tab', () => {
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: 'createTab',
+      nowMs: 21_000,
+    });
+    const nextState = workspaceReducer(state, {
+      type: 'reorderTab',
+      tabId: 'session-3',
+      targetTabId: 'session-1',
+      nowMs: 21_500,
+    });
+
+    expect(nextState.tabs.map((tab) => tab.id)).toEqual([
+      'session-3',
+      'session-1',
+      'session-2',
+    ]);
+    expect(nextState.activeTabId).toBe('session-3');
+    expect(nextState.assistantStatus.currentTask).toBe(
+      'Moved "new session 3 · claude-code-with-emotion"',
     );
   });
 });
@@ -85,13 +109,8 @@ describe('formatElapsedLabel', () => {
 describe('getVisibleTabs', () => {
   it('returns only the active tab for the workspace content area', () => {
     const state = createInitialWorkspaceState(20_000);
-    const nextState = workspaceReducer(state, {
-      type: 'activateTab',
-      tabId: 'session-2',
-      nowMs: 21_000,
-    });
 
-    expect(getVisibleTabs(nextState)).toEqual([nextState.tabs[1]]);
+    expect(getVisibleTabs(state)).toEqual([state.tabs[0]]);
   });
 });
 
