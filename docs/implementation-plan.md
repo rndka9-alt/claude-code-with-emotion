@@ -33,5 +33,6 @@
 - The visual-asset manager now also exposes exact `state + emotion` pair mappings, so the resolver's highest-priority path is no longer hidden behind JSON-only edits.
 - The assistant-status helper surface now supports optional `emotion` values and can print the currently available visual preset options from the live user catalog, which keeps the path toward a future MCP server narrower and less magical.
 - Emotion control can now ride on a separate visual-overlay file and a small stdio MCP server, so Claude can set or clear an emotion overlay without stomping on the hook-driven task state underneath it.
+- Imported visual assets are now copied into an app-managed library in `userData`, deduplicated by content hash, and pruned when the catalog no longer references them, so user mappings do not depend on the original source files surviving in place.
 - `pnpm package:macos` now produces an unsigned local `.app` bundle, but Electron smoke-launch still aborts in this sandbox environment even for trivial `electron -e` commands.
 - Packaging is intentionally deferred until the core multi-terminal flow is working.

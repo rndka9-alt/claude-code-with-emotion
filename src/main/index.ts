@@ -167,6 +167,10 @@ function registerTerminalBridge(
     app.getPath('userData'),
     'visual-assets.json',
   );
+  const visualAssetLibraryDirPath = path.join(
+    app.getPath('userData'),
+    'visual-assets',
+  );
   const assistantStatusFileBridge = new AssistantStatusFileBridge(
     assistantStatusFilePath,
     assistantStatusStore,
@@ -207,6 +211,7 @@ function registerTerminalBridge(
   );
   const visualAssetStore = new VisualAssetStore(
     visualAssetCatalogFilePath,
+    visualAssetLibraryDirPath,
     (message) => {
       runtimeLog.write('visual-assets', message);
     },
@@ -277,12 +282,7 @@ function registerTerminalBridge(
       `picker selected files=${result.filePaths.length}`,
     );
 
-    return result.filePaths.map((filePath) => {
-      return {
-        label: path.basename(filePath),
-        path: filePath,
-      };
-    });
+    return visualAssetStore.importFiles(result.filePaths);
   });
   ipcMain.handle(
     VISUAL_ASSET_CHANNELS.saveCatalog,

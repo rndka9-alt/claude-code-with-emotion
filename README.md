@@ -138,6 +138,7 @@ The next asset-system layer is being built around shared preset catalogs:
 - renderer-side status visuals that normalize Claude's current semantic state and load a mapped local image when the catalog has a match
 - a first-pass in-app visual asset manager, opened from the avatar area, for picking local files and mapping them to state or emotion presets
 - exact `state + emotion` pair mappings in that manager, matching the resolver priority of `state + emotion -> state -> emotion -> default`
+- imported visual assets are copied into an app-managed library under Electron `userData`, reused by content hash when the same file is imported again, and pruned when no catalog entry references them anymore
 
 When Claude itself is launched through the embedded terminal, the app also injects a Claude Code hook settings file so coarse state transitions can be tracked automatically:
 

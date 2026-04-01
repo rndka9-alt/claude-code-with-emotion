@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import {
   collectAvailableVisualOptions,
@@ -12,6 +13,7 @@ import {
   isVisualEmotionPresetId,
   isVisualStatePresetId,
 } from '../../shared/visual-presets';
+import type { VisualAssetPickerFile } from '../../shared/visual-assets-bridge';
 
 type CatalogListener = (catalog: VisualAssetCatalog) => void;
 
@@ -134,12 +136,34 @@ function parseCatalogFromDisk(
   }
 }
 
+function createImportedAssetFilename(filePath: string): string {
+  const fileBuffer = fs.readFileSync(filePath);
+  const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+  const extension = path.extname(filePath).toLowerCase();
+
+  return `${hash}${extension}`;
+}
+
+function isManagedAssetPath(
+  assetPath: string,
+  assetLibraryDirPath: string,
+): boolean {
+  const relativePath = path.relative(assetLibraryDirPath, assetPath);
+
+  return (
+    relativePath.length > 0 &&
+    !relativePath.startsWith('..') &&
+    !path.isAbsolute(relativePath)
+  );
+}
+
 export class VisualAssetStore {
   private catalog: VisualAssetCatalog;
   private readonly listeners = new Set<CatalogListener>();
 
   constructor(
     private readonly filePath: string,
+    private readonly assetLibraryDirPath: string,
     private readonly logEvent?: (message: string) => void,
   ) {
     this.catalog = parseCatalogFromDisk(filePath, logEvent);
@@ -153,7 +177,39 @@ export class VisualAssetStore {
     return this.catalog;
   }
 
+  importFiles(filePaths: ReadonlyArray<string>): VisualAssetPickerFile[] {
+    fs.mkdirSync(this.assetLibraryDirPath, { recursive: true });
+
+    return filePaths.flatMap((filePath) => {
+      if (!fs.existsSync(filePath)) {
+        this.logEvent?.(`skipped missing asset import source path=${filePath}`);
+        return [];
+      }
+
+      const importedFileName = createImportedAssetFilename(filePath);
+      const importedFilePath = path.join(
+        this.assetLibraryDirPath,
+        importedFileName,
+      );
+
+      if (!fs.existsSync(importedFilePath)) {
+        fs.copyFileSync(filePath, importedFilePath);
+        this.logEvent?.(`imported asset source=${filePath} target=${importedFilePath}`);
+      } else {
+        this.logEvent?.(`reused imported asset source=${filePath} target=${importedFilePath}`);
+      }
+
+      return [
+        {
+          label: path.basename(filePath),
+          path: importedFilePath,
+        },
+      ];
+    });
+  }
+
   replaceCatalog(nextCatalog: VisualAssetCatalog): VisualAssetCatalog {
+    const previousCatalog = this.catalog;
     const sanitizedCatalog = sanitizeCatalog(nextCatalog);
     const directoryPath = path.dirname(this.filePath);
 
@@ -164,6 +220,7 @@ export class VisualAssetStore {
       'utf8',
     );
     this.catalog = sanitizedCatalog;
+    this.pruneUnusedImportedAssets(previousCatalog, sanitizedCatalog);
     this.emit();
     this.logEvent?.(
       `saved visual asset catalog assets=${sanitizedCatalog.assets.length} mappings=${sanitizedCatalog.mappings.length}`,
@@ -187,6 +244,32 @@ export class VisualAssetStore {
   private emit(): void {
     for (const listener of this.listeners) {
       listener(this.catalog);
+    }
+  }
+
+  private pruneUnusedImportedAssets(
+    previousCatalog: VisualAssetCatalog,
+    nextCatalog: VisualAssetCatalog,
+  ): void {
+    const nextPaths = new Set(nextCatalog.assets.map((asset) => asset.path));
+
+    for (const asset of previousCatalog.assets) {
+      if (nextPaths.has(asset.path)) {
+        continue;
+      }
+
+      if (!isManagedAssetPath(asset.path, this.assetLibraryDirPath)) {
+        continue;
+      }
+
+      try {
+        fs.unlinkSync(asset.path);
+        this.logEvent?.(`removed unused imported asset path=${asset.path}`);
+      } catch (error) {
+        if (error instanceof Error && error.name !== 'ENOENT') {
+          this.logEvent?.(`failed to remove unused imported asset path=${asset.path} error=${error.message}`);
+        }
+      }
     }
   }
 }

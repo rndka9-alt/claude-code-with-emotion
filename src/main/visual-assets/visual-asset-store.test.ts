@@ -5,11 +5,17 @@ import { VisualAssetStore } from './visual-asset-store';
 
 describe('VisualAssetStore', () => {
   it('starts empty when the catalog file does not exist yet', () => {
+    const directoryPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'visual-asset-store-empty-'),
+    );
     const filePath = path.join(
-      fs.mkdtempSync(path.join(os.tmpdir(), 'visual-asset-store-empty-')),
+      directoryPath,
       'visual-assets.json',
     );
-    const store = new VisualAssetStore(filePath);
+    const store = new VisualAssetStore(
+      filePath,
+      path.join(directoryPath, 'asset-library'),
+    );
 
     expect(store.getCatalog()).toEqual({
       version: 1,
@@ -23,7 +29,10 @@ describe('VisualAssetStore', () => {
       path.join(os.tmpdir(), 'visual-asset-store-write-'),
     );
     const filePath = path.join(directoryPath, 'visual-assets.json');
-    const store = new VisualAssetStore(filePath);
+    const store = new VisualAssetStore(
+      filePath,
+      path.join(directoryPath, 'asset-library'),
+    );
 
     const savedCatalog = store.replaceCatalog({
       version: 1,
@@ -61,11 +70,17 @@ describe('VisualAssetStore', () => {
   });
 
   it('emits snapshots to subscribers after saving', () => {
+    const directoryPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'visual-asset-store-subscribe-'),
+    );
     const filePath = path.join(
-      fs.mkdtempSync(path.join(os.tmpdir(), 'visual-asset-store-subscribe-')),
+      directoryPath,
       'visual-assets.json',
     );
-    const store = new VisualAssetStore(filePath);
+    const store = new VisualAssetStore(
+      filePath,
+      path.join(directoryPath, 'asset-library'),
+    );
     const snapshots: string[] = [];
     const unsubscribe = store.subscribe((catalog) => {
       snapshots.push(`${catalog.assets.length}:${catalog.mappings.length}`);
@@ -88,5 +103,66 @@ describe('VisualAssetStore', () => {
     unsubscribe();
 
     expect(snapshots).toEqual(['1:0']);
+  });
+
+  it('copies imported files into the managed asset library and reuses duplicates', () => {
+    const directoryPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'visual-asset-store-import-'),
+    );
+    const filePath = path.join(directoryPath, 'visual-assets.json');
+    const assetLibraryDirPath = path.join(directoryPath, 'asset-library');
+    const store = new VisualAssetStore(filePath, assetLibraryDirPath);
+    const sourceFilePath = path.join(directoryPath, 'source.png');
+
+    fs.writeFileSync(sourceFilePath, 'same-image', 'utf8');
+
+    const firstImport = store.importFiles([sourceFilePath]);
+    const secondImport = store.importFiles([sourceFilePath]);
+
+    expect(firstImport).toHaveLength(1);
+    expect(secondImport).toEqual(firstImport);
+    expect(firstImport[0]?.path.startsWith(assetLibraryDirPath)).toBe(true);
+    expect(fs.existsSync(firstImport[0]?.path ?? '')).toBe(true);
+  });
+
+  it('removes unused imported files when assets disappear from the catalog', () => {
+    const directoryPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'visual-asset-store-prune-'),
+    );
+    const filePath = path.join(directoryPath, 'visual-assets.json');
+    const assetLibraryDirPath = path.join(directoryPath, 'asset-library');
+    const sourceFilePath = path.join(directoryPath, 'source.png');
+    const store = new VisualAssetStore(filePath, assetLibraryDirPath);
+
+    fs.writeFileSync(sourceFilePath, 'prune-image', 'utf8');
+
+    const importedAsset = store.importFiles([sourceFilePath])[0];
+
+    if (importedAsset === undefined) {
+      throw new Error('Expected imported asset to exist');
+    }
+
+    store.replaceCatalog({
+      version: 1,
+      assets: [
+        {
+          id: 'asset-a',
+          kind: 'image',
+          label: 'Imported',
+          path: importedAsset.path,
+        },
+      ],
+      mappings: [],
+    });
+
+    expect(fs.existsSync(importedAsset.path)).toBe(true);
+
+    store.replaceCatalog({
+      version: 1,
+      assets: [],
+      mappings: [],
+    });
+
+    expect(fs.existsSync(importedAsset.path)).toBe(false);
   });
 });
