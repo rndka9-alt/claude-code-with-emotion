@@ -49,6 +49,7 @@ describe('createRuntimeEnv', () => {
       '/tmp/helper-bin',
       '/tmp/status.json',
       '/tmp/trace.log',
+      '/tmp/visual-assets.json',
     );
 
     expect(env.PWD).toBe('/tmp/app');
@@ -58,6 +59,9 @@ describe('createRuntimeEnv', () => {
     expect(env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH).toBe('/usr/bin');
     expect(env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR).toBe('/tmp/helper-bin');
     expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe('/tmp/trace.log');
+    expect(env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE).toBe(
+      '/tmp/visual-assets.json',
+    );
     expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
     expect(env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE).toBe(
       '/tmp/status.json.hook-state.json',
@@ -79,6 +83,7 @@ describe('createShellLaunchConfig', () => {
       CLAUDE_WITH_EMOTION_STATUS_FILE: '/tmp/status.json',
       CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: '/tmp/status.json.hook-state.json',
       CLAUDE_WITH_EMOTION_TRACE_FILE: '/tmp/trace.log',
+      CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: '/tmp/visual-assets.json',
     };
 
     try {
@@ -196,6 +201,7 @@ describe('TerminalSessionManager', () => {
       '/tmp/helper-bin',
       '/tmp/status.json',
       '/tmp/trace.log',
+      '/tmp/visual-assets.json',
     );
 
     const response = manager.bootstrapSession(createBootstrapRequest());
@@ -284,6 +290,7 @@ describe('TerminalSessionManager', () => {
       '/tmp/helper-bin',
       '/tmp/status.json',
       '/tmp/trace.log',
+      '/tmp/visual-assets.json',
     );
 
     manager.bootstrapSession(createBootstrapRequest());

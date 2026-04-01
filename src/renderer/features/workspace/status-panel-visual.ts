@@ -5,7 +5,7 @@ import {
   type VisualAssetCatalog,
   type VisualAssetResolution,
 } from '../../../shared/visual-assets';
-import { normalizeAssistantSemanticState } from '../../../shared/visual-presets';
+import { normalizeAssistantVisualSelection } from '../../../shared/visual-presets';
 
 export interface StatusPanelVisual {
   assetUrl: string;
@@ -24,7 +24,10 @@ export function resolveStatusPanelVisual(
   assistantStatus: AssistantStatusSnapshot,
   catalog: VisualAssetCatalog = createEmptyVisualAssetCatalog(),
 ): StatusPanelVisual | null {
-  const selection = normalizeAssistantSemanticState(assistantStatus.state);
+  const selection = normalizeAssistantVisualSelection({
+    state: assistantStatus.state,
+    emotion: assistantStatus.emotion,
+  });
   const resolution = resolveVisualAsset(catalog, selection);
 
   if (resolution === null) {

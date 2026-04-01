@@ -65,6 +65,7 @@ export class AssistantStatusStore {
     source: string,
   ): AssistantStatusSnapshot {
     return {
+      emotion: update.emotion ?? this.currentSnapshot.emotion,
       state: update.state,
       line: update.line,
       currentTask:

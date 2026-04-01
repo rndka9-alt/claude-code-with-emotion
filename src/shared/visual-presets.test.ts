@@ -1,6 +1,7 @@
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
+  normalizeAssistantVisualSelection,
   normalizeAssistantSemanticState,
 } from './visual-presets';
 
@@ -32,6 +33,18 @@ describe('visual presets', () => {
     expect(normalizeAssistantSemanticState('surprised')).toEqual({
       state: 'waiting',
       emotion: 'surprised',
+    });
+  });
+
+  it('lets explicit assistant emotions override the legacy semantic fallback', () => {
+    expect(
+      normalizeAssistantVisualSelection({
+        state: 'working',
+        emotion: 'sad',
+      }),
+    ).toEqual({
+      state: 'working',
+      emotion: 'sad',
     });
   });
 });

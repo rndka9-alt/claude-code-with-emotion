@@ -30,5 +30,6 @@
 - The Electron side now persists a sanitized visual-asset catalog in `userData`, exposes it through a typed preload bridge, and streams catalog snapshots back into the renderer for the upcoming asset-management UI.
 - The renderer now resolves assistant snapshots through the shared `state + emotion` resolver and swaps the status-panel placeholder orb for a mapped local image whenever the catalog provides one.
 - A first-pass visual-asset manager now lets the user pick local image files, mark a default asset, and map state-only or emotion-only presets without touching JSON by hand.
+- The assistant-status helper surface now supports optional `emotion` values and can print the currently available visual preset options from the live user catalog, which keeps the path toward a future MCP server narrower and less magical.
 - `pnpm package:macos` now produces an unsigned local `.app` bundle, but Electron smoke-launch still aborts in this sandbox environment even for trivial `electron -e` commands.
 - Packaging is intentionally deferred until the core multi-terminal flow is working.

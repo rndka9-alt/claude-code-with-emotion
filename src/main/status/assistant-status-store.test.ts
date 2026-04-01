@@ -6,6 +6,7 @@ describe('AssistantStatusStore', () => {
 
     store.applyUpdate(
       {
+        emotion: 'sad',
         state: 'working',
         line: 'Building pane layout',
         currentTask: 'Resizing panes',
@@ -14,6 +15,7 @@ describe('AssistantStatusStore', () => {
     );
 
     expect(store.getSnapshot().state).toBe('working');
+    expect(store.getSnapshot().emotion).toBe('sad');
     expect(store.getSnapshot().currentTask).toBe('Resizing panes');
   });
 
@@ -45,6 +47,7 @@ describe('AssistantStatusStore', () => {
     });
 
     expect(store.getSnapshot().state).toBe('working');
+    expect(store.getSnapshot().emotion).toBeNull();
     expect(store.getSnapshot().line).toBe('Base state');
   });
 });

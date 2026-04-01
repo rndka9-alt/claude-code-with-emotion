@@ -87,10 +87,22 @@ Example:
 claude-status --state thinking --line "로그 읽는 중..." --task "Inspecting failing test" --duration-ms 4000 --intensity high
 ```
 
+You can optionally add an emotion layer when the current visual catalog supports it:
+
+```bash
+claude-status --state working --emotion sad --line "우회 경로 찾는 중..." --task "Permission workaround"
+```
+
 You can also pass a JSON payload:
 
 ```bash
 claude-status '{"state":"happy","line":"붙엇다!","currentTask":"Build passed"}'
+```
+
+And you can inspect which visual presets are currently mapped in the user catalog:
+
+```bash
+claude-status --list-visual-options
 ```
 
 Supported semantic states:

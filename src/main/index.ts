@@ -190,6 +190,7 @@ function registerTerminalBridge(
     assistantStatusHelperBinDir,
     assistantStatusFilePath,
     assistantStatusTraceFilePath,
+    visualAssetCatalogFilePath,
   );
   const visualAssetStore = new VisualAssetStore(
     visualAssetCatalogFilePath,
@@ -201,7 +202,7 @@ function registerTerminalBridge(
     (snapshot: AssistantStatusSnapshot) => {
       runtimeLog.write(
         'assistant-status-snapshot',
-        `state=${snapshot.state} source=${snapshot.source} intensity=${snapshot.intensity} line=${snapshot.line} task=${snapshot.currentTask}`,
+        `state=${snapshot.state} emotion=${snapshot.emotion ?? 'none'} source=${snapshot.source} intensity=${snapshot.intensity} line=${snapshot.line} task=${snapshot.currentTask}`,
       );
       mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, snapshot);
     },
@@ -231,6 +232,9 @@ function registerTerminalBridge(
     return visualAssetStore.getCatalog();
   });
   ipcMain.handle(VISUAL_ASSET_CHANNELS.getAvailableOptions, () => {
+    return visualAssetStore.getAvailableOptions();
+  });
+  ipcMain.handle(VISUAL_ASSET_CHANNELS.printAvailableOptions, () => {
     return visualAssetStore.getAvailableOptions();
   });
   ipcMain.handle(VISUAL_ASSET_CHANNELS.pickFiles, async () => {
@@ -345,6 +349,7 @@ function registerTerminalBridge(
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getCatalog);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getAvailableOptions);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.pickFiles);
+    ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.printAvailableOptions);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.saveCatalog);
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);

@@ -122,6 +122,9 @@ const claudeAppApi: ClaudeAppApi = {
     pickFiles: () => {
       return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.pickFiles);
     },
+    printAvailableOptions: () => {
+      return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.printAvailableOptions);
+    },
     saveCatalog: (catalog) => {
       return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.saveCatalog, catalog);
     },

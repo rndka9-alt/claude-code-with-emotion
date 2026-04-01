@@ -4,6 +4,7 @@ import { StatusPanel } from './StatusPanel';
 import type { StatusPanelVisual } from './status-panel-visual';
 
 const assistantStatus: AssistantStatusSnapshot = {
+  emotion: null,
   state: 'thinking',
   line: '생각 중이에요...',
   currentTask: 'Testing',

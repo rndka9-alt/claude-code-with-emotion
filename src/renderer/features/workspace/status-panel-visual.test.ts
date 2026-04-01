@@ -2,6 +2,7 @@ import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
 import { resolveStatusPanelVisual } from './status-panel-visual';
 
 const baseSnapshot: AssistantStatusSnapshot = {
+  emotion: null,
   state: 'working',
   line: '작업 중...',
   currentTask: 'Testing',
@@ -52,6 +53,7 @@ describe('resolveStatusPanelVisual', () => {
     const visual = resolveStatusPanelVisual(
       {
         ...baseSnapshot,
+        emotion: 'happy',
         state: 'happy',
       },
       {

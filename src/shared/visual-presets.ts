@@ -1,4 +1,7 @@
-import type { AssistantSemanticState } from './assistant-status';
+import type {
+  AssistantEmotionalState,
+  AssistantSemanticState,
+} from './assistant-status';
 
 export type VisualPresetCategory = 'state' | 'emotion';
 
@@ -207,4 +210,24 @@ export function normalizeAssistantSemanticState(
   }
 
   return { state: 'error', emotion: null };
+}
+
+export function normalizeAssistantVisualSelection(input: {
+  emotion?: AssistantEmotionalState | null;
+  state: AssistantSemanticState;
+}): VisualSelection {
+  const normalizedSelection = normalizeAssistantSemanticState(input.state);
+
+  if (
+    input.emotion === undefined ||
+    input.emotion === null ||
+    input.emotion === 'neutral'
+  ) {
+    return normalizedSelection;
+  }
+
+  return {
+    state: normalizedSelection.state,
+    emotion: input.emotion,
+  };
 }

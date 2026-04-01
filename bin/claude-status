@@ -35,6 +35,8 @@ function parseArgs(argv) {
 
     if (key === '--state') {
       result.state = value;
+    } else if (key === '--emotion') {
+      result.emotion = value;
     } else if (key === '--line') {
       result.line = value;
     } else if (key === '--task') {
@@ -53,7 +55,71 @@ function parseArgs(argv) {
   return result;
 }
 
+function collectAvailableVisualOptions(catalog) {
+  const states = [];
+  const emotions = [];
+  const seenStates = new Set();
+  const seenEmotions = new Set();
+
+  if (!catalog || !Array.isArray(catalog.mappings)) {
+    return { states, emotions };
+  }
+
+  for (const mapping of catalog.mappings) {
+    if (
+      typeof mapping === 'object' &&
+      mapping !== null &&
+      typeof mapping.state === 'string' &&
+      !seenStates.has(mapping.state)
+    ) {
+      seenStates.add(mapping.state);
+      states.push(mapping.state);
+    }
+
+    if (
+      typeof mapping === 'object' &&
+      mapping !== null &&
+      typeof mapping.emotion === 'string' &&
+      mapping.emotion !== 'neutral' &&
+      !seenEmotions.has(mapping.emotion)
+    ) {
+      seenEmotions.add(mapping.emotion);
+      emotions.push(mapping.emotion);
+    }
+  }
+
+  return {
+    states,
+    emotions,
+  };
+}
+
+function printAvailableVisualOptions() {
+  const catalogFilePath = process.env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE;
+
+  if (typeof catalogFilePath !== 'string' || catalogFilePath.length === 0) {
+    process.stdout.write('{"states":[],"emotions":[]}\n');
+    return;
+  }
+
+  try {
+    const text = fs.readFileSync(catalogFilePath, 'utf8');
+    const parsed = JSON.parse(text);
+
+    process.stdout.write(
+      `${JSON.stringify(collectAvailableVisualOptions(parsed))}\n`,
+    );
+  } catch {
+    process.stdout.write('{"states":[],"emotions":[]}\n');
+  }
+}
+
 function main() {
+  if (process.argv.includes('--list-visual-options')) {
+    printAvailableVisualOptions();
+    return;
+  }
+
   const statusFilePath = process.env.CLAUDE_WITH_EMOTION_STATUS_FILE;
 
   if (typeof statusFilePath !== 'string' || statusFilePath.length === 0) {
@@ -64,12 +130,12 @@ function main() {
   const payload = parseArgs(process.argv.slice(2));
 
   if (typeof payload.state !== 'string' || typeof payload.line !== 'string') {
-    console.error('Usage: claude-status --state <state> --line <line> [--task <task>] [--duration-ms <ms>] [--intensity <low|medium|high>]');
+    console.error('Usage: claude-status --state <state> [--emotion <neutral|happy|sad|surprised>] --line <line> [--task <task>] [--duration-ms <ms>] [--intensity <low|medium|high>] [--list-visual-options]');
     process.exit(1);
   }
 
   appendTrace(
-    `writing status state=${payload.state} line=${payload.line} task=${payload.currentTask ?? ''}`,
+    `writing status state=${payload.state} emotion=${payload.emotion ?? 'none'} line=${payload.line} task=${payload.currentTask ?? ''}`,
   );
   fs.writeFileSync(statusFilePath, JSON.stringify(payload), 'utf8');
 }

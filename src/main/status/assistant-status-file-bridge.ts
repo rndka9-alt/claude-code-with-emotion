@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
+  AssistantEmotionalState,
   AssistantSemanticState,
   AssistantStatusUpdate,
 } from '../../shared/assistant-status';
@@ -25,12 +26,22 @@ function isSemanticState(value: string): value is AssistantSemanticState {
   );
 }
 
+function isEmotionalState(value: string): value is AssistantEmotionalState {
+  return (
+    value === 'neutral' ||
+    value === 'happy' ||
+    value === 'sad' ||
+    value === 'surprised'
+  );
+}
+
 function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | null {
   if (!isObjectRecord(value)) {
     return null;
   }
 
   const state = value.state;
+  const emotion = value.emotion;
   const line = value.line;
   const currentTask = value.currentTask;
   const durationMs = value.durationMs;
@@ -40,6 +51,13 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
     typeof state !== 'string' ||
     !isSemanticState(state) ||
     typeof line !== 'string'
+  ) {
+    return null;
+  }
+
+  if (
+    emotion !== undefined &&
+    (typeof emotion !== 'string' || !isEmotionalState(emotion))
   ) {
     return null;
   }
@@ -71,6 +89,10 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
     state,
     line,
   };
+
+  if (emotion !== undefined && emotion !== 'neutral') {
+    update.emotion = emotion;
+  }
 
   if (currentTask !== undefined) {
     update.currentTask = currentTask;
@@ -149,7 +171,7 @@ export class AssistantStatusFileBridge {
 
       if (update !== null) {
         this.logEvent?.(
-          `parsed update state=${update.state} line=${update.line} task=${update.currentTask ?? ''}`,
+          `parsed update state=${update.state} emotion=${update.emotion ?? 'none'} line=${update.line} task=${update.currentTask ?? ''}`,
         );
         this.statusStore.applyUpdate(update, 'assistant-command');
       } else {
