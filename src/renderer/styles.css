@@ -92,12 +92,32 @@ button {
 .tab-create-button {
   flex: 0 0 auto;
   margin-left: 4px;
-  min-height: 42px;
-  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  align-self: center;
   border-radius: 999px;
   color: #dbe5ff;
   background: rgba(24, 31, 46, 0.92);
   border: 1px solid rgba(152, 176, 241, 0.16);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.tab-create-button:hover {
+  color: #f4f8ff;
+  background: rgba(42, 54, 82, 0.96);
+  border-color: rgba(176, 196, 255, 0.26);
+}
+
+.tab-create-button__icon {
+  width: 14px;
+  height: 14px;
 }
 
 .tab-button__label {

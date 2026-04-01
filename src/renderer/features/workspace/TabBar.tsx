@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import type { SessionTab } from './model';
 
 interface TabBarProps {
@@ -63,11 +63,13 @@ export function TabBar({
         })}
 
         <button
+          aria-label="New Session"
           className="tab-create-button"
           onClick={onCreateTab}
+          title="New Session"
           type="button"
         >
-          New Session
+          <Plus aria-hidden="true" className="tab-create-button__icon" strokeWidth={2.4} />
         </button>
       </div>
     </header>
