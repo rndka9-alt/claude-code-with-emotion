@@ -1,6 +1,7 @@
 import {
   handleTerminalShortcut,
   MULTILINE_TERMINAL_INPUT,
+  shouldCreateSessionShortcut,
   shouldUseCloseSessionShortcut,
   shouldUseMultilineShortcut,
 } from './terminal-keyboard';
@@ -110,6 +111,48 @@ describe('terminal keyboard shortcuts', () => {
 
     expect(didAllowDefaultHandling).toBe(false);
     expect(sentData).toEqual([MULTILINE_TERMINAL_INPUT]);
+  });
+
+  it('treats cmd+t as a create-session shortcut', () => {
+    expect(
+      shouldCreateSessionShortcut({
+        altKey: false,
+        ctrlKey: false,
+        key: 't',
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBe(true);
+  });
+
+  it('treats ctrl+t as a create-session shortcut', () => {
+    expect(
+      shouldCreateSessionShortcut({
+        altKey: false,
+        ctrlKey: true,
+        key: 't',
+        metaKey: false,
+        repeat: false,
+        shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBe(true);
+  });
+
+  it('does not treat cmd+shift+t as a create-session shortcut', () => {
+    expect(
+      shouldCreateSessionShortcut({
+        altKey: false,
+        ctrlKey: false,
+        key: 't',
+        metaKey: true,
+        repeat: false,
+        shiftKey: true,
+        type: 'keydown',
+      }),
+    ).toBe(false);
   });
 
   it('detects cmd+w as a session close shortcut', () => {

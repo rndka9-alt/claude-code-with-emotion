@@ -79,7 +79,11 @@ describe('workspaceReducer', () => {
       type: 'createTab',
       nowMs: 21_000,
     });
-    const nextState = workspaceReducer(state, {
+    const expandedState = workspaceReducer(state, {
+      type: 'createTab',
+      nowMs: 21_250,
+    });
+    const nextState = workspaceReducer(expandedState, {
       type: 'reorderTab',
       tabId: 'session-3',
       targetTabId: 'session-1',
