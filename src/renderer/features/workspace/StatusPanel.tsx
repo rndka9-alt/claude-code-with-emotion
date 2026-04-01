@@ -1,14 +1,17 @@
 import type { ReactElement } from 'react';
+import { Images } from 'lucide-react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
 import type { StatusPanelVisual } from './status-panel-visual';
 
 interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
+  onOpenAssetManager: () => void;
   statusVisual: StatusPanelVisual | null;
 }
 
 export function StatusPanel({
   assistantStatus,
+  onOpenAssetManager,
   statusVisual,
 }: StatusPanelProps): ReactElement {
   const avatarClassName = [
@@ -23,6 +26,16 @@ export function StatusPanel({
   return (
     <aside className="status-panel" aria-label="Assistant status panel">
       <div className={avatarClassName}>
+        <button
+          aria-label="Open visual asset manager"
+          className="status-panel__avatar-button"
+          onClick={onOpenAssetManager}
+          title="Customize status visuals"
+          type="button"
+        >
+          <Images aria-hidden="true" className="status-panel__avatar-button-icon" />
+        </button>
+
         {statusVisual === null ? (
           <div className="status-panel__avatar-orb" aria-hidden="true" />
         ) : (

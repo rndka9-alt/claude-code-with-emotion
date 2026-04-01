@@ -119,6 +119,9 @@ const claudeAppApi: ClaudeAppApi = {
         ipcRenderer.removeListener(VISUAL_ASSET_CHANNELS.catalog, subscription);
       };
     },
+    pickFiles: () => {
+      return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.pickFiles);
+    },
     saveCatalog: (catalog) => {
       return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.saveCatalog, catalog);
     },

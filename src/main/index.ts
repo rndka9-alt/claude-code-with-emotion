@@ -2,6 +2,7 @@ import {
   Menu,
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   type IpcMainEvent,
 } from 'electron';
@@ -232,6 +233,35 @@ function registerTerminalBridge(
   ipcMain.handle(VISUAL_ASSET_CHANNELS.getAvailableOptions, () => {
     return visualAssetStore.getAvailableOptions();
   });
+  ipcMain.handle(VISUAL_ASSET_CHANNELS.pickFiles, async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      buttonLabel: 'Choose Images',
+      filters: [
+        {
+          name: 'Images',
+          extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],
+        },
+      ],
+      properties: ['openFile', 'multiSelections'],
+    });
+
+    if (result.canceled) {
+      runtimeLog.write('visual-assets', 'picker canceled');
+      return [];
+    }
+
+    runtimeLog.write(
+      'visual-assets',
+      `picker selected files=${result.filePaths.length}`,
+    );
+
+    return result.filePaths.map((filePath) => {
+      return {
+        label: path.basename(filePath),
+        path: filePath,
+      };
+    });
+  });
   ipcMain.handle(
     VISUAL_ASSET_CHANNELS.saveCatalog,
     (_event, catalog: VisualAssetCatalog) => {
@@ -314,6 +344,7 @@ function registerTerminalBridge(
     ipcMain.removeHandler(ASSISTANT_STATUS_CHANNELS.getSnapshot);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getCatalog);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getAvailableOptions);
+    ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.pickFiles);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.saveCatalog);
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);

@@ -34,6 +34,7 @@ describe('StatusPanel', () => {
     render(
       <StatusPanel
         assistantStatus={assistantStatus}
+        onOpenAssetManager={() => {}}
         statusVisual={statusVisual}
       />,
     );
@@ -46,7 +47,11 @@ describe('StatusPanel', () => {
 
   it('falls back to the placeholder orb when no asset is mapped', () => {
     const { container } = render(
-      <StatusPanel assistantStatus={assistantStatus} statusVisual={null} />,
+      <StatusPanel
+        assistantStatus={assistantStatus}
+        onOpenAssetManager={() => {}}
+        statusVisual={null}
+      />,
     );
 
     expect(container.querySelector('.status-panel__avatar-orb')).not.toBeNull();
