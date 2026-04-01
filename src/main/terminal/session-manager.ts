@@ -106,6 +106,7 @@ export function createRuntimeEnv(
   statusFilePath: string,
   traceFilePath: string,
   visualAssetCatalogFilePath: string,
+  visualOverlayFilePath: string,
 ): Record<string, string> {
   const sanitizedEnvEntries = Object.entries(env).filter((entry) => {
     return typeof entry[1] === 'string';
@@ -125,6 +126,7 @@ export function createRuntimeEnv(
     CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: helperBinDir,
     CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
     CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: visualAssetCatalogFilePath,
+    CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: visualOverlayFilePath,
     PWD: cwd,
     PATH: pathSegments.join(':'),
     TERM: 'xterm-256color',
@@ -254,6 +256,7 @@ export class TerminalSessionManager {
     private readonly statusFilePath: string,
     private readonly traceFilePath: string,
     private readonly visualAssetCatalogFilePath: string,
+    private readonly visualOverlayFilePath: string,
   ) {}
 
   bootstrapSession(
@@ -278,6 +281,7 @@ export class TerminalSessionManager {
       this.statusFilePath,
       this.traceFilePath,
       this.visualAssetCatalogFilePath,
+      this.visualOverlayFilePath,
     );
     const homeDir = runtimeEnv.HOME;
 
@@ -374,6 +378,7 @@ export function createTerminalSessionManager(
   statusFilePath: string,
   traceFilePath: string,
   visualAssetCatalogFilePath: string,
+  visualOverlayFilePath: string,
 ): TerminalSessionManager {
   return new TerminalSessionManager(
     createNodePtyRuntime,
@@ -383,5 +388,6 @@ export function createTerminalSessionManager(
     statusFilePath,
     traceFilePath,
     visualAssetCatalogFilePath,
+    visualOverlayFilePath,
   );
 }

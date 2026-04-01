@@ -13,6 +13,7 @@ import {
   resolveRuntimeLogPath,
   type RuntimeLog,
 } from './diagnostics/runtime-log';
+import { AssistantVisualOverlayFileBridge } from './status/assistant-visual-overlay-file-bridge';
 import { AssistantStatusFileBridge } from './status/assistant-status-file-bridge';
 import { AssistantStatusStore } from './status/assistant-status-store';
 import { ensureNodePtySpawnHelpersExecutable } from './terminal/node-pty-runtime';
@@ -156,6 +157,10 @@ function registerTerminalBridge(
     app.getPath('userData'),
     'assistant-status.json',
   );
+  const assistantVisualOverlayFilePath = path.join(
+    app.getPath('userData'),
+    'assistant-visual-overlay.json',
+  );
   const assistantStatusTraceFilePath = runtimeLog.filePath;
   const assistantStatusHelperBinDir = path.join(app.getAppPath(), 'bin');
   const visualAssetCatalogFilePath = path.join(
@@ -167,6 +172,13 @@ function registerTerminalBridge(
     assistantStatusStore,
     (message) => {
       runtimeLog.write('assistant-status-file', message);
+    },
+  );
+  const assistantVisualOverlayFileBridge = new AssistantVisualOverlayFileBridge(
+    assistantVisualOverlayFilePath,
+    assistantStatusStore,
+    (message) => {
+      runtimeLog.write('assistant-visual-overlay-file', message);
     },
   );
   const terminalSessionManager = createTerminalSessionManager(
@@ -191,6 +203,7 @@ function registerTerminalBridge(
     assistantStatusFilePath,
     assistantStatusTraceFilePath,
     visualAssetCatalogFilePath,
+    assistantVisualOverlayFilePath,
   );
   const visualAssetStore = new VisualAssetStore(
     visualAssetCatalogFilePath,
@@ -216,9 +229,14 @@ function registerTerminalBridge(
   });
 
   assistantStatusFileBridge.start();
+  assistantVisualOverlayFileBridge.start();
   runtimeLog.write(
     'assistant-status',
     `watching helper file ${assistantStatusFilePath}`,
+  );
+  runtimeLog.write(
+    'assistant-visual-overlay',
+    `watching helper file ${assistantVisualOverlayFilePath}`,
   );
   runtimeLog.write(
     'visual-assets',
@@ -338,6 +356,7 @@ function registerTerminalBridge(
     unsubscribeVisualAssets();
     unsubscribeAssistantStatus();
     assistantStatusFileBridge.stop();
+    assistantVisualOverlayFileBridge.stop();
     assistantStatusStore.dispose();
     visualAssetStore.dispose();
     terminalSessionManager.dispose();

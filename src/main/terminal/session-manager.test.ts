@@ -50,6 +50,7 @@ describe('createRuntimeEnv', () => {
       '/tmp/status.json',
       '/tmp/trace.log',
       '/tmp/visual-assets.json',
+      '/tmp/visual-overlay.json',
     );
 
     expect(env.PWD).toBe('/tmp/app');
@@ -61,6 +62,9 @@ describe('createRuntimeEnv', () => {
     expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe('/tmp/trace.log');
     expect(env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE).toBe(
       '/tmp/visual-assets.json',
+    );
+    expect(env.CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE).toBe(
+      '/tmp/visual-overlay.json',
     );
     expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
     expect(env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE).toBe(
@@ -84,6 +88,7 @@ describe('createShellLaunchConfig', () => {
       CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: '/tmp/status.json.hook-state.json',
       CLAUDE_WITH_EMOTION_TRACE_FILE: '/tmp/trace.log',
       CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: '/tmp/visual-assets.json',
+      CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: '/tmp/visual-overlay.json',
     };
 
     try {
@@ -202,6 +207,7 @@ describe('TerminalSessionManager', () => {
       '/tmp/status.json',
       '/tmp/trace.log',
       '/tmp/visual-assets.json',
+      '/tmp/visual-overlay.json',
     );
 
     const response = manager.bootstrapSession(createBootstrapRequest());
@@ -291,6 +297,7 @@ describe('TerminalSessionManager', () => {
       '/tmp/status.json',
       '/tmp/trace.log',
       '/tmp/visual-assets.json',
+      '/tmp/visual-overlay.json',
     );
 
     manager.bootstrapSession(createBootstrapRequest());

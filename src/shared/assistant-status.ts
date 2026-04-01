@@ -27,6 +27,16 @@ export interface AssistantStatusUpdate {
   intensity?: AssistantStatusIntensity;
 }
 
+/*
+ * This overlay contract is intentionally tiny for now. The current phase only
+ * uses `emotion`, but `line` is reserved so a future MCP surface can override
+ * the one-line utterance without redesigning the storage pipeline again.
+ */
+export interface AssistantVisualOverlayUpdate {
+  emotion?: AssistantEmotionalState | null;
+  line?: string | null;
+}
+
 export interface AssistantStatusSnapshot {
   emotion: AssistantEmotionalState | null;
   state: AssistantSemanticState;

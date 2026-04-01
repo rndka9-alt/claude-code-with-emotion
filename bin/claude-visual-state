@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+
+const fs = require('node:fs');
+
+function appendTrace(message) {
+  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+
+  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+    return;
+  }
+
+  const line = `[${new Date().toISOString()}] [claude-visual-state-helper] ${message}\n`;
+
+  try {
+    fs.appendFileSync(traceFilePath, line, 'utf8');
+  } catch {
+    // Ignore trace write failures inside the terminal helper.
+  }
+}
+
+function parseArgs(argv) {
+  if (argv.length === 1 && argv[0].trim().startsWith('{')) {
+    return JSON.parse(argv[0]);
+  }
+
+  const result = {};
+
+  for (let index = 0; index < argv.length; index += 2) {
+    const key = argv[index];
+    const value = argv[index + 1];
+
+    if (typeof key !== 'string' || !key.startsWith('--') || value === undefined) {
+      continue;
+    }
+
+    if (key === '--emotion') {
+      result.emotion = value === 'neutral' ? null : value;
+    } else if (key === '--line') {
+      result.line = value;
+    }
+  }
+
+  return result;
+}
+
+function main() {
+  const overlayFilePath = process.env.CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE;
+
+  if (typeof overlayFilePath !== 'string' || overlayFilePath.length === 0) {
+    console.error('CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE is not set.');
+    process.exit(1);
+  }
+
+  const payload = parseArgs(process.argv.slice(2));
+
+  if (
+    payload === null ||
+    typeof payload !== 'object' ||
+    (payload.emotion === undefined && payload.line === undefined)
+  ) {
+    console.error(
+      'Usage: claude-visual-state --emotion <neutral|happy|sad|surprised> [--line <line>]',
+    );
+    process.exit(1);
+  }
+
+  appendTrace(
+    `writing visual overlay emotion=${payload.emotion ?? 'none'} line=${payload.line ?? ''}`,
+  );
+  fs.writeFileSync(overlayFilePath, JSON.stringify(payload), 'utf8');
+}
+
+main();

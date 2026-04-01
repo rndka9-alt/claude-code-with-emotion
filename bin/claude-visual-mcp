@@ -1,0 +1,309 @@
+#!/usr/bin/env node
+
+const { spawnSync } = require('node:child_process');
+const path = require('node:path');
+
+const SERVER_NAME = 'claude-code-with-emotion-visuals';
+const SERVER_VERSION = '0.1.0';
+const helperDir = __dirname;
+const statusHelperPath = path.join(helperDir, 'claude-status');
+const visualStateHelperPath = path.join(helperDir, 'claude-visual-state');
+
+let inputBuffer = Buffer.alloc(0);
+let negotiatedProtocolVersion = '2024-11-05';
+
+function sendMessage(message) {
+  const json = JSON.stringify(message);
+  const contentLength = Buffer.byteLength(json, 'utf8');
+
+  process.stdout.write(`Content-Length: ${contentLength}\r\n\r\n${json}`);
+}
+
+function sendSuccess(id, result) {
+  sendMessage({
+    jsonrpc: '2.0',
+    id,
+    result,
+  });
+}
+
+function sendError(id, code, message) {
+  sendMessage({
+    jsonrpc: '2.0',
+    id,
+    error: {
+      code,
+      message,
+    },
+  });
+}
+
+function readAvailableVisualOptions() {
+  const result = spawnSync('node', [statusHelperPath, '--list-visual-options'], {
+    cwd: process.cwd(),
+    env: process.env,
+    encoding: 'utf8',
+  });
+
+  if (result.status !== 0) {
+    return {
+      states: [],
+      emotions: [],
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(result.stdout.trim());
+
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      Array.isArray(parsed.states) &&
+      Array.isArray(parsed.emotions)
+    ) {
+      return parsed;
+    }
+  } catch {
+    // Fall through to the empty response.
+  }
+
+  return {
+    states: [],
+    emotions: [],
+  };
+}
+
+function createToolsListResult() {
+  const availableOptions = readAvailableVisualOptions();
+  const emotionEnum = ['neutral', ...availableOptions.emotions];
+
+  return {
+    tools: [
+      {
+        name: 'get_available_visual_options',
+        description:
+          'Return the currently mapped visual state and emotion presets from the local app catalog.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+          additionalProperties: false,
+        },
+      },
+      {
+        name: 'set_visual_emotion',
+        description:
+          'Set the assistant visual emotion overlay. Use neutral to clear the overlay and fall back to state-only visuals.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            emotion: {
+              type: 'string',
+              enum: emotionEnum,
+            },
+          },
+          required: ['emotion'],
+          additionalProperties: false,
+        },
+      },
+    ],
+  };
+}
+
+function callVisualEmotionTool(argumentsObject) {
+  const availableOptions = readAvailableVisualOptions();
+  const allowedEmotions = new Set(['neutral', ...availableOptions.emotions]);
+  const emotion =
+    typeof argumentsObject === 'object' &&
+    argumentsObject !== null &&
+    typeof argumentsObject.emotion === 'string'
+      ? argumentsObject.emotion
+      : null;
+
+  if (emotion === null || !allowedEmotions.has(emotion)) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: `Unsupported emotion: ${emotion ?? 'missing'}`,
+        },
+      ],
+    };
+  }
+
+  const result = spawnSync(
+    'node',
+    [visualStateHelperPath, '--emotion', emotion],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      encoding: 'utf8',
+    },
+  );
+
+  if (result.status !== 0) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: result.stderr || result.stdout || 'Failed to write visual overlay',
+        },
+      ],
+    };
+  }
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text:
+          emotion === 'neutral'
+            ? 'Cleared the visual emotion overlay.'
+            : `Set the visual emotion overlay to ${emotion}.`,
+      },
+    ],
+    structuredContent: {
+      emotion,
+    },
+  };
+}
+
+function handleRequest(message) {
+  if (typeof message !== 'object' || message === null) {
+    return;
+  }
+
+  const id = Object.prototype.hasOwnProperty.call(message, 'id')
+    ? message.id
+    : null;
+  const method = typeof message.method === 'string' ? message.method : null;
+
+  if (method === null) {
+    if (id !== null) {
+      sendError(id, -32600, 'Invalid request');
+    }
+    return;
+  }
+
+  if (method === 'notifications/initialized') {
+    return;
+  }
+
+  if (method === 'initialize') {
+    const requestedProtocolVersion =
+      typeof message.params === 'object' &&
+      message.params !== null &&
+      typeof message.params.protocolVersion === 'string'
+        ? message.params.protocolVersion
+        : negotiatedProtocolVersion;
+
+    negotiatedProtocolVersion = requestedProtocolVersion;
+
+    sendSuccess(id, {
+      protocolVersion: negotiatedProtocolVersion,
+      capabilities: {
+        tools: {},
+      },
+      serverInfo: {
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
+      },
+    });
+    return;
+  }
+
+  if (method === 'tools/list') {
+    sendSuccess(id, createToolsListResult());
+    return;
+  }
+
+  if (method === 'tools/call') {
+    const toolName =
+      typeof message.params === 'object' &&
+      message.params !== null &&
+      typeof message.params.name === 'string'
+        ? message.params.name
+        : null;
+    const argumentsObject =
+      typeof message.params === 'object' && message.params !== null
+        ? message.params.arguments
+        : null;
+
+    if (toolName === 'get_available_visual_options') {
+      const availableOptions = readAvailableVisualOptions();
+
+      sendSuccess(id, {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(availableOptions),
+          },
+        ],
+        structuredContent: availableOptions,
+      });
+      return;
+    }
+
+    if (toolName === 'set_visual_emotion') {
+      sendSuccess(id, callVisualEmotionTool(argumentsObject));
+      return;
+    }
+
+    sendError(id, -32601, `Unknown tool: ${toolName ?? 'missing'}`);
+    return;
+  }
+
+  if (id !== null) {
+    sendError(id, -32601, `Method not found: ${method}`);
+  }
+}
+
+function processInputBuffer() {
+  while (true) {
+    const headerEndIndex = inputBuffer.indexOf('\r\n\r\n');
+
+    if (headerEndIndex === -1) {
+      return;
+    }
+
+    const headerText = inputBuffer.subarray(0, headerEndIndex).toString('utf8');
+    const contentLengthMatch = headerText.match(/Content-Length:\s*(\d+)/i);
+
+    if (contentLengthMatch === null) {
+      inputBuffer = Buffer.alloc(0);
+      return;
+    }
+
+    const contentLength = Number(contentLengthMatch[1]);
+    const messageStartIndex = headerEndIndex + 4;
+    const messageEndIndex = messageStartIndex + contentLength;
+
+    if (inputBuffer.length < messageEndIndex) {
+      return;
+    }
+
+    const messageText = inputBuffer
+      .subarray(messageStartIndex, messageEndIndex)
+      .toString('utf8');
+
+    inputBuffer = inputBuffer.subarray(messageEndIndex);
+
+    try {
+      handleRequest(JSON.parse(messageText));
+    } catch (error) {
+      sendError(
+        null,
+        -32700,
+        error instanceof Error ? error.message : 'Parse error',
+      );
+    }
+  }
+}
+
+process.stdin.on('data', (chunk) => {
+  inputBuffer = Buffer.concat([inputBuffer, chunk]);
+  processInputBuffer();
+});
+
+process.stdin.resume();

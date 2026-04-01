@@ -50,4 +50,37 @@ describe('AssistantStatusStore', () => {
     expect(store.getSnapshot().emotion).toBeNull();
     expect(store.getSnapshot().line).toBe('Base state');
   });
+
+  it('lets a visual overlay emotion sit on top of the semantic base state', () => {
+    const store = new AssistantStatusStore(3_000);
+
+    store.applyUpdate(
+      {
+        state: 'working',
+        line: 'Base state',
+        currentTask: 'Normal work',
+      },
+      'assistant-command',
+    );
+    store.applyVisualOverlay(
+      {
+        emotion: 'happy',
+      },
+      'visual-overlay',
+    );
+
+    expect(store.getSnapshot().state).toBe('working');
+    expect(store.getSnapshot().emotion).toBe('happy');
+    expect(store.getSnapshot().source).toBe('visual-overlay');
+
+    store.applyVisualOverlay(
+      {
+        emotion: null,
+      },
+      'visual-overlay',
+    );
+
+    expect(store.getSnapshot().emotion).toBeNull();
+    expect(store.getSnapshot().line).toBe('Base state');
+  });
 });

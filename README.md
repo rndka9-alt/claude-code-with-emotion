@@ -105,6 +105,15 @@ And you can inspect which visual presets are currently mapped in the user catalo
 claude-status --list-visual-options
 ```
 
+For emotion-only visual overrides, each embedded shell session also gets:
+
+```bash
+claude-visual-state --emotion happy
+claude-visual-state --emotion neutral
+```
+
+`neutral` clears the overlay and lets the current semantic state render by itself again.
+
 Supported semantic states:
 
 - `disconnected`
@@ -152,6 +161,21 @@ When Claude itself is launched through the embedded terminal, the app also injec
 The hook helper also keeps a tiny temp state file so a `PermissionRequest` followed by a new `UserPromptSubmit` or `SessionEnd` without any `PreToolUse` can be treated as a soft permission cancel instead of getting stuck in a waiting state.
 
 All helper writes and hook transitions are traced into `.runtime-logs/electron-dev.log`.
+
+## Visual Emotion MCP
+
+The repo now includes an emotion-focused stdio MCP server at:
+
+```text
+bin/claude-visual-mcp
+```
+
+Current tools:
+
+- `get_available_visual_options`
+- `set_visual_emotion`
+
+`set_visual_emotion` only deals with the emotion overlay for now. The hook-driven task state and the one-line assistant copy remain separate, so the future summary/message surface can be added without reworking the emotion transport.
 
 ## Verification
 
