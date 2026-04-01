@@ -63,7 +63,7 @@ describe('workspaceReducer', () => {
     const nextState = workspaceReducer(state, {
       type: 'closeTab',
       tabId: 'session-1',
-      nowMs: 21_000,
+      nowMs: 26_000,
       reason: 'exit',
     });
 
@@ -71,6 +71,24 @@ describe('workspaceReducer', () => {
     expect(nextState.activeTabId).toBe('session-2');
     expect(nextState.assistantStatus.line).toBe(
       '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!',
+    );
+  });
+
+  it('pauses Claude auto-launch after an immediate last-session exit', () => {
+    const state = createInitialWorkspaceState(20_000);
+    const nextState = workspaceReducer(state, {
+      type: 'closeTab',
+      tabId: 'session-1',
+      nowMs: 21_000,
+      reason: 'exit',
+    });
+
+    expect(nextState.tabs).toHaveLength(1);
+    expect(nextState.tabs[0]?.id).toBe('session-2');
+    expect(nextState.tabs[0]?.command).toBe('');
+    expect(nextState.assistantStatus.visualState).toBe('error');
+    expect(nextState.assistantStatus.line).toBe(
+      '세션이 너무 빨리 종료돼서 Claude 자동 재실행은 멈춰뒀어요...!',
     );
   });
 

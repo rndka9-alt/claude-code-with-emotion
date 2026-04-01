@@ -2,6 +2,8 @@ import type { AssistantSemanticState } from '../../../shared/assistant-status';
 
 export type SessionLifecycle = 'bootstrapping' | 'ready';
 
+const IMMEDIATE_EXIT_RELAUNCH_WINDOW_MS = 5_000;
+
 export interface SessionTab {
   id: string;
   title: string;
@@ -58,6 +60,13 @@ function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
     command: 'claude',
     lifecycle: 'bootstrapping',
     createdAtMs: nowMs,
+  };
+}
+
+function createRecoverySessionTab(tabNumber: number, nowMs: number): SessionTab {
+  return {
+    ...createSessionTab(tabNumber, nowMs),
+    command: '',
   };
 }
 
@@ -128,9 +137,15 @@ function closeTabState(
   const remainingTabs = state.tabs.filter((tab) => tab.id !== tabId);
 
   if (remainingTabs.length === 0) {
-    const replacementTab = createSessionTab(state.nextTabNumber, nowMs);
-    const replacementLine =
-      reason === 'exit'
+    const shouldPauseAutoLaunch =
+      reason === 'exit' &&
+      nowMs - closedTab.createdAtMs < IMMEDIATE_EXIT_RELAUNCH_WINDOW_MS;
+    const replacementTab = shouldPauseAutoLaunch
+      ? createRecoverySessionTab(state.nextTabNumber, nowMs)
+      : createSessionTab(state.nextTabNumber, nowMs);
+    const replacementLine = shouldPauseAutoLaunch
+      ? '세션이 너무 빨리 종료돼서 Claude 자동 재실행은 멈춰뒀어요...!'
+      : reason === 'exit'
         ? '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!'
         : '마지막 탭을 닫아서 새 세션 하나 열어뒀어요...!';
 
@@ -140,9 +155,11 @@ function closeTabState(
       activeTabId: replacementTab.id,
       nextTabNumber: state.nextTabNumber + 1,
       assistantStatus: createAssistantStatus(
-        'waiting',
+        shouldPauseAutoLaunch ? 'error' : 'waiting',
         replacementLine,
-        `Bootstrapping "${replacementTab.title}"`,
+        shouldPauseAutoLaunch
+          ? `Paused Claude auto-launch for "${replacementTab.title}"`
+          : `Bootstrapping "${replacementTab.title}"`,
         nowMs,
       ),
     };
