@@ -86,7 +86,10 @@ export class AssistantStatusStore {
     source: string,
   ): AssistantStatusSnapshot {
     return {
+      activityLabel:
+        update.activityLabel ?? this.currentSnapshot.activityLabel,
       emotion: update.emotion ?? this.currentSnapshot.emotion,
+      overlayLine: this.currentSnapshot.overlayLine,
       state: update.state,
       line: update.line,
       currentTask:
@@ -101,15 +104,21 @@ export class AssistantStatusStore {
     snapshot: AssistantStatusSnapshot,
     source: string,
   ): AssistantStatusSnapshot {
+    const nextOverlayLine =
+      this.visualOverlay.line !== undefined
+        ? this.visualOverlay.line
+        : snapshot.overlayLine;
+
     return {
       ...snapshot,
       emotion:
         this.visualOverlay.emotion !== undefined
           ? this.visualOverlay.emotion
           : snapshot.emotion,
+      overlayLine: nextOverlayLine ?? null,
       line:
-        this.visualOverlay.line !== undefined
-          ? this.visualOverlay.line ?? snapshot.line
+        nextOverlayLine !== undefined && nextOverlayLine !== null
+          ? nextOverlayLine
           : snapshot.line,
       updatedAtMs: Date.now(),
       source,

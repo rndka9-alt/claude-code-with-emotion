@@ -110,9 +110,16 @@ For emotion-only visual overrides, each embedded shell session also gets:
 ```bash
 claude-visual-state --emotion happy
 claude-visual-state --emotion neutral
+claude-visual-state --line "문제를 좀 더 파볼게요!"
+claude-visual-state --clear-line
 ```
 
 `neutral` clears the overlay and lets the current semantic state render by itself again.
+
+The status panel now renders its copy in two layers:
+
+- the hook-driven `activityLabel`, shown by itself like `(자료를 찾는 중)` when no custom line exists
+- an optional MCP-driven in-character one-line utterance, rendered as `문제를 좀 더 파볼게요! (자료를 찾는 중)`
 
 Supported semantic states:
 
@@ -176,8 +183,10 @@ Current tools:
 
 - `get_available_visual_options`
 - `set_visual_emotion`
+- `set_visual_line`
+- `clear_visual_line`
 
-`set_visual_emotion` only deals with the emotion overlay for now. The hook-driven task state and the one-line assistant copy remain separate, so the future summary/message surface can be added without reworking the emotion transport.
+The MCP surface now splits its guidance across dedicated prompt files in `bin/prompts/`, so emotion selection and one-line copy rules can evolve independently without bloating the server script.
 
 When Claude is launched through the embedded terminal, the wrapper now writes a temporary MCP config file and passes it through `--mcp-config`, so the local visual MCP server is attached automatically instead of requiring a manual Claude-side setup step.
 

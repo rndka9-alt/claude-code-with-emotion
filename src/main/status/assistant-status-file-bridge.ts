@@ -44,6 +44,7 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
   const emotion = value.emotion;
   const line = value.line;
   const currentTask = value.currentTask;
+  const activityLabel = value.activityLabel;
   const durationMs = value.durationMs;
   const intensity = value.intensity;
 
@@ -65,6 +66,13 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
   if (
     currentTask !== undefined &&
     typeof currentTask !== 'string'
+  ) {
+    return null;
+  }
+
+  if (
+    activityLabel !== undefined &&
+    typeof activityLabel !== 'string'
   ) {
     return null;
   }
@@ -96,6 +104,10 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
 
   if (currentTask !== undefined) {
     update.currentTask = currentTask;
+  }
+
+  if (activityLabel !== undefined) {
+    update.activityLabel = activityLabel;
   }
 
   if (durationMs !== undefined) {
@@ -171,7 +183,7 @@ export class AssistantStatusFileBridge {
 
       if (update !== null) {
         this.logEvent?.(
-          `parsed update state=${update.state} emotion=${update.emotion ?? 'none'} line=${update.line} task=${update.currentTask ?? ''}`,
+          `parsed update state=${update.state} emotion=${update.emotion ?? 'none'} line=${update.line} activity=${update.activityLabel ?? ''} task=${update.currentTask ?? ''}`,
         );
         this.statusStore.applyUpdate(update, 'assistant-command');
       } else {

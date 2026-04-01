@@ -31,7 +31,9 @@ export function App(): ReactElement {
   const visibleTabs = getVisibleTabs(state);
   const panelId = activeTab !== null ? `panel-${activeTab.id}` : 'panel-stack';
   const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
+    activityLabel: '작업중',
     emotion: null,
+    overlayLine: null,
     state: state.assistantStatus.visualState,
     line: state.assistantStatus.line,
     currentTask: state.assistantStatus.currentTask,

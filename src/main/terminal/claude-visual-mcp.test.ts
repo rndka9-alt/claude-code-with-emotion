@@ -53,6 +53,30 @@ function readSetVisualEmotionEnum(response: JsonRpcMessage): string[] {
   });
 }
 
+function readToolNames(response: JsonRpcMessage): string[] {
+  if (!isObjectRecord(response.result)) {
+    throw new Error('Expected MCP tools/list result to be an object');
+  }
+
+  const tools = response.result.tools;
+
+  if (!Array.isArray(tools)) {
+    throw new Error('Expected MCP tools/list result to contain tools');
+  }
+
+  return tools.flatMap((tool) => {
+    if (
+      typeof tool === 'object' &&
+      tool !== null &&
+      typeof tool.name === 'string'
+    ) {
+      return [tool.name];
+    }
+
+    return [];
+  });
+}
+
 function encodeMessage(message: object): string {
   const json = JSON.stringify(message);
 
@@ -209,6 +233,14 @@ describe('claude-visual-mcp', () => {
       'neutral',
       'sad',
     ]);
+    expect(readToolNames(toolsListResponse)).toEqual(
+      expect.arrayContaining([
+        'get_available_visual_options',
+        'set_visual_emotion',
+        'set_visual_line',
+        'clear_visual_line',
+      ]),
+    );
   });
 
   it('writes an emotion overlay through the tool call', async () => {
@@ -279,6 +311,101 @@ describe('claude-visual-mcp', () => {
 
     expect(JSON.parse(fs.readFileSync(overlayFilePath, 'utf8'))).toEqual({
       emotion: 'happy',
+    });
+  });
+
+  it('writes and clears a visual line through MCP tools', async () => {
+    const catalogFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), 'claude-visual-mcp-catalog-')),
+      'visual-assets.json',
+    );
+    const overlayFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), 'claude-visual-mcp-overlay-')),
+      'overlay.json',
+    );
+
+    fs.writeFileSync(
+      catalogFilePath,
+      JSON.stringify({
+        version: 1,
+        assets: [],
+        mappings: [],
+      }),
+      'utf8',
+    );
+
+    await invokeMcpServer(
+      [
+        {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: {
+              name: 'test',
+              version: '0.0.0',
+            },
+          },
+        },
+        {
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: {
+            name: 'set_visual_line',
+            arguments: {
+              line: '문제를 좀 더 파볼게요!',
+            },
+          },
+        },
+      ],
+      {
+        ...process.env,
+        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
+        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
+      },
+    );
+
+    expect(JSON.parse(fs.readFileSync(overlayFilePath, 'utf8'))).toEqual({
+      line: '문제를 좀 더 파볼게요!',
+    });
+
+    await invokeMcpServer(
+      [
+        {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: {
+              name: 'test',
+              version: '0.0.0',
+            },
+          },
+        },
+        {
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/call',
+          params: {
+            name: 'clear_visual_line',
+            arguments: {},
+          },
+        },
+      ],
+      {
+        ...process.env,
+        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
+        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
+      },
+    );
+
+    expect(JSON.parse(fs.readFileSync(overlayFilePath, 'utf8'))).toEqual({
+      line: null,
     });
   });
 });

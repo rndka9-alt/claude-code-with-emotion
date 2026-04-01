@@ -4,7 +4,9 @@ import { StatusPanel } from './StatusPanel';
 import type { StatusPanelVisual } from './status-panel-visual';
 
 const assistantStatus: AssistantStatusSnapshot = {
+  activityLabel: '자료를 찾는 중',
   emotion: null,
+  overlayLine: null,
   state: 'thinking',
   line: '생각 중이에요...',
   currentTask: 'Testing',
@@ -56,5 +58,23 @@ describe('StatusPanel', () => {
     );
 
     expect(container.querySelector('.status-panel__avatar-orb')).not.toBeNull();
+  });
+
+  it('renders a custom line with the current activity label in parentheses', () => {
+    render(
+      <StatusPanel
+        assistantStatus={{
+          ...assistantStatus,
+          overlayLine: '문제를 좀 더 파볼게요!',
+          line: '문제를 좀 더 파볼게요!',
+        }}
+        onOpenAssetManager={() => {}}
+        statusVisual={null}
+      />,
+    );
+
+    expect(
+      screen.getByText('문제를 좀 더 파볼게요! (자료를 찾는 중)'),
+    ).toBeInTheDocument();
   });
 });

@@ -362,6 +362,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'SessionStart') {
     return {
+      activity: '다음 입력 기다리는 중',
       state: 'waiting',
       line: 'Claude 연결 완료! 다음 입력을 기다리고 잇어요...!',
       task: 'Waiting for the next prompt',
@@ -371,6 +372,10 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'UserPromptSubmit') {
     return {
+      activity:
+        pendingPermission === null
+          ? '자료를 찾는 중'
+          : '새 입력을 다시 살피는 중',
       state: 'thinking',
       line:
         pendingPermission === null
@@ -383,6 +388,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'PermissionRequest') {
     return {
+      activity: '권한 확인 기다리는 중',
       state: 'waiting',
       line: '권한 확인 기다리는 중이에요...!',
       task: summarizePermission(payload),
@@ -393,6 +399,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'PermissionDenied') {
     return {
+      activity: '우회 경로를 찾는 중',
       state: 'sad',
       line: '권한이 막혀서 다른 길 찾는 중이에요...!',
       task: summarizePermission(payload),
@@ -403,6 +410,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'PreToolUse') {
     return {
+      activity: '컴퓨터 작업중',
       state: 'working',
       line: '도구를 써서 확인하는 중이에요...!',
       task: summarizeTool(payload, 'Using a Claude tool'),
@@ -412,6 +420,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'PostToolUse') {
     return {
+      activity: '결과를 정리하는 중',
       state: 'thinking',
       line: '방금 가져온 결과를 정리 중이에요...!',
       task: summarizeTool(payload, 'Reviewing tool output'),
@@ -422,6 +431,7 @@ function createUpdate(eventName, payload, hookState) {
   if (eventName === 'Notification') {
     if (isPermissionPromptNotification(payload)) {
       return {
+        activity: '권한 확인 기다리는 중',
         state: 'waiting',
         line: '권한 팝업 확인 중이에요...!',
         task: summarizePermission(payload),
@@ -431,6 +441,7 @@ function createUpdate(eventName, payload, hookState) {
     }
 
     return {
+      activity: '새 알림 확인 중',
       state: 'surprised',
       line: '새 알림이 와서 확인 중이에요...!',
       task: summarizeNotification(payload),
@@ -441,6 +452,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'Elicitation') {
     return {
+      activity: '추가 입력 기다리는 중',
       state: 'waiting',
       line: '추가 입력을 기다리고 잇어요...!',
       task: summarizeElicitation(payload),
@@ -450,6 +462,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'ElicitationResult') {
     return {
+      activity: '추가 입력 반영 중',
       state: 'thinking',
       line: '방금 받은 입력을 반영 중이에요...!',
       task: summarizeElicitation(payload),
@@ -459,6 +472,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'SubagentStart') {
     return {
+      activity: '보조 작업 진행 중',
       state: 'working',
       line: '보조 작업을 함께 진행 중이에요...!',
       task: summarizeBackgroundTask(payload, 'Coordinating background work'),
@@ -468,6 +482,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'SubagentStop') {
     return {
+      activity: '보조 작업 결과 정리 중',
       state: 'thinking',
       line: '추가 작업 결과를 정리 중이에요...!',
       task: summarizeBackgroundTask(payload, 'Reviewing background task output'),
@@ -477,6 +492,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'TeammateIdle') {
     return {
+      activity: '다음 지시 기다리는 중',
       state: 'waiting',
       line: '보조 작업이 다음 지시를 기다리고 잇어요...!',
       task: summarizeBackgroundTask(payload, 'Waiting on background work'),
@@ -486,6 +502,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'TaskCompleted') {
     return {
+      activity: '작업 마무리 중',
       state: 'happy',
       line: '작업 하나를 마무리햇어요...!',
       task: summarizeBackgroundTask(payload, 'Background task completed'),
@@ -497,6 +514,7 @@ function createUpdate(eventName, payload, hookState) {
   if (eventName === 'PostToolUseFailure') {
     if (isToolInterrupt(payload)) {
       return {
+        activity: '중단된 작업 정리 중',
         state: 'waiting',
         line: '유저가 도구 실행을 중간에 멈췃어요...!',
         task: summarizeTool(payload, 'Interrupted during tool use'),
@@ -506,6 +524,7 @@ function createUpdate(eventName, payload, hookState) {
     }
 
     return {
+      activity: '문제 원인 확인 중',
       state: 'error',
       line: '도구 실행 중에 문제가 생겻어요...!',
       task: summarizeTool(payload, 'Claude tool failed'),
@@ -515,6 +534,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'Stop') {
     return {
+      activity: '다음 입력 기다리는 중',
       state: 'waiting',
       line: '응답을 마치고 다음 입력을 기다리고 잇어요...!',
       task: 'Waiting for the next prompt',
@@ -524,6 +544,7 @@ function createUpdate(eventName, payload, hookState) {
 
   if (eventName === 'StopFailure') {
     return {
+      activity: '오류 확인 중',
       state: 'error',
       line: '응답 중에 문제가 생겻어요...!',
       task: 'Claude hit a stop failure',
@@ -534,6 +555,7 @@ function createUpdate(eventName, payload, hookState) {
   if (eventName === 'SessionEnd') {
     if (pendingPermission !== null) {
       return {
+        activity: '연결 종료됨',
         state: 'disconnected',
         line: '권한 승인 없이 세션이 닫혓어요...!',
         task: summarizePermissionCancellation(pendingPermission),
@@ -543,6 +565,7 @@ function createUpdate(eventName, payload, hookState) {
     }
 
     return {
+      activity: '연결 대기 중',
       state: 'disconnected',
       line: 'Claude 세션이 종료돼서 지금은 미연결 상태예요...!',
       task: 'Waiting for Claude to start',
@@ -564,6 +587,8 @@ function publishStatus(update) {
     update.state,
     '--line',
     update.line,
+    '--activity',
+    update.activity,
     '--task',
     update.task,
     '--intensity',

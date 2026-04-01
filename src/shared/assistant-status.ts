@@ -19,6 +19,7 @@ export type AssistantEmotionalState =
 export type AssistantStatusIntensity = 'low' | 'medium' | 'high';
 
 export interface AssistantStatusUpdate {
+  activityLabel?: string;
   emotion?: AssistantEmotionalState;
   state: AssistantSemanticState;
   line: string;
@@ -38,7 +39,9 @@ export interface AssistantVisualOverlayUpdate {
 }
 
 export interface AssistantStatusSnapshot {
+  activityLabel: string;
   emotion: AssistantEmotionalState | null;
+  overlayLine: string | null;
   state: AssistantSemanticState;
   line: string;
   currentTask: string;
@@ -66,7 +69,9 @@ export function createDefaultAssistantStatusSnapshot(
   nowMs: number,
 ): AssistantStatusSnapshot {
   return {
+    activityLabel: '연결 대기 중',
     emotion: null,
+    overlayLine: null,
     state: 'disconnected',
     line: 'Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!',
     currentTask: 'Waiting for Claude to start',

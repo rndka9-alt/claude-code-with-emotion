@@ -41,6 +41,8 @@ function parseArgs(argv) {
       result.line = value;
     } else if (key === '--task') {
       result.currentTask = value;
+    } else if (key === '--activity') {
+      result.activityLabel = value;
     } else if (key === '--duration-ms') {
       const parsed = Number(value);
 
@@ -135,7 +137,7 @@ function main() {
   }
 
   appendTrace(
-    `writing status state=${payload.state} emotion=${payload.emotion ?? 'none'} line=${payload.line} task=${payload.currentTask ?? ''}`,
+    `writing status state=${payload.state} emotion=${payload.emotion ?? 'none'} line=${payload.line} activity=${payload.activityLabel ?? ''} task=${payload.currentTask ?? ''}`,
   );
   fs.writeFileSync(statusFilePath, JSON.stringify(payload), 'utf8');
 }

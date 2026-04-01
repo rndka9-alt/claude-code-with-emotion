@@ -2,7 +2,9 @@ import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
 import { resolveStatusPanelVisual } from './status-panel-visual';
 
 const baseSnapshot: AssistantStatusSnapshot = {
+  activityLabel: '컴퓨터 작업중',
   emotion: null,
+  overlayLine: null,
   state: 'working',
   line: '작업 중...',
   currentTask: 'Testing',

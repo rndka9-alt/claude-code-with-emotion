@@ -2,6 +2,7 @@
 
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
+const { createVisualPromptHints } = require('./lib/claude-visual-mcp-prompts');
 
 const SERVER_NAME = 'claude-code-with-emotion-visuals';
 const SERVER_VERSION = '0.1.0';
@@ -81,6 +82,7 @@ function readAvailableVisualOptions() {
 function createToolsListResult() {
   const availableOptions = readAvailableVisualOptions();
   const emotionEnum = ['neutral', ...availableOptions.emotions];
+  const promptHints = createVisualPromptHints();
 
   return {
     tools: [
@@ -96,8 +98,7 @@ function createToolsListResult() {
       },
       {
         name: 'set_visual_emotion',
-        description:
-          'Set the assistant visual emotion overlay. Use neutral to clear the overlay and fall back to state-only visuals.',
+        description: promptHints.emotionSelectionPrompt,
         inputSchema: {
           type: 'object',
           properties: {
@@ -107,6 +108,32 @@ function createToolsListResult() {
             },
           },
           required: ['emotion'],
+          additionalProperties: false,
+        },
+      },
+      {
+        name: 'set_visual_line',
+        description: promptHints.lineSelectionPrompt,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            line: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 80,
+            },
+          },
+          required: ['line'],
+          additionalProperties: false,
+        },
+      },
+      {
+        name: 'clear_visual_line',
+        description:
+          'Clear the extra in-character one-line utterance and fall back to the hook-driven activity label by itself.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
           additionalProperties: false,
         },
       },
@@ -174,6 +201,97 @@ function callVisualEmotionTool(argumentsObject) {
   };
 }
 
+function callVisualLineTool(argumentsObject) {
+  const line =
+    typeof argumentsObject === 'object' &&
+    argumentsObject !== null &&
+    typeof argumentsObject.line === 'string'
+      ? argumentsObject.line.trim()
+      : '';
+
+  if (line.length === 0) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: 'Missing line text.',
+        },
+      ],
+    };
+  }
+
+  const result = spawnSync(
+    nodeRuntimePath,
+    [visualStateHelperPath, '--line', line],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      encoding: 'utf8',
+    },
+  );
+
+  if (result.status !== 0) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: result.stderr || result.stdout || 'Failed to write visual line',
+        },
+      ],
+    };
+  }
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Set the visual line to "${line}".`,
+      },
+    ],
+    structuredContent: {
+      line,
+    },
+  };
+}
+
+function clearVisualLineTool() {
+  const result = spawnSync(
+    nodeRuntimePath,
+    [visualStateHelperPath, '--clear-line'],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      encoding: 'utf8',
+    },
+  );
+
+  if (result.status !== 0) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: result.stderr || result.stdout || 'Failed to clear visual line',
+        },
+      ],
+    };
+  }
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: 'Cleared the visual line.',
+      },
+    ],
+    structuredContent: {
+      line: null,
+    },
+  };
+}
+
 function handleRequest(message) {
   if (typeof message !== 'object' || message === null) {
     return;
@@ -237,21 +355,38 @@ function handleRequest(message) {
 
     if (toolName === 'get_available_visual_options') {
       const availableOptions = readAvailableVisualOptions();
+      const promptHints = createVisualPromptHints();
 
       sendSuccess(id, {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(availableOptions),
+            text: JSON.stringify({
+              ...availableOptions,
+              promptHints,
+            }),
           },
         ],
-        structuredContent: availableOptions,
+        structuredContent: {
+          ...availableOptions,
+          promptHints,
+        },
       });
       return;
     }
 
     if (toolName === 'set_visual_emotion') {
       sendSuccess(id, callVisualEmotionTool(argumentsObject));
+      return;
+    }
+
+    if (toolName === 'set_visual_line') {
+      sendSuccess(id, callVisualLineTool(argumentsObject));
+      return;
+    }
+
+    if (toolName === 'clear_visual_line') {
+      sendSuccess(id, clearVisualLineTool());
       return;
     }
 
