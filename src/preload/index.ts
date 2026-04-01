@@ -22,6 +22,7 @@ import type { VisualAssetCatalog } from '../shared/visual-assets';
 
 const claudeAppApi: ClaudeAppApi = {
   appVersion: process.versions.electron,
+  workspaceCwd: process.cwd(),
   assistantStatus: {
     getSnapshot: (request) => {
       return ipcRenderer.invoke(ASSISTANT_STATUS_CHANNELS.getSnapshot, request);

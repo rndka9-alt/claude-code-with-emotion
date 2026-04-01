@@ -52,11 +52,21 @@ function createSessionTitle(tabNumber: number): string {
   return `new session ${tabNumber} · claude-code-with-emotion`;
 }
 
+function resolveDefaultSessionCwd(): string {
+  const workspaceCwd = window.claudeApp?.workspaceCwd;
+
+  if (typeof workspaceCwd === 'string' && workspaceCwd.length > 0) {
+    return workspaceCwd;
+  }
+
+  return '/tmp';
+}
+
 function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
   return {
     id: `session-${tabNumber}`,
     title: createSessionTitle(tabNumber),
-    cwd: '/Users/igangmin/workspace/github/personal/claude-code-with-emotion',
+    cwd: resolveDefaultSessionCwd(),
     command: 'claude',
     lifecycle: 'bootstrapping',
     createdAtMs: nowMs,

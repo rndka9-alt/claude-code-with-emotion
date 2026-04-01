@@ -7,6 +7,19 @@ import {
 } from './model';
 
 describe('workspaceReducer', () => {
+  it('uses the app workspace cwd for new sessions', () => {
+    Object.defineProperty(window, 'claudeApp', {
+      configurable: true,
+      value: {
+        workspaceCwd: '/tmp/workspace-under-test',
+      },
+    });
+
+    const state = createInitialWorkspaceState(10_000);
+
+    expect(state.tabs[0]?.cwd).toBe('/tmp/workspace-under-test');
+  });
+
   it('creates a new active tab with updated assistant status', () => {
     const state = createInitialWorkspaceState(10_000);
     const nextState = workspaceReducer(state, {

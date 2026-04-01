@@ -5,6 +5,7 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): void {
     configurable: true,
     value: {
       appVersion: 'test',
+      workspaceCwd: '/tmp/claude-code-with-emotion',
       assistantStatus: {
         getSnapshot: vi
           .fn()

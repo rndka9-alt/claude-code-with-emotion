@@ -11,6 +11,7 @@ export interface DiagnosticsBridge {
 
 export interface ClaudeAppApi {
   readonly appVersion: string;
+  readonly workspaceCwd: string;
   readonly assistantStatus: AssistantStatusBridge;
   readonly diagnostics: DiagnosticsBridge;
   readonly terminals: TerminalBridge;
