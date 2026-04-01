@@ -86,7 +86,7 @@ describe('createShellLaunchConfig', () => {
       const zdotDir = launchConfig.env.ZDOTDIR;
       wrapperDir = typeof zdotDir === 'string' ? zdotDir : '';
 
-      expect(launchConfig.shellArgs).toEqual(['-l']);
+      expect(launchConfig.shellArgs).toEqual(['-i', '-l']);
       expect(typeof zdotDir).toBe('string');
 
       if (typeof zdotDir !== 'string') {
@@ -121,7 +121,7 @@ describe('createShellLaunchConfig', () => {
 
     const launchConfig = createShellLaunchConfig('/bin/bash', env);
 
-    expect(launchConfig.shellArgs).toEqual(['-l']);
+    expect(launchConfig.shellArgs).toEqual(['-i', '-l']);
     expect(launchConfig.env).toEqual(env);
   });
 });

@@ -200,6 +200,7 @@ export function createShellLaunchConfig(
   env: Record<string, string>,
 ): ShellLaunchConfig {
   const shellName = path.basename(shell);
+  const interactiveShellArgs = ['-i', '-l'];
 
   if (shellName === 'zsh') {
     const homeDir = env.HOME;
@@ -212,9 +213,16 @@ export function createShellLaunchConfig(
           ...env,
           ZDOTDIR: wrapperDir,
         },
-        shellArgs: ['-l'],
+        shellArgs: interactiveShellArgs,
       };
     }
+  }
+
+  if (shellName === 'bash') {
+    return {
+      env,
+      shellArgs: interactiveShellArgs,
+    };
   }
 
   return {
