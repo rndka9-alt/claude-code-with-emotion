@@ -43,7 +43,10 @@ export function App(): ReactElement {
     intensity: 'medium',
     source: 'workspace',
   };
-  const assistantSnapshot = useAssistantStatusBridge(fallbackAssistantSnapshot);
+  const assistantSnapshot = useAssistantStatusBridge(
+    activeTab?.id ?? 'session-1',
+    fallbackAssistantSnapshot,
+  );
   const {
     catalog: visualAssetCatalog,
     pickFiles: pickVisualAssetFiles,

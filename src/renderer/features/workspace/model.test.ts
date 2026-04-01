@@ -75,15 +75,15 @@ describe('workspaceReducer', () => {
   });
 
   it('reorders tabs when a tab is dragged over another tab', () => {
-    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const withSecondTab = workspaceReducer(createInitialWorkspaceState(20_000), {
       type: 'createTab',
       nowMs: 21_000,
     });
-    const expandedState = workspaceReducer(state, {
+    const state = workspaceReducer(withSecondTab, {
       type: 'createTab',
       nowMs: 21_250,
     });
-    const nextState = workspaceReducer(expandedState, {
+    const nextState = workspaceReducer(state, {
       type: 'reorderTab',
       tabId: 'session-3',
       targetTabId: 'session-1',

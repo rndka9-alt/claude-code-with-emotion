@@ -51,10 +51,22 @@ export interface AssistantStatusSnapshot {
 }
 
 export interface AssistantStatusBridge {
-  getSnapshot: () => Promise<AssistantStatusSnapshot>;
+  getSnapshot: (
+    request: AssistantStatusSnapshotRequest,
+  ) => Promise<AssistantStatusSnapshot>;
   onSnapshot: (
+    request: AssistantStatusSnapshotRequest,
     listener: (snapshot: AssistantStatusSnapshot) => void,
   ) => (() => void);
+}
+
+export interface AssistantStatusSnapshotRequest {
+  sessionId: string;
+}
+
+export interface AssistantStatusSnapshotEvent {
+  sessionId: string;
+  snapshot: AssistantStatusSnapshot;
 }
 
 export const ASSISTANT_STATUS_CHANNELS: {
