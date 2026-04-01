@@ -22,6 +22,7 @@ import {
 } from '../shared/assistant-status';
 import {
   DIAGNOSTICS_CHANNELS,
+  RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX,
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
 } from '../shared/diagnostics';
@@ -104,6 +105,10 @@ function attachWindowDiagnostics(
   mainWindow.webContents.on(
     'console-message',
     (_event, level, message, line, sourceId) => {
+      if (message.startsWith(RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX)) {
+        return;
+      }
+
       runtimeLog.write(
         'renderer-console',
         `level=${level} source=${sourceId}:${line} message=${message}`,

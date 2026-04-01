@@ -10,6 +10,8 @@ export interface RuntimeDiagnosticPayload {
   timestamp: string;
 }
 
+export const RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX = '[runtime:';
+
 export const DIAGNOSTICS_CHANNELS: {
   rendererEvent: string;
   runtimeEvent: string;

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@xterm/xterm/css/xterm.css';
+import { RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX } from '../shared/diagnostics';
 import { App } from './App';
 import './styles.css';
 
@@ -12,7 +13,11 @@ function mirrorRuntimeDiagnosticsToRendererConsole(): void {
   }
 
   diagnosticsBridge.onRuntimeEvent((payload) => {
-    const prefix = `[runtime:${payload.scope}]`;
+    if (payload.scope === 'renderer-console') {
+      return;
+    }
+
+    const prefix = `${RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX}${payload.scope}]`;
     const formattedMessage = `${prefix} ${payload.message}`;
 
     if (payload.scope.includes('error') || payload.scope === 'process') {
@@ -22,7 +27,6 @@ function mirrorRuntimeDiagnosticsToRendererConsole(): void {
 
     if (
       payload.scope.includes('warning') ||
-      payload.scope === 'renderer-console' ||
       payload.scope === 'window-process'
     ) {
       console.warn(formattedMessage);
