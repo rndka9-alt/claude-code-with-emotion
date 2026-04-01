@@ -7,6 +7,11 @@ export interface WorkspaceViewModel {
   closeTab: (tabId: string) => void;
   createTab: () => void;
   resizePane: (index: number, deltaRatio: number) => void;
+  updateTabTitle: (
+    tabId: string,
+    title: string,
+    source: 'manual' | 'terminal',
+  ) => void;
 }
 
 export function useWorkspaceState(): WorkspaceViewModel {
@@ -52,6 +57,9 @@ export function useWorkspaceState(): WorkspaceViewModel {
     },
     resizePane: (index: number, deltaRatio: number) => {
       dispatch({ type: 'resizePane', index, deltaRatio });
+    },
+    updateTabTitle: (tabId, title, source) => {
+      dispatch({ type: 'updateTabTitle', tabId, title, nowMs: Date.now(), source });
     },
   };
 }
