@@ -14,6 +14,10 @@ interface TerminalSize {
   rows: number;
 }
 
+interface ScheduledTask {
+  cancel: () => void;
+}
+
 function supportsXtermRuntime(): boolean {
   if (typeof window.matchMedia !== 'function') {
     return false;
@@ -32,6 +36,35 @@ function getTerminalSize(terminal: Terminal): TerminalSize {
   return {
     cols: Math.max(2, terminal.cols),
     rows: Math.max(1, terminal.rows),
+  };
+}
+
+function fitTerminalViewport(
+  fitAddon: FitAddon,
+  sessionId: string,
+  reason: string,
+): boolean {
+  try {
+    fitAddon.fit();
+    return true;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Unknown terminal fit error';
+
+    console.warn(
+      `Skipped terminal fit for ${sessionId} during ${reason}: ${message}`,
+    );
+    return false;
+  }
+}
+
+function scheduleTask(callback: () => void, delayMs: number): ScheduledTask {
+  const timeoutId = window.setTimeout(callback, delayMs);
+
+  return {
+    cancel: () => {
+      window.clearTimeout(timeoutId);
+    },
   };
 }
 
@@ -73,13 +106,14 @@ export function TerminalSurface({
     });
     const fitAddon = new FitAddon();
     const bridge = window.claudeApp?.terminals;
+    const scheduledTasks: ScheduledTask[] = [];
+    let disposed = false;
     terminalRef.current = terminal;
 
     terminal.loadAddon(fitAddon);
     terminal.open(host);
 
-    const resizeObserver = new ResizeObserver(() => {
-      fitAddon.fit();
+    const syncTerminalSize = (): void => {
       const nextSize = getTerminalSize(terminal);
 
       if (bridge !== undefined) {
@@ -89,10 +123,41 @@ export function TerminalSurface({
           rows: nextSize.rows,
         });
       }
+    };
+
+    const requestFit = (reason: string): void => {
+      const task = scheduleTask(() => {
+        if (disposed) {
+          return;
+        }
+
+        const fitSucceeded = fitTerminalViewport(fitAddon, session.id, reason);
+
+        syncTerminalSize();
+
+        if (!fitSucceeded && !disposed) {
+          const retryTask = scheduleTask(() => {
+            if (disposed) {
+              return;
+            }
+
+            fitTerminalViewport(fitAddon, session.id, `${reason}-retry`);
+            syncTerminalSize();
+          }, 32);
+
+          scheduledTasks.push(retryTask);
+        }
+      }, 0);
+
+      scheduledTasks.push(task);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      requestFit('resize');
     });
 
     resizeObserver.observe(host);
-    fitAddon.fit();
+    requestFit('initial-open');
 
     if (bridge !== undefined) {
       const initialSize = getTerminalSize(terminal);
@@ -141,9 +206,13 @@ export function TerminalSurface({
     });
 
     return () => {
+      disposed = true;
       inputSubscription.dispose();
       removeOutputListener();
       resizeObserver.disconnect();
+      for (const task of scheduledTasks) {
+        task.cancel();
+      }
       terminal.dispose();
       terminalRef.current = null;
     };
