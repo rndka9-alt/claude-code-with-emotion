@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { spawn } from 'node-pty';
 import type { IPty } from 'node-pty';
 import type {
@@ -41,6 +44,11 @@ type OutputListener = (sessionId: string, data: string) => void;
 interface TerminalDimensions {
   cols: number;
   rows: number;
+}
+
+interface ShellLaunchConfig {
+  env: Record<string, string>;
+  shellArgs: string[];
 }
 
 function adaptPty(ptyProcess: IPty): TerminalSessionRuntime {
@@ -114,6 +122,99 @@ export function createRuntimeEnv(
   };
 }
 
+function quoteForShell(value: string): string {
+  return `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
+function createShellExports(env: Record<string, string>): string {
+  return Object.entries(env)
+    .map(([key, value]) => {
+      return `export ${key}=${quoteForShell(value)}`;
+    })
+    .join('\n');
+}
+
+function createZshWrapperFile(
+  sourceFileName: string,
+  env: Record<string, string>,
+): string {
+  const sourceLine = [
+    `if [ -f "$HOME/${sourceFileName}" ]; then`,
+    `  . "$HOME/${sourceFileName}"`,
+    'fi',
+  ].join('\n');
+
+  return `${sourceLine}\n${createShellExports(env)}\n`;
+}
+
+function getZshWrapperDir(homeDir: string): string {
+  return path.join(
+    os.tmpdir(),
+    'claude-code-with-emotion-shell',
+    Buffer.from(homeDir).toString('hex'),
+    'zsh',
+  );
+}
+
+function ensureZshWrapperDir(
+  homeDir: string,
+  env: Record<string, string>,
+): string {
+  const wrapperDir = getZshWrapperDir(homeDir);
+
+  fs.mkdirSync(wrapperDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(wrapperDir, '.zshenv'),
+    createZshWrapperFile('.zshenv', env),
+    'utf8',
+  );
+  fs.writeFileSync(
+    path.join(wrapperDir, '.zprofile'),
+    createZshWrapperFile('.zprofile', env),
+    'utf8',
+  );
+  fs.writeFileSync(
+    path.join(wrapperDir, '.zshrc'),
+    createZshWrapperFile('.zshrc', env),
+    'utf8',
+  );
+  fs.writeFileSync(
+    path.join(wrapperDir, '.zlogin'),
+    createZshWrapperFile('.zlogin', env),
+    'utf8',
+  );
+
+  return wrapperDir;
+}
+
+export function createShellLaunchConfig(
+  shell: string,
+  env: Record<string, string>,
+): ShellLaunchConfig {
+  const shellName = path.basename(shell);
+
+  if (shellName === 'zsh') {
+    const homeDir = env.HOME;
+
+    if (typeof homeDir === 'string' && homeDir.length > 0) {
+      const wrapperDir = ensureZshWrapperDir(homeDir, env);
+
+      return {
+        env: {
+          ...env,
+          ZDOTDIR: wrapperDir,
+        },
+        shellArgs: ['-l'],
+      };
+    }
+  }
+
+  return {
+    env,
+    shellArgs: ['-l'],
+  };
+}
+
 function normalizeTerminalDimensions(
   cols: number,
   rows: number,
@@ -150,19 +251,21 @@ export class TerminalSessionManager {
 
     const shell = resolveShell(process.env);
     const size = normalizeTerminalDimensions(request.cols, request.rows);
+    const runtimeEnv = createRuntimeEnv(
+      process.env,
+      request.cwd,
+      this.helperBinDir,
+      this.statusFilePath,
+      this.traceFilePath,
+    );
+    const launchConfig = createShellLaunchConfig(shell, runtimeEnv);
     const runtime = this.runtimeFactory({
       cols: size.cols,
       rows: size.rows,
       cwd: request.cwd,
-      env: createRuntimeEnv(
-        process.env,
-        request.cwd,
-        this.helperBinDir,
-        this.statusFilePath,
-        this.traceFilePath,
-      ),
+      env: launchConfig.env,
       shell,
-      shellArgs: ['-l'],
+      shellArgs: launchConfig.shellArgs,
     });
 
     const dataSubscription = runtime.onData((data) => {

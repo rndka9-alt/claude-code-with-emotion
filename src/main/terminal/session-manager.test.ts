@@ -1,8 +1,12 @@
 import {
+  createShellLaunchConfig,
   createRuntimeEnv,
   resolveShell,
   TerminalSessionManager,
 } from './session-manager';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import type {
   TerminalBootstrapRequest,
   TerminalInputRequest,
@@ -55,6 +59,62 @@ describe('createRuntimeEnv', () => {
     expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe('/tmp/trace.log');
     expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
     expect(Object.hasOwn(env, 'INVALID')).toBe(false);
+  });
+});
+
+describe('createShellLaunchConfig', () => {
+  it('wraps zsh startup files so helper commands stay first on PATH', () => {
+    const tempHome = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'claude-with-emotion-home-'),
+    );
+    let wrapperDir = '';
+    const env = {
+      HOME: tempHome,
+      PATH: '/tmp/helper-bin:/usr/bin',
+      CLAUDE_WITH_EMOTION_ORIGINAL_PATH: '/usr/bin',
+      CLAUDE_WITH_EMOTION_STATUS_FILE: '/tmp/status.json',
+      CLAUDE_WITH_EMOTION_TRACE_FILE: '/tmp/trace.log',
+    };
+
+    try {
+      const launchConfig = createShellLaunchConfig('/bin/zsh', env);
+      const zdotDir = launchConfig.env.ZDOTDIR;
+      wrapperDir = typeof zdotDir === 'string' ? zdotDir : '';
+
+      expect(launchConfig.shellArgs).toEqual(['-l']);
+      expect(typeof zdotDir).toBe('string');
+
+      if (typeof zdotDir !== 'string') {
+        throw new Error('Expected ZDOTDIR to be a string');
+      }
+
+      const zshrc = fs.readFileSync(path.join(zdotDir, '.zshrc'), 'utf8');
+
+      expect(zshrc).toContain('. "$HOME/.zshrc"');
+      expect(zshrc).toContain(
+        "export PATH='/tmp/helper-bin:/usr/bin'",
+      );
+      expect(zshrc).toContain(
+        "export CLAUDE_WITH_EMOTION_STATUS_FILE='/tmp/status.json'",
+      );
+    } finally {
+      if (wrapperDir.length > 0) {
+        fs.rmSync(wrapperDir, { recursive: true, force: true });
+      }
+      fs.rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps non-zsh shells on the direct login-shell path', () => {
+    const env = {
+      HOME: '/tmp/home',
+      PATH: '/tmp/helper-bin:/usr/bin',
+    };
+
+    const launchConfig = createShellLaunchConfig('/bin/bash', env);
+
+    expect(launchConfig.shellArgs).toEqual(['-l']);
+    expect(launchConfig.env).toEqual(env);
   });
 });
 
