@@ -14,7 +14,6 @@ import { useWorkspaceState } from './features/workspace/use-workspace-state';
 export function App(): ReactElement {
   const {
     state,
-    activeTabTitle,
     activateTab,
     appElapsedLabel,
     createTab,
@@ -48,17 +47,11 @@ export function App(): ReactElement {
 
       <main className="workspace">
         <section
-          aria-labelledby="workspace-heading"
+          aria-label="Active terminal workspace"
           className="workspace__terminal-area"
           id={panelId}
           role="tabpanel"
         >
-          <div className="workspace__header">
-            <h1 className="workspace__title" id="workspace-heading">
-              {activeTabTitle}
-            </h1>
-          </div>
-
           <PaneStack
             onResizePane={resizePane}
             paneSizes={state.paneSizes}
