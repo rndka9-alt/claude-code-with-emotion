@@ -95,22 +95,26 @@ button {
   content: "";
   position: absolute;
   bottom: -1px;
-  width: 12px;
-  height: 12px;
-  background: var(--tab-background);
-  border-bottom: 1px solid rgba(121, 137, 175, 0.22);
+  width: 14px;
+  height: 14px;
+  background: transparent;
+  pointer-events: none;
 }
 
 .tab-button--active::before {
-  left: -11px;
-  border-left: 1px solid var(--tab-border);
-  border-bottom-left-radius: 12px;
+  left: -14px;
+  border-bottom-right-radius: 14px;
+  box-shadow:
+    6px 6px 0 4px var(--tab-background),
+    7px 7px 0 4px var(--tab-border);
 }
 
 .tab-button--active::after {
-  right: -11px;
-  border-right: 1px solid var(--tab-border);
-  border-bottom-right-radius: 12px;
+  right: -14px;
+  border-bottom-left-radius: 14px;
+  box-shadow:
+    -6px 6px 0 4px var(--tab-background),
+    -7px 7px 0 4px var(--tab-border);
 }
 
 .tab-create-button {
