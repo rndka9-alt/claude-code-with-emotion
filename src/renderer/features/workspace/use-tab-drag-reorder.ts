@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent, RefObject } from 'react';
 import type { SessionTab } from './model';
 
 const DRAG_START_DISTANCE_PX = 6;
+const DROP_THRESHOLD_RATIO = 0.3;
 const REORDER_ANIMATION_MS = 180;
 const REORDER_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -151,9 +152,9 @@ export function useTabDragReorder(
 
       for (const [index, entry] of orderedEntries.entries()) {
         const rect = entry.element.getBoundingClientRect();
-        const midpointX = rect.left + rect.width / 2;
+        const insertionThresholdX = rect.left + rect.width * DROP_THRESHOLD_RATIO;
 
-        if (event.clientX < midpointX) {
+        if (event.clientX < insertionThresholdX) {
           destinationIndex = index;
           break;
         }
@@ -204,6 +205,8 @@ export function useTabDragReorder(
       if (event.button !== 0) {
         return;
       }
+
+      suppressClickTabIdRef.current = null;
 
       const eventTarget = event.target;
 
