@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { createDefaultAssistantStatusSnapshot } from '../shared/assistant-status';
 import { App } from './App';
 
 describe('App', () => {
@@ -66,5 +67,53 @@ describe('App', () => {
       }),
     ).not.toBeInTheDocument();
     expect(screen.queryAllByRole('separator')).toHaveLength(0);
+  });
+
+  it('runs claude in the active tab when disconnected launch button is clicked', async () => {
+    const sendInput = vi.fn().mockResolvedValue(undefined);
+
+    Object.defineProperty(window, 'claudeApp', {
+      configurable: true,
+      value: {
+        appVersion: 'test',
+        assistantStatus: {
+          getSnapshot: vi
+            .fn()
+            .mockResolvedValue(createDefaultAssistantStatusSnapshot(Date.now())),
+          onSnapshot: vi.fn(() => () => {}),
+        },
+        diagnostics: {
+          onRuntimeEvent: vi.fn(() => () => {}),
+        },
+        terminals: {
+          bootstrapSession: vi.fn().mockResolvedValue({ initialOutput: '' }),
+          sendInput,
+          resizeSession: vi.fn(),
+          closeSession: vi.fn(),
+          onOutput: vi.fn(() => () => {}),
+          onExit: vi.fn(() => () => {}),
+        },
+        visualAssets: {
+          getAvailableOptions: vi.fn().mockResolvedValue({
+            states: [],
+            emotions: [],
+          }),
+          getCatalog: vi.fn().mockResolvedValue({ version: 1, assets: [], mappings: [] }),
+          onCatalog: vi.fn(() => () => {}),
+          pickFiles: vi.fn().mockResolvedValue([]),
+          saveCatalog: vi.fn(),
+          printAvailableOptions: vi.fn(),
+        },
+      },
+    });
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '실행하기' }));
+
+    expect(sendInput).toHaveBeenCalledWith({
+      sessionId: 'session-1',
+      data: 'claude\r',
+    });
   });
 });

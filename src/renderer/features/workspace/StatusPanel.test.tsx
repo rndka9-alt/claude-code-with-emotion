@@ -37,6 +37,7 @@ describe('StatusPanel', () => {
     render(
       <StatusPanel
         assistantStatus={assistantStatus}
+        onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
         statusVisual={statusVisual}
       />,
@@ -52,6 +53,7 @@ describe('StatusPanel', () => {
     const { container } = render(
       <StatusPanel
         assistantStatus={assistantStatus}
+        onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
         statusVisual={null}
       />,
@@ -68,6 +70,7 @@ describe('StatusPanel', () => {
           overlayLine: '문제를 좀 더 파볼게요!',
           line: '문제를 좀 더 파볼게요!',
         }}
+        onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
         statusVisual={null}
       />,
@@ -75,6 +78,26 @@ describe('StatusPanel', () => {
 
     expect(
       screen.getByText('문제를 좀 더 파볼게요! (자료를 찾는 중)'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a launch button while disconnected', () => {
+    render(
+      <StatusPanel
+        assistantStatus={{
+          ...assistantStatus,
+          state: 'disconnected',
+        }}
+        onLaunchClaude={() => {}}
+        onOpenAssetManager={() => {}}
+        statusVisual={null}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: '실행하기',
+      }),
     ).toBeInTheDocument();
   });
 });

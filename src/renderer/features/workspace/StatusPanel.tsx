@@ -7,12 +7,14 @@ import { formatStatusPanelLine } from './status-panel-line';
 interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
   onOpenAssetManager: () => void;
+  onLaunchClaude: () => void;
   statusVisual: StatusPanelVisual | null;
 }
 
 export function StatusPanel({
   assistantStatus,
   onOpenAssetManager,
+  onLaunchClaude,
   statusVisual,
 }: StatusPanelProps): ReactElement {
   const visibleLine = formatStatusPanelLine(assistantStatus);
@@ -47,6 +49,16 @@ export function StatusPanel({
             src={statusVisual.assetUrl}
           />
         )}
+
+        {assistantStatus.state === 'disconnected' ? (
+          <button
+            className="status-panel__launch-button"
+            onClick={onLaunchClaude}
+            type="button"
+          >
+            실행하기
+          </button>
+        ) : null}
       </div>
 
       <div className="status-panel__content">

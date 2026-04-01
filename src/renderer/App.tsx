@@ -70,6 +70,23 @@ export function App(): ReactElement {
     );
   };
 
+  const handleLaunchClaude = (): void => {
+    if (activeTab === null) {
+      return;
+    }
+
+    const terminalsBridge = window.claudeApp?.terminals;
+
+    if (terminalsBridge === undefined) {
+      return;
+    }
+
+    void terminalsBridge.sendInput({
+      sessionId: activeTab.id,
+      data: `${activeTab.command}\r`,
+    });
+  };
+
   return (
     <div className="app-shell">
       <TabBar
@@ -96,6 +113,7 @@ export function App(): ReactElement {
 
         <StatusPanel
           assistantStatus={assistantSnapshot}
+          onLaunchClaude={handleLaunchClaude}
           onOpenAssetManager={() => {
             setIsVisualAssetManagerOpen(true);
           }}
