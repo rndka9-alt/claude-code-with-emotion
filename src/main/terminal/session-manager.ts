@@ -4,6 +4,7 @@ import path from 'node:path';
 import { spawn } from 'node-pty';
 import type { IPty } from 'node-pty';
 import { ensureClaudeHooksSettingsFile } from './claude-hooks-settings';
+import { ensureClaudeVisualMcpConfigFile } from './claude-mcp-config';
 import type {
   TerminalBootstrapRequest,
   TerminalBootstrapResponse,
@@ -289,6 +290,9 @@ export class TerminalSessionManager {
       runtimeEnv.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE =
         ensureClaudeHooksSettingsFile(this.helperBinDir, homeDir);
     }
+
+    runtimeEnv.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE =
+      ensureClaudeVisualMcpConfigFile(this.helperBinDir);
 
     const launchConfig = createShellLaunchConfig(shell, runtimeEnv);
     const runtime = this.runtimeFactory({

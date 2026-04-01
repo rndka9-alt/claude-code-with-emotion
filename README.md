@@ -179,6 +179,8 @@ Current tools:
 
 `set_visual_emotion` only deals with the emotion overlay for now. The hook-driven task state and the one-line assistant copy remain separate, so the future summary/message surface can be added without reworking the emotion transport.
 
+When Claude is launched through the embedded terminal, the wrapper now writes a temporary MCP config file and passes it through `--mcp-config`, so the local visual MCP server is attached automatically instead of requiring a manual Claude-side setup step.
+
 ## Verification
 
 Current verification commands:

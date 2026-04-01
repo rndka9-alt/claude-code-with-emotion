@@ -6,6 +6,7 @@ const path = require('node:path');
 const SERVER_NAME = 'claude-code-with-emotion-visuals';
 const SERVER_VERSION = '0.1.0';
 const helperDir = __dirname;
+const nodeRuntimePath = process.execPath;
 const statusHelperPath = path.join(helperDir, 'claude-status');
 const visualStateHelperPath = path.join(helperDir, 'claude-visual-state');
 
@@ -39,11 +40,15 @@ function sendError(id, code, message) {
 }
 
 function readAvailableVisualOptions() {
-  const result = spawnSync('node', [statusHelperPath, '--list-visual-options'], {
-    cwd: process.cwd(),
-    env: process.env,
-    encoding: 'utf8',
-  });
+  const result = spawnSync(
+    nodeRuntimePath,
+    [statusHelperPath, '--list-visual-options'],
+    {
+      cwd: process.cwd(),
+      env: process.env,
+      encoding: 'utf8',
+    },
+  );
 
   if (result.status !== 0) {
     return {
@@ -132,7 +137,7 @@ function callVisualEmotionTool(argumentsObject) {
   }
 
   const result = spawnSync(
-    'node',
+    nodeRuntimePath,
     [visualStateHelperPath, '--emotion', emotion],
     {
       cwd: process.cwd(),

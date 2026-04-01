@@ -65,6 +65,8 @@ function main() {
   const originalPath = process.env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH;
   const hooksSettingsFilePath =
     process.env.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE;
+  const visualMcpConfigFilePath =
+    process.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE;
   const realClaude = resolveClaudeBinary(originalPath);
 
   if (realClaude === null) {
@@ -87,13 +89,26 @@ function main() {
     'medium',
   ]);
 
-  const claudeArgs =
-    typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0
-      ? ['--settings', hooksSettingsFilePath, ...process.argv.slice(2)]
-      : process.argv.slice(2);
+  const runtimeArgs = [];
+
+  if (
+    typeof hooksSettingsFilePath === 'string' &&
+    hooksSettingsFilePath.length > 0
+  ) {
+    runtimeArgs.push('--settings', hooksSettingsFilePath);
+  }
+
+  if (
+    typeof visualMcpConfigFilePath === 'string' &&
+    visualMcpConfigFilePath.length > 0
+  ) {
+    runtimeArgs.push('--mcp-config', visualMcpConfigFilePath);
+  }
+
+  const claudeArgs = [...runtimeArgs, ...process.argv.slice(2)];
 
   appendTrace(
-    `starting Claude with ${claudeArgs.length} argv entries and hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'}`,
+    `starting Claude with ${claudeArgs.length} argv entries hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'} visualMcp=${typeof visualMcpConfigFilePath === 'string' && visualMcpConfigFilePath.length > 0 ? visualMcpConfigFilePath : 'none'}`,
   );
 
   const child = spawnSync(realClaude, claudeArgs, {

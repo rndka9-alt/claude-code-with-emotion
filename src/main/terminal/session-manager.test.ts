@@ -16,6 +16,7 @@ import type {
 interface FakeRuntimeRecord {
   cols: number;
   cwd: string;
+  env: Record<string, string>;
   killed: boolean;
   rows: number;
   shell: string;
@@ -141,7 +142,7 @@ describe('TerminalSessionManager', () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputEvents: string[] = [];
     const manager = new TerminalSessionManager(
-      ({ cols, rows, cwd, shell, shellArgs }) => {
+      ({ cols, rows, cwd, env, shell, shellArgs }) => {
         const dataListeners = new Set<(data: string) => void>();
         const exitListeners = new Set<
           (event: { exitCode: number; signal: number }) => void
@@ -149,6 +150,7 @@ describe('TerminalSessionManager', () => {
         const record: FakeRuntimeRecord = {
           cols,
           cwd,
+          env,
           killed: false,
           rows,
           shell,
@@ -215,6 +217,9 @@ describe('TerminalSessionManager', () => {
     expect(createdRuntimes).toHaveLength(1);
     expect(createdRuntimes[0]?.writes).toEqual([]);
     expect(response.initialOutput).toContain('Shell ready');
+    expect(
+      createdRuntimes[0]?.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE,
+    ).toContain('visual-mcp.json');
 
     const inputRequest: TerminalInputRequest = {
       sessionId: 'session-1',
@@ -244,7 +249,7 @@ describe('TerminalSessionManager', () => {
   it('closes a specific session runtime when asked explicitly', () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const manager = new TerminalSessionManager(
-      ({ cols, rows, cwd, shell, shellArgs }) => {
+      ({ cols, rows, cwd, env, shell, shellArgs }) => {
         const dataListeners = new Set<(data: string) => void>();
         const exitListeners = new Set<
           (event: { exitCode: number; signal: number }) => void
@@ -252,6 +257,7 @@ describe('TerminalSessionManager', () => {
         const record: FakeRuntimeRecord = {
           cols,
           cwd,
+          env,
           killed: false,
           rows,
           shell,
