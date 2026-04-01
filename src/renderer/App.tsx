@@ -24,6 +24,7 @@ export function App(): ReactElement {
     activateTab,
     closeTab,
     createTab,
+    reorderTab,
     resizePane,
   } = useWorkspaceState();
   const [isVisualAssetManagerOpen, setIsVisualAssetManagerOpen] = useState(false);
@@ -77,6 +78,7 @@ export function App(): ReactElement {
         onActivateTab={activateTab}
         onCloseTab={closeTab}
         onCreateTab={createTab}
+        onReorderTab={reorderTab}
         tabs={state.tabs}
       />
 

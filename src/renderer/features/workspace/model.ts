@@ -30,6 +30,7 @@ export type WorkspaceAction =
   | { type: 'activateTab'; tabId: string; nowMs: number }
   | { type: 'createTab'; nowMs: number }
   | { type: 'closeTab'; tabId: string; nowMs: number; reason: 'manual' | 'exit' }
+  | { type: 'reorderTab'; tabId: string; targetTabId: string; nowMs: number }
   | { type: 'resizePane'; index: number; deltaRatio: number };
 
 const MIN_PANE_SIZE = 0.18;
@@ -299,6 +300,40 @@ export function workspaceReducer(
 
   if (action.type === 'closeTab') {
     return closeTabState(state, action.tabId, action.nowMs, action.reason);
+  }
+
+  if (action.type === 'reorderTab') {
+    if (action.tabId === action.targetTabId) {
+      return state;
+    }
+
+    const fromIndex = state.tabs.findIndex((tab) => tab.id === action.tabId);
+    const targetIndex = state.tabs.findIndex((tab) => tab.id === action.targetTabId);
+
+    if (fromIndex < 0 || targetIndex < 0) {
+      return state;
+    }
+
+    const movedTab = state.tabs[fromIndex];
+
+    if (movedTab === undefined) {
+      return state;
+    }
+
+    const reorderedTabs = [...state.tabs];
+    reorderedTabs.splice(fromIndex, 1);
+    reorderedTabs.splice(targetIndex, 0, movedTab);
+
+    return {
+      ...state,
+      tabs: reorderedTabs,
+      assistantStatus: createAssistantStatus(
+        'working',
+        '탭 순서 바꿔놨어요. 동선이 좀 더 편해질 거예요...!',
+        `Moved "${movedTab.title}"`,
+        action.nowMs,
+      ),
+    };
   }
 
   const nextTab = createSessionTab(state.nextTabNumber, action.nowMs);

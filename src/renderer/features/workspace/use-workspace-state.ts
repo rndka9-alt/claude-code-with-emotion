@@ -6,6 +6,7 @@ export interface WorkspaceViewModel {
   activateTab: (tabId: string) => void;
   closeTab: (tabId: string) => void;
   createTab: () => void;
+  reorderTab: (tabId: string, targetTabId: string) => void;
   resizePane: (index: number, deltaRatio: number) => void;
 }
 
@@ -49,6 +50,9 @@ export function useWorkspaceState(): WorkspaceViewModel {
     },
     createTab: () => {
       dispatch({ type: 'createTab', nowMs: Date.now() });
+    },
+    reorderTab: (tabId: string, targetTabId: string) => {
+      dispatch({ type: 'reorderTab', tabId, targetTabId, nowMs: Date.now() });
     },
     resizePane: (index: number, deltaRatio: number) => {
       dispatch({ type: 'resizePane', index, deltaRatio });
