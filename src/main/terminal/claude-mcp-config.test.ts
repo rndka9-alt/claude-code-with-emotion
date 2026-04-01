@@ -15,6 +15,7 @@ describe('claude visual mcp config', () => {
       command: '/tmp/helper-bin/claude-visual-mcp',
       args: [],
       env: {
+        PATH: '${PATH}',
         CLAUDE_WITH_EMOTION_TRACE_FILE:
           '${CLAUDE_WITH_EMOTION_TRACE_FILE}',
         CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE:
@@ -39,6 +40,7 @@ describe('claude visual mcp config', () => {
       expect(configFile).toContain(
         '"CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE"',
       );
+      expect(configFile).toContain('"PATH"');
     } finally {
       fs.rmSync(helperBinDir, { recursive: true, force: true });
     }

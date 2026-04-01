@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require('node:child_process');
+const fs = require('node:fs');
 const path = require('node:path');
 const { createVisualPromptHints } = require('./lib/claude-visual-mcp-prompts');
 
@@ -13,10 +14,36 @@ const visualStateHelperPath = path.join(helperDir, 'claude-visual-state');
 
 let inputBuffer = Buffer.alloc(0);
 let negotiatedProtocolVersion = '2024-11-05';
+let transportMode = 'content-length';
+
+function appendTrace(message) {
+  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+
+  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+    return;
+  }
+
+  const line = `[${new Date().toISOString()}] [claude-visual-mcp] ${message}\n`;
+
+  try {
+    fs.appendFileSync(traceFilePath, line, 'utf8');
+  } catch {
+    // Ignore trace write failures inside the MCP helper.
+  }
+}
 
 function sendMessage(message) {
   const json = JSON.stringify(message);
   const contentLength = Buffer.byteLength(json, 'utf8');
+
+  appendTrace(
+    `send message transport=${transportMode} keys=${Object.keys(message).join(',')} bytes=${contentLength}`,
+  );
+
+  if (transportMode === 'jsonl') {
+    process.stdout.write(`${json}\n`);
+    return;
+  }
 
   process.stdout.write(`Content-Length: ${contentLength}\r\n\r\n${json}`);
 }
@@ -294,6 +321,7 @@ function clearVisualLineTool() {
 
 function handleRequest(message) {
   if (typeof message !== 'object' || message === null) {
+    appendTrace('ignore non-object request');
     return;
   }
 
@@ -301,6 +329,10 @@ function handleRequest(message) {
     ? message.id
     : null;
   const method = typeof message.method === 'string' ? message.method : null;
+
+  appendTrace(
+    `handle request id=${id === null ? 'none' : String(id)} method=${method ?? 'none'}`,
+  );
 
   if (method === null) {
     if (id !== null) {
@@ -401,7 +433,54 @@ function handleRequest(message) {
 
 function processInputBuffer() {
   while (true) {
-    const headerEndIndex = inputBuffer.indexOf('\r\n\r\n');
+    if (transportMode === 'jsonl') {
+      const newlineIndex = inputBuffer.indexOf('\n');
+
+      if (newlineIndex === -1) {
+        return;
+      }
+
+      const messageText = inputBuffer.subarray(0, newlineIndex).toString('utf8').trim();
+
+      inputBuffer = inputBuffer.subarray(newlineIndex + 1);
+
+      if (messageText.length === 0) {
+        continue;
+      }
+
+      appendTrace(`decoded jsonl message chars=${messageText.length}`);
+
+      try {
+        handleRequest(JSON.parse(messageText));
+      } catch (error) {
+        appendTrace(
+          `jsonl parse error=${error instanceof Error ? error.message : String(error)}`,
+        );
+        sendError(
+          null,
+          -32700,
+          error instanceof Error ? error.message : 'Parse error',
+        );
+      }
+
+      continue;
+    }
+
+    const crlfHeaderEndIndex = inputBuffer.indexOf('\r\n\r\n');
+    const lfHeaderEndIndex = inputBuffer.indexOf('\n\n');
+    let headerEndIndex = -1;
+    let headerDelimiterLength = 0;
+
+    if (
+      crlfHeaderEndIndex !== -1 &&
+      (lfHeaderEndIndex === -1 || crlfHeaderEndIndex <= lfHeaderEndIndex)
+    ) {
+      headerEndIndex = crlfHeaderEndIndex;
+      headerDelimiterLength = 4;
+    } else if (lfHeaderEndIndex !== -1) {
+      headerEndIndex = lfHeaderEndIndex;
+      headerDelimiterLength = 2;
+    }
 
     if (headerEndIndex === -1) {
       return;
@@ -416,7 +495,7 @@ function processInputBuffer() {
     }
 
     const contentLength = Number(contentLengthMatch[1]);
-    const messageStartIndex = headerEndIndex + 4;
+    const messageStartIndex = headerEndIndex + headerDelimiterLength;
     const messageEndIndex = messageStartIndex + contentLength;
 
     if (inputBuffer.length < messageEndIndex) {
@@ -428,10 +507,14 @@ function processInputBuffer() {
       .toString('utf8');
 
     inputBuffer = inputBuffer.subarray(messageEndIndex);
+    appendTrace(`decoded message bytes=${contentLength}`);
 
     try {
       handleRequest(JSON.parse(messageText));
     } catch (error) {
+      appendTrace(
+        `parse error=${error instanceof Error ? error.message : String(error)}`,
+      );
       sendError(
         null,
         -32700,
@@ -441,9 +524,33 @@ function processInputBuffer() {
   }
 }
 
+appendTrace(`server start pid=${process.pid} cwd=${process.cwd()}`);
 process.stdin.on('data', (chunk) => {
+  appendTrace(`stdin chunk bytes=${chunk.length}`);
+  appendTrace(`stdin chunk preview=${JSON.stringify(chunk.toString('utf8'))}`);
+
+  if (
+    inputBuffer.length === 0 &&
+    !chunk.toString('utf8').startsWith('Content-Length:')
+  ) {
+    transportMode = 'jsonl';
+    appendTrace('detected jsonl transport');
+  }
+
   inputBuffer = Buffer.concat([inputBuffer, chunk]);
   processInputBuffer();
+});
+process.stdin.on('end', () => {
+  appendTrace('stdin end');
+});
+process.on('exit', (code) => {
+  appendTrace(`process exit code=${code}`);
+});
+process.on('uncaughtException', (error) => {
+  appendTrace(`uncaughtException=${error instanceof Error ? error.stack ?? error.message : String(error)}`);
+});
+process.on('unhandledRejection', (reason) => {
+  appendTrace(`unhandledRejection=${reason instanceof Error ? reason.stack ?? reason.message : String(reason)}`);
 });
 
 process.stdin.resume();

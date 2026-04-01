@@ -33,6 +33,7 @@ export function createClaudeVisualMcpConfig(
         command: visualMcpServerPath,
         args: [],
         env: {
+          PATH: '${PATH}',
           CLAUDE_WITH_EMOTION_TRACE_FILE:
             '${CLAUDE_WITH_EMOTION_TRACE_FILE}',
           CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE:
