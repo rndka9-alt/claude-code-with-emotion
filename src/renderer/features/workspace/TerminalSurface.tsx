@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { ReactElement } from 'react';
 import { Terminal } from '@xterm/xterm';
 import type { SessionTab } from './model';
+import { handleTerminalShortcut } from './terminal-keyboard';
 
 interface TerminalSurfaceProps {
   isActive: boolean;
@@ -187,6 +188,17 @@ export function TerminalSurface({
     terminalRef.current = terminal;
 
     terminal.open(host);
+
+    terminal.attachCustomKeyEventHandler((event) =>
+      handleTerminalShortcut(event, (data) => {
+        if (bridge !== undefined) {
+          void bridge.sendInput({ sessionId: session.id, data });
+          return;
+        }
+
+        terminal.write('\r\n');
+      }),
+    );
 
     const syncTerminalSize = (): void => {
       const nextSize = getTerminalSize(terminal);
