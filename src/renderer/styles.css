@@ -360,6 +360,52 @@ button {
     linear-gradient(145deg, rgba(41, 56, 93, 0.92), rgba(14, 18, 29, 0.92));
 }
 
+.status-panel__avatar--thinking {
+  background:
+    linear-gradient(145deg, rgba(51, 61, 93, 0.92), rgba(17, 20, 31, 0.92));
+}
+
+.status-panel__avatar--responding {
+  background:
+    linear-gradient(145deg, rgba(33, 77, 97, 0.92), rgba(12, 28, 33, 0.92));
+}
+
+.status-panel__avatar--waiting,
+.status-panel__avatar--idle {
+  background:
+    linear-gradient(145deg, rgba(34, 44, 70, 0.92), rgba(13, 18, 28, 0.92));
+}
+
+.status-panel__avatar--surprised {
+  background:
+    linear-gradient(145deg, rgba(86, 64, 35, 0.92), rgba(34, 23, 10, 0.92));
+}
+
+.status-panel__avatar--sad {
+  background:
+    linear-gradient(145deg, rgba(48, 54, 76, 0.92), rgba(16, 17, 27, 0.92));
+}
+
+.status-panel__avatar--error {
+  background:
+    linear-gradient(145deg, rgba(103, 40, 40, 0.92), rgba(39, 12, 12, 0.92));
+}
+
+.status-panel__avatar--low .status-panel__avatar-orb {
+  opacity: 0.75;
+}
+
+.status-panel__avatar--medium .status-panel__avatar-orb {
+  opacity: 0.9;
+}
+
+.status-panel__avatar--high .status-panel__avatar-orb {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 40px rgba(118, 159, 255, 0.54),
+    inset 0 -6px 12px rgba(45, 69, 196, 0.42);
+}
+
 .status-panel__avatar-orb {
   width: 64px;
   height: 64px;

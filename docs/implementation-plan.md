@@ -7,9 +7,9 @@
 - [x] Implement vertically stacked resizable terminal panes
 - [x] Integrate xterm.js terminal rendering
 - [x] Wire node-pty session lifecycle and Claude Code launch flow
-- [ ] Implement fixed bottom status panel layout
-- [ ] Implement semantic visual state catalog and asset mapping
-- [ ] Connect assistant one-line message and structured current task display
+- [x] Implement fixed bottom status panel layout
+- [x] Implement semantic visual state catalog and asset mapping
+- [x] Connect assistant one-line message and structured current task display
 - [ ] Pass dev/build flow and update documentation
 - [ ] Review architecture and summarize remaining gaps
 
@@ -21,4 +21,5 @@
 - The terminal workspace now renders vertically stacked panes with drag handles, and pane sizing is tracked in renderer state.
 - Each pane now mounts an xterm.js surface through a typed preload bridge, with a temporary mock Electron backend standing in until node-pty is wired.
 - The Electron main process now owns real node-pty shell sessions and auto-launches `claude` inside each bootstrapped terminal pane.
+- The app now exposes a semantic assistant-status bridge, maps states to visuals in the status panel, and injects a `claude-status` helper command into terminal sessions.
 - Packaging is intentionally deferred until the core multi-terminal flow is working.

@@ -1,13 +1,4 @@
-export type AssistantVisualState =
-  | 'idle'
-  | 'thinking'
-  | 'working'
-  | 'responding'
-  | 'waiting'
-  | 'surprised'
-  | 'sad'
-  | 'happy'
-  | 'error';
+import type { AssistantSemanticState } from '../../../shared/assistant-status';
 
 export type SessionLifecycle = 'bootstrapping' | 'ready';
 
@@ -21,7 +12,7 @@ export interface SessionTab {
 }
 
 export interface AssistantStatus {
-  visualState: AssistantVisualState;
+  visualState: AssistantSemanticState;
   line: string;
   currentTask: string;
   statusSinceMs: number;
@@ -70,7 +61,7 @@ function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
 }
 
 function createAssistantStatus(
-  visualState: AssistantVisualState,
+  visualState: AssistantSemanticState,
   line: string,
   currentTask: string,
   nowMs: number,

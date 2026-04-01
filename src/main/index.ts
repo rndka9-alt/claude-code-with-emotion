@@ -1,6 +1,12 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import { AssistantStatusFileBridge } from './status/assistant-status-file-bridge';
+import { AssistantStatusStore } from './status/assistant-status-store';
 import { createTerminalSessionManager } from './terminal/session-manager';
+import {
+  ASSISTANT_STATUS_CHANNELS,
+  type AssistantStatusSnapshot,
+} from '../shared/assistant-status';
 import {
   TERMINAL_CHANNELS,
   type TerminalBootstrapRequest,
@@ -66,6 +72,16 @@ function hasOpenWindows(): boolean {
 }
 
 function registerTerminalBridge(mainWindow: BrowserWindow): void {
+  const assistantStatusStore = new AssistantStatusStore();
+  const assistantStatusFilePath = path.join(
+    app.getPath('userData'),
+    'assistant-status.json',
+  );
+  const assistantStatusHelperBinDir = path.join(app.getAppPath(), 'bin');
+  const assistantStatusFileBridge = new AssistantStatusFileBridge(
+    assistantStatusFilePath,
+    assistantStatusStore,
+  );
   const terminalSessionManager = createTerminalSessionManager(
     (sessionId, data) => {
       mainWindow.webContents.send(TERMINAL_CHANNELS.output, {
@@ -73,7 +89,20 @@ function registerTerminalBridge(mainWindow: BrowserWindow): void {
         data,
       });
     },
+    assistantStatusHelperBinDir,
+    assistantStatusFilePath,
   );
+  const unsubscribeAssistantStatus = assistantStatusStore.subscribe(
+    (snapshot: AssistantStatusSnapshot) => {
+      mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, snapshot);
+    },
+  );
+
+  assistantStatusFileBridge.start();
+
+  ipcMain.handle(ASSISTANT_STATUS_CHANNELS.getSnapshot, () => {
+    return assistantStatusStore.getSnapshot();
+  });
 
   ipcMain.handle(
     TERMINAL_CHANNELS.bootstrap,
@@ -97,7 +126,11 @@ function registerTerminalBridge(mainWindow: BrowserWindow): void {
   );
 
   mainWindow.on('closed', () => {
+    unsubscribeAssistantStatus();
+    assistantStatusFileBridge.stop();
+    assistantStatusStore.dispose();
     terminalSessionManager.dispose();
+    ipcMain.removeHandler(ASSISTANT_STATUS_CHANNELS.getSnapshot);
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);

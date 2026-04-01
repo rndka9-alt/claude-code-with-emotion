@@ -1,14 +1,14 @@
 import type { ReactElement } from 'react';
-import type { AssistantStatus } from './model';
+import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
 
 interface StatusPanelProps {
   activeSessionElapsedLabel: string;
-  assistantStatus: AssistantStatus;
+  assistantStatus: AssistantStatusSnapshot;
   runtimeVersion: string;
   taskElapsedLabel: string;
 }
 
-const STATE_LABELS: Record<AssistantStatus['visualState'], string> = {
+const STATE_LABELS: Record<AssistantStatusSnapshot['state'], string> = {
   idle: 'idle',
   thinking: 'thinking',
   working: 'working',
@@ -26,12 +26,12 @@ export function StatusPanel({
   runtimeVersion,
   taskElapsedLabel,
 }: StatusPanelProps): ReactElement {
-  const stateLabel = STATE_LABELS[assistantStatus.visualState];
+  const stateLabel = STATE_LABELS[assistantStatus.state];
 
   return (
     <aside className="status-panel" aria-label="Assistant status panel">
       <div
-        className={`status-panel__avatar status-panel__avatar--${assistantStatus.visualState}`}
+        className={`status-panel__avatar status-panel__avatar--${assistantStatus.state} status-panel__avatar--${assistantStatus.intensity}`}
       >
         <div className="status-panel__avatar-orb" aria-hidden="true" />
         <span className="status-panel__avatar-label">{stateLabel}</span>
@@ -40,11 +40,11 @@ export function StatusPanel({
       <div className="status-panel__content">
         <p className="status-panel__line">{assistantStatus.line}</p>
         <p className="status-panel__meta">
-          state: {assistantStatus.visualState} · task: {assistantStatus.currentTask}
+          state: {assistantStatus.state} · task: {assistantStatus.currentTask}
           {' · '}
           task elapsed: {taskElapsedLabel} · session age: {activeSessionElapsedLabel}
           {' · '}
-          runtime: Electron {runtimeVersion}
+          runtime: Electron {runtimeVersion} · source: {assistantStatus.source}
         </p>
       </div>
     </aside>

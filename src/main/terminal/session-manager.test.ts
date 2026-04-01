@@ -39,11 +39,18 @@ describe('resolveShell', () => {
 
 describe('createRuntimeEnv', () => {
   it('adds terminal-specific env vars', () => {
-    const env = createRuntimeEnv({ HOME: '/tmp/home' }, '/tmp/app');
+    const env = createRuntimeEnv(
+      { HOME: '/tmp/home', PATH: '/usr/bin' },
+      '/tmp/app',
+      '/tmp/helper-bin',
+      '/tmp/status.json',
+    );
 
     expect(env.PWD).toBe('/tmp/app');
     expect(env.TERM).toBe('xterm-256color');
     expect(env.TERM_PROGRAM).toBe('claude-code-with-emotion');
+    expect(env.PATH).toBe('/tmp/helper-bin:/usr/bin');
+    expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
   });
 });
 
@@ -113,6 +120,8 @@ describe('TerminalSessionManager', () => {
       (sessionId, data) => {
         outputEvents.push(`${sessionId}:${data}`);
       },
+      '/tmp/helper-bin',
+      '/tmp/status.json',
     );
 
     const response = manager.bootstrapSession(createBootstrapRequest());

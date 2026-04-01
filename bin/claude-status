@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+
+const fs = require('node:fs');
+
+function parseArgs(argv) {
+  if (argv.length === 1 && argv[0].trim().startsWith('{')) {
+    return JSON.parse(argv[0]);
+  }
+
+  const result = {};
+
+  for (let index = 0; index < argv.length; index += 2) {
+    const key = argv[index];
+    const value = argv[index + 1];
+
+    if (typeof key !== 'string' || !key.startsWith('--') || value === undefined) {
+      continue;
+    }
+
+    if (key === '--state') {
+      result.state = value;
+    } else if (key === '--line') {
+      result.line = value;
+    } else if (key === '--task') {
+      result.currentTask = value;
+    } else if (key === '--duration-ms') {
+      const parsed = Number(value);
+
+      if (!Number.isNaN(parsed)) {
+        result.durationMs = parsed;
+      }
+    } else if (key === '--intensity') {
+      result.intensity = value;
+    }
+  }
+
+  return result;
+}
+
+function main() {
+  const statusFilePath = process.env.CLAUDE_WITH_EMOTION_STATUS_FILE;
+
+  if (typeof statusFilePath !== 'string' || statusFilePath.length === 0) {
+    console.error('CLAUDE_WITH_EMOTION_STATUS_FILE is not set.');
+    process.exit(1);
+  }
+
+  const payload = parseArgs(process.argv.slice(2));
+
+  if (typeof payload.state !== 'string' || typeof payload.line !== 'string') {
+    console.error('Usage: claude-status --state <state> --line <line> [--task <task>] [--duration-ms <ms>] [--intensity <low|medium|high>]');
+    process.exit(1);
+  }
+
+  fs.writeFileSync(statusFilePath, JSON.stringify(payload), 'utf8');
+}
+
+main();

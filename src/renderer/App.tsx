@@ -1,8 +1,10 @@
 import type { ReactElement } from 'react';
+import type { AssistantStatusSnapshot } from '../shared/assistant-status';
 import { PaneStack } from './features/workspace/PaneStack';
 import { StatusPanel } from './features/workspace/StatusPanel';
 import { TabBar } from './features/workspace/TabBar';
-import { getActiveTab } from './features/workspace/model';
+import { formatElapsedLabel, getActiveTab } from './features/workspace/model';
+import { useAssistantStatusBridge } from './features/workspace/use-assistant-status-bridge';
 import { useWorkspaceState } from './features/workspace/use-workspace-state';
 
 export function App(): ReactElement {
@@ -18,6 +20,18 @@ export function App(): ReactElement {
   const appVersion = window.claudeApp?.appVersion ?? 'unknown';
   const activeTab = getActiveTab(state);
   const panelId = activeTab !== null ? `panel-${activeTab.id}` : 'panel-stack';
+  const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
+    state: state.assistantStatus.visualState,
+    line: state.assistantStatus.line,
+    currentTask: state.assistantStatus.currentTask,
+    updatedAtMs: state.assistantStatus.statusSinceMs,
+    intensity: 'medium',
+    source: 'workspace',
+  };
+  const assistantSnapshot = useAssistantStatusBridge(fallbackAssistantSnapshot);
+  const taskElapsedLabel = formatElapsedLabel(
+    Date.now() - assistantSnapshot.updatedAtMs,
+  );
 
   return (
     <div className="app-shell">
@@ -57,9 +71,9 @@ export function App(): ReactElement {
 
         <StatusPanel
           activeSessionElapsedLabel={appElapsedLabel}
-          assistantStatus={state.assistantStatus}
+          assistantStatus={assistantSnapshot}
           runtimeVersion={appVersion}
-          taskElapsedLabel={activeTaskElapsedLabel}
+          taskElapsedLabel={taskElapsedLabel}
         />
       </main>
     </div>

@@ -83,10 +83,21 @@ export function resolveShell(env: NodeJS.ProcessEnv): string {
 export function createRuntimeEnv(
   env: NodeJS.ProcessEnv,
   cwd: string,
+  helperBinDir: string,
+  statusFilePath: string,
 ): NodeJS.ProcessEnv {
+  const pathSegments = [helperBinDir];
+  const existingPath = env.PATH;
+
+  if (typeof existingPath === 'string' && existingPath.length > 0) {
+    pathSegments.push(existingPath);
+  }
+
   return {
     ...env,
+    CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
     PWD: cwd,
+    PATH: pathSegments.join(':'),
     TERM: 'xterm-256color',
     TERM_PROGRAM: 'claude-code-with-emotion',
   };
@@ -98,6 +109,8 @@ export class TerminalSessionManager {
   constructor(
     private readonly runtimeFactory: RuntimeFactory,
     private readonly emitOutput: OutputListener,
+    private readonly helperBinDir: string,
+    private readonly statusFilePath: string,
   ) {}
 
   bootstrapSession(
@@ -116,7 +129,12 @@ export class TerminalSessionManager {
       cols: request.cols,
       rows: request.rows,
       cwd: request.cwd,
-      env: createRuntimeEnv(process.env, request.cwd),
+      env: createRuntimeEnv(
+        process.env,
+        request.cwd,
+        this.helperBinDir,
+        this.statusFilePath,
+      ),
       shell,
       shellArgs: ['-l'],
     });
@@ -189,6 +207,13 @@ export class TerminalSessionManager {
 
 export function createTerminalSessionManager(
   emitOutput: OutputListener,
+  helperBinDir: string,
+  statusFilePath: string,
 ): TerminalSessionManager {
-  return new TerminalSessionManager(createNodePtyRuntime, emitOutput);
+  return new TerminalSessionManager(
+    createNodePtyRuntime,
+    emitOutput,
+    helperBinDir,
+    statusFilePath,
+  );
 }
