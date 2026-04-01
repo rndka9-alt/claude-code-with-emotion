@@ -11,6 +11,7 @@ import {
 } from '../shared/diagnostics';
 import {
   TERMINAL_CHANNELS,
+  type TerminalExitEvent,
   type TerminalOutputEvent,
 } from '../shared/terminal-bridge';
 
@@ -61,6 +62,9 @@ const claudeAppApi: ClaudeAppApi = {
     resizeSession: async (request) => {
       await ipcRenderer.invoke(TERMINAL_CHANNELS.resize, request);
     },
+    closeSession: async (request) => {
+      await ipcRenderer.invoke(TERMINAL_CHANNELS.close, request);
+    },
     onOutput: (listener) => {
       const subscription = (
         _event: IpcRendererEvent,
@@ -73,6 +77,20 @@ const claudeAppApi: ClaudeAppApi = {
 
       return () => {
         ipcRenderer.removeListener(TERMINAL_CHANNELS.output, subscription);
+      };
+    },
+    onExit: (listener) => {
+      const subscription = (
+        _event: IpcRendererEvent,
+        payload: TerminalExitEvent,
+      ) => {
+        listener(payload);
+      };
+
+      ipcRenderer.on(TERMINAL_CHANNELS.exit, subscription);
+
+      return () => {
+        ipcRenderer.removeListener(TERMINAL_CHANNELS.exit, subscription);
       };
     },
   },

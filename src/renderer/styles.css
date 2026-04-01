@@ -60,11 +60,20 @@ button {
   padding-bottom: 0;
 }
 
-.tab-button {
+.tab-chip {
+  position: relative;
+  display: flex;
   flex: 0 0 auto;
+  align-items: stretch;
   max-width: 240px;
   min-width: 160px;
-  padding: 12px 18px;
+}
+
+.tab-button {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 36px 12px 18px;
   border-radius: 16px 16px 0 0;
   color: #9caacf;
   background: rgba(18, 22, 32, 0.78);
@@ -96,6 +105,37 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tab-close-button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 999px;
+  color: #c8d4f5;
+  background: rgba(56, 69, 98, 0.86);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease;
+}
+
+.tab-chip:hover .tab-close-button,
+.tab-chip:focus-within .tab-close-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tab-close-button:hover {
+  background: rgba(82, 101, 143, 0.96);
 }
 
 .workspace {

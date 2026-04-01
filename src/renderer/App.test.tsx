@@ -24,6 +24,23 @@ describe('App', () => {
     ).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('closes a tab from the tab strip close button', () => {
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Close claude-code-with-emotion · main workspace',
+      }),
+    );
+
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    expect(
+      screen.getByRole('tab', {
+        name: 'terminal-resize prototype · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('renders only the active terminal session inside the workspace', () => {
     render(<App />);
 

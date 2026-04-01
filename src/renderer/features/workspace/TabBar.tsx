@@ -5,6 +5,7 @@ interface TabBarProps {
   activeTabId: string;
   tabs: SessionTab[];
   onActivateTab: (tabId: string) => void;
+  onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
 }
 
@@ -12,6 +13,7 @@ export function TabBar({
   activeTabId,
   tabs,
   onActivateTab,
+  onCloseTab,
   onCreateTab,
 }: TabBarProps): ReactElement {
   return (
@@ -25,20 +27,37 @@ export function TabBar({
           const isActive = tab.id === activeTabId;
 
           return (
-            <button
+            <div
+              className={`tab-chip${isActive ? ' tab-chip--active' : ''}`}
               key={tab.id}
-              aria-controls={`panel-${tab.id}`}
-              aria-selected={isActive}
-              className={`tab-button${isActive ? ' tab-button--active' : ''}`}
-              id={`tab-${tab.id}`}
-              onClick={() => {
-                onActivateTab(tab.id);
-              }}
-              role="tab"
-              type="button"
+              role="presentation"
             >
-              <span className="tab-button__label">{tab.title}</span>
-            </button>
+              <button
+                aria-controls={`panel-${tab.id}`}
+                aria-selected={isActive}
+                className={`tab-button${isActive ? ' tab-button--active' : ''}`}
+                id={`tab-${tab.id}`}
+                onClick={() => {
+                  onActivateTab(tab.id);
+                }}
+                role="tab"
+                type="button"
+              >
+                <span className="tab-button__label">{tab.title}</span>
+              </button>
+
+              <button
+                aria-label={`Close ${tab.title}`}
+                className="tab-close-button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCloseTab(tab.id);
+                }}
+                type="button"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
           );
         })}
 

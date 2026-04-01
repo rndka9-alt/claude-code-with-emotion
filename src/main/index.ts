@@ -29,6 +29,7 @@ import {
 import {
   TERMINAL_CHANNELS,
   type TerminalBootstrapRequest,
+  type TerminalCloseRequest,
   type TerminalInputRequest,
   type TerminalResizeRequest,
 } from '../shared/terminal-bridge';
@@ -165,6 +166,17 @@ function registerTerminalBridge(
         data,
       });
     },
+    (sessionId, event) => {
+      runtimeLog.write(
+        'terminal',
+        `exit session=${sessionId} code=${event.exitCode} signal=${event.signal}`,
+      );
+      mainWindow.webContents.send(TERMINAL_CHANNELS.exit, {
+        sessionId,
+        exitCode: event.exitCode,
+        signal: event.signal,
+      });
+    },
     assistantStatusHelperBinDir,
     assistantStatusFilePath,
     assistantStatusTraceFilePath,
@@ -225,6 +237,14 @@ function registerTerminalBridge(
     },
   );
 
+  ipcMain.handle(
+    TERMINAL_CHANNELS.close,
+    (_event, request: TerminalCloseRequest) => {
+      runtimeLog.write('terminal', `close session=${request.sessionId}`);
+      terminalSessionManager.closeSession(request);
+    },
+  );
+
   const rendererDiagnosticListener = (
     _event: IpcMainEvent,
     payload: RendererDiagnosticPayload,
@@ -255,6 +275,7 @@ function registerTerminalBridge(
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);
+    ipcMain.removeHandler(TERMINAL_CHANNELS.close);
   });
 }
 

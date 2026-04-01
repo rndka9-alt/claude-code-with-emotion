@@ -7,6 +7,7 @@ import { ensureClaudeHooksSettingsFile } from './claude-hooks-settings';
 import type {
   TerminalBootstrapRequest,
   TerminalBootstrapResponse,
+  TerminalCloseRequest,
   TerminalInputRequest,
   TerminalResizeRequest,
 } from '../../shared/terminal-bridge';
@@ -41,6 +42,10 @@ interface RuntimeFactoryOptions {
 
 type RuntimeFactory = (options: RuntimeFactoryOptions) => TerminalSessionRuntime;
 type OutputListener = (sessionId: string, data: string) => void;
+type ExitListener = (
+  sessionId: string,
+  event: { exitCode: number; signal: number },
+) => void;
 
 interface TerminalDimensions {
   cols: number;
@@ -234,6 +239,7 @@ export class TerminalSessionManager {
   constructor(
     private readonly runtimeFactory: RuntimeFactory,
     private readonly emitOutput: OutputListener,
+    private readonly emitExit: ExitListener,
     private readonly helperBinDir: string,
     private readonly statusFilePath: string,
     private readonly traceFilePath: string,
@@ -286,6 +292,10 @@ export class TerminalSessionManager {
         request.sessionId,
         `\r\n[session exited: code ${event.exitCode}, signal ${event.signal ?? 0}]\r\n`,
       );
+      this.emitExit(request.sessionId, {
+        exitCode: event.exitCode,
+        signal: event.signal ?? 0,
+      });
       this.disposeSession(request.sessionId);
     });
 
@@ -319,6 +329,10 @@ export class TerminalSessionManager {
     }
   }
 
+  closeSession(request: TerminalCloseRequest): void {
+    this.disposeSession(request.sessionId);
+  }
+
   dispose(): void {
     for (const sessionId of [...this.sessions.keys()]) {
       this.disposeSession(sessionId);
@@ -343,6 +357,7 @@ export class TerminalSessionManager {
 
 export function createTerminalSessionManager(
   emitOutput: OutputListener,
+  emitExit: ExitListener,
   helperBinDir: string,
   statusFilePath: string,
   traceFilePath: string,
@@ -350,6 +365,7 @@ export function createTerminalSessionManager(
   return new TerminalSessionManager(
     createNodePtyRuntime,
     emitOutput,
+    emitExit,
     helperBinDir,
     statusFilePath,
     traceFilePath,

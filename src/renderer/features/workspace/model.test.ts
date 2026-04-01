@@ -35,6 +35,43 @@ describe('workspaceReducer', () => {
     expect(activatedState.activeTabId).toBe('session-2');
     expect(unchangedState).toBe(state);
   });
+
+  it('closes a tab and keeps the neighboring tab active', () => {
+    const state = createInitialWorkspaceState(20_000);
+    const nextState = workspaceReducer(state, {
+      type: 'closeTab',
+      tabId: 'session-1',
+      nowMs: 21_000,
+      reason: 'manual',
+    });
+
+    expect(nextState.tabs).toHaveLength(1);
+    expect(nextState.activeTabId).toBe('session-2');
+    expect(nextState.assistantStatus.currentTask).toBe(
+      'Closed "claude-code-with-emotion · main workspace"',
+    );
+  });
+
+  it('creates a replacement session when the last tab closes', () => {
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: 'closeTab',
+      tabId: 'session-2',
+      nowMs: 20_500,
+      reason: 'manual',
+    });
+    const nextState = workspaceReducer(state, {
+      type: 'closeTab',
+      tabId: 'session-1',
+      nowMs: 21_000,
+      reason: 'exit',
+    });
+
+    expect(nextState.tabs).toHaveLength(1);
+    expect(nextState.activeTabId).toBe('session-3');
+    expect(nextState.assistantStatus.line).toBe(
+      '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!',
+    );
+  });
 });
 
 describe('formatElapsedLabel', () => {

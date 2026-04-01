@@ -29,6 +29,7 @@ export interface WorkspaceState {
 export type WorkspaceAction =
   | { type: 'activateTab'; tabId: string; nowMs: number }
   | { type: 'createTab'; nowMs: number }
+  | { type: 'closeTab'; tabId: string; nowMs: number; reason: 'manual' | 'exit' }
   | { type: 'resizePane'; index: number; deltaRatio: number };
 
 const MIN_PANE_SIZE = 0.18;
@@ -82,6 +83,91 @@ function createBalancedPaneSizes(count: number): number[] {
   const size = 1 / count;
 
   return Array.from({ length: count }, () => size);
+}
+
+function createClosedTabAssistantStatus(
+  reason: 'manual' | 'exit',
+  closedTabTitle: string,
+  nowMs: number,
+): AssistantStatus {
+  if (reason === 'exit') {
+    return createAssistantStatus(
+      'waiting',
+      '터미널이 종료돼서 탭도 같이 닫앗어요...!',
+      `Closed "${closedTabTitle}" after the shell exited`,
+      nowMs,
+    );
+  }
+
+  return createAssistantStatus(
+    'happy',
+    '탭 하나 정리햇어요. 꽤 깔끔하죠...!',
+    `Closed "${closedTabTitle}"`,
+    nowMs,
+  );
+}
+
+function closeTabState(
+  state: WorkspaceState,
+  tabId: string,
+  nowMs: number,
+  reason: 'manual' | 'exit',
+): WorkspaceState {
+  const tabIndex = state.tabs.findIndex((tab) => tab.id === tabId);
+
+  if (tabIndex < 0) {
+    return state;
+  }
+
+  const closedTab = state.tabs[tabIndex];
+
+  if (closedTab === undefined) {
+    return state;
+  }
+
+  const remainingTabs = state.tabs.filter((tab) => tab.id !== tabId);
+
+  if (remainingTabs.length === 0) {
+    const replacementTab = createSessionTab(state.nextTabNumber, nowMs);
+    const replacementLine =
+      reason === 'exit'
+        ? '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!'
+        : '마지막 탭을 닫아서 새 세션 하나 열어뒀어요...!';
+
+    return {
+      tabs: [replacementTab],
+      paneSizes: [1],
+      activeTabId: replacementTab.id,
+      nextTabNumber: state.nextTabNumber + 1,
+      assistantStatus: createAssistantStatus(
+        'waiting',
+        replacementLine,
+        `Bootstrapping "${replacementTab.title}"`,
+        nowMs,
+      ),
+    };
+  }
+
+  const nextActiveTabId =
+    state.activeTabId !== tabId
+      ? state.activeTabId
+      : remainingTabs[Math.max(0, tabIndex - 1)]?.id ?? remainingTabs[0]?.id;
+
+  if (typeof nextActiveTabId !== 'string') {
+    return state;
+  }
+
+  return {
+    ...state,
+    tabs: remainingTabs,
+    paneSizes: createBalancedPaneSizes(remainingTabs.length),
+    activeTabId: nextActiveTabId,
+    assistantStatus: createClosedTabAssistantStatus(
+      reason,
+      closedTab.title,
+      nowMs,
+    ),
+  };
 }
 
 export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
@@ -209,6 +295,10 @@ export function workspaceReducer(
         action.deltaRatio,
       ),
     };
+  }
+
+  if (action.type === 'closeTab') {
+    return closeTabState(state, action.tabId, action.nowMs, action.reason);
   }
 
   const nextTab = createSessionTab(state.nextTabNumber, action.nowMs);

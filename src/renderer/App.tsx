@@ -15,6 +15,7 @@ export function App(): ReactElement {
   const {
     state,
     activateTab,
+    closeTab,
     appElapsedLabel,
     createTab,
     resizePane,
@@ -41,6 +42,7 @@ export function App(): ReactElement {
       <TabBar
         activeTabId={state.activeTabId}
         onActivateTab={activateTab}
+        onCloseTab={closeTab}
         onCreateTab={createTab}
         tabs={state.tabs}
       />

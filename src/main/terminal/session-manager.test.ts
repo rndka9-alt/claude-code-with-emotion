@@ -192,6 +192,7 @@ describe('TerminalSessionManager', () => {
       (sessionId, data) => {
         outputEvents.push(`${sessionId}:${data}`);
       },
+      () => {},
       '/tmp/helper-bin',
       '/tmp/status.json',
       '/tmp/trace.log',
@@ -224,6 +225,69 @@ describe('TerminalSessionManager', () => {
     expect(createdRuntimes[0]?.rows).toBe(40);
 
     manager.dispose();
+
+    expect(createdRuntimes[0]?.killed).toBe(true);
+  });
+
+  it('closes a specific session runtime when asked explicitly', () => {
+    const createdRuntimes: FakeRuntimeRecord[] = [];
+    const manager = new TerminalSessionManager(
+      ({ cols, rows, cwd, shell, shellArgs }) => {
+        const dataListeners = new Set<(data: string) => void>();
+        const exitListeners = new Set<
+          (event: { exitCode: number; signal: number }) => void
+        >();
+        const record: FakeRuntimeRecord = {
+          cols,
+          cwd,
+          killed: false,
+          rows,
+          shell,
+          shellArgs,
+          writes: [],
+        };
+
+        createdRuntimes.push(record);
+
+        return {
+          write: () => {},
+          resize: () => {},
+          kill: () => {
+            record.killed = true;
+
+            for (const listener of exitListeners) {
+              listener({ exitCode: 0, signal: 0 });
+            }
+          },
+          onData: (listener) => {
+            dataListeners.add(listener);
+
+            return {
+              dispose: () => {
+                dataListeners.delete(listener);
+              },
+            };
+          },
+          onExit: (listener) => {
+            exitListeners.add(listener);
+
+            return {
+              dispose: () => {
+                exitListeners.delete(listener);
+              },
+            };
+          },
+        };
+      },
+      () => {},
+      () => {},
+      '/tmp/helper-bin',
+      '/tmp/status.json',
+      '/tmp/trace.log',
+    );
+
+    manager.bootstrapSession(createBootstrapRequest());
+    manager.closeSession({ sessionId: 'session-1' });
 
     expect(createdRuntimes[0]?.killed).toBe(true);
   });

@@ -22,9 +22,19 @@ export interface TerminalResizeRequest {
   rows: number;
 }
 
+export interface TerminalCloseRequest {
+  sessionId: string;
+}
+
 export interface TerminalOutputEvent {
   sessionId: string;
   data: string;
+}
+
+export interface TerminalExitEvent {
+  sessionId: string;
+  exitCode: number;
+  signal: number;
 }
 
 export interface TerminalBridge {
@@ -33,17 +43,23 @@ export interface TerminalBridge {
   ) => Promise<TerminalBootstrapResponse>;
   sendInput: (request: TerminalInputRequest) => Promise<void>;
   resizeSession: (request: TerminalResizeRequest) => Promise<void>;
+  closeSession: (request: TerminalCloseRequest) => Promise<void>;
   onOutput: (listener: (event: TerminalOutputEvent) => void) => (() => void);
+  onExit: (listener: (event: TerminalExitEvent) => void) => (() => void);
 }
 
 export const TERMINAL_CHANNELS: {
   bootstrap: string;
   input: string;
   resize: string;
+  close: string;
   output: string;
+  exit: string;
 } = {
   bootstrap: 'terminal:bootstrap',
   input: 'terminal:input',
   resize: 'terminal:resize',
+  close: 'terminal:close',
   output: 'terminal:output',
+  exit: 'terminal:exit',
 };
