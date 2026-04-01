@@ -113,9 +113,10 @@ When Claude itself is launched through the embedded terminal, the app also injec
 - `SessionStart` -> `waiting`
 - `UserPromptSubmit` -> `thinking`
 - `PermissionRequest` -> `waiting`
-- `PermissionDenied` -> `sad`
+- `PermissionDenied` -> `sad` when Claude emits it directly
 - `PreToolUse` -> `working`
 - `PostToolUse` -> `thinking`
+- `PostToolUseFailure` -> `waiting` for `is_interrupt === true`, otherwise `error`
 - `Notification` -> `surprised`
 - `Elicitation` -> `waiting`
 - `ElicitationResult` -> `thinking`
@@ -126,6 +127,8 @@ When Claude itself is launched through the embedded terminal, the app also injec
 - `Stop` -> `waiting`
 - `StopFailure` -> `error`
 - `SessionEnd` -> `disconnected`
+
+The hook helper also keeps a tiny temp state file so a `PermissionRequest` followed by a new `UserPromptSubmit` or `SessionEnd` without any `PreToolUse` can be treated as a soft permission cancel instead of getting stuck in a waiting state.
 
 All helper writes and hook transitions are traced into `.runtime-logs/electron-dev.log`.
 

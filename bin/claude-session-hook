@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('node:fs');
-const { join } = require('node:path');
+const { dirname, join } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 function appendTrace(message) {
@@ -56,6 +56,32 @@ function readStringField(payload, keys) {
 
     if (typeof value === 'string' && value.length > 0) {
       return value;
+    }
+  }
+
+  return null;
+}
+
+function readBooleanField(payload, keys) {
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const value = payload[key];
+
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      if (value === 'true') {
+        return true;
+      }
+
+      if (value === 'false') {
+        return false;
+      }
     }
   }
 
@@ -135,6 +161,19 @@ function summarizeNotification(payload) {
   );
 }
 
+function summarizePermissionCancellation(pendingPermission) {
+  if (
+    typeof pendingPermission === 'object' &&
+    pendingPermission !== null &&
+    typeof pendingPermission.task === 'string' &&
+    pendingPermission.task.length > 0
+  ) {
+    return `${pendingPermission.task} (not approved)`;
+  }
+
+  return 'Permission was not approved';
+}
+
 function summarizeElicitation(payload) {
   return summarizeText(
     readStringField(payload, ['question', 'prompt', 'message', 'text']),
@@ -158,30 +197,122 @@ function summarizeBackgroundTask(payload, fallback) {
   );
 }
 
-function summarizeStop(payload) {
-  return summarizeText(
-    readStringField(payload, [
-      'stop_reason',
-      'stopReason',
-      'reason',
-      'last_assistant_message',
-    ]),
-    'Waiting for the next prompt',
-    'Stop: ',
-  );
+function isPermissionPromptNotification(payload) {
+  const notificationType = readStringField(payload, [
+    'notification',
+    'type',
+    'subtype',
+  ]);
+
+  return notificationType === 'permission_prompt';
 }
 
-function hasInterruptedSignal(payload) {
-  const candidates = [
-    readStringField(payload, ['stop_reason']),
-    readStringField(payload, ['stopReason']),
-    readStringField(payload, ['reason']),
-    readStringField(payload, ['last_assistant_message']),
-  ];
+function isToolInterrupt(payload) {
+  return readBooleanField(payload, ['is_interrupt']) === true;
+}
 
-  return candidates.some((value) => {
-    return typeof value === 'string' && value.toLowerCase().includes('interrupt');
-  });
+function getHookStateFilePath() {
+  const hookStateFilePath = process.env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE;
+
+  if (typeof hookStateFilePath !== 'string' || hookStateFilePath.length === 0) {
+    return null;
+  }
+
+  return hookStateFilePath;
+}
+
+function readHookState() {
+  const hookStateFilePath = getHookStateFilePath();
+
+  if (hookStateFilePath === null) {
+    return {};
+  }
+
+  try {
+    const text = fs.readFileSync(hookStateFilePath, 'utf8');
+    const parsed = JSON.parse(text);
+
+    if (typeof parsed === 'object' && parsed !== null) {
+      return parsed;
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name !== 'ENOENT') {
+      appendTrace(`failed to read hook state file error=${error.message}`);
+    }
+  }
+
+  return {};
+}
+
+function writeHookState(nextState) {
+  const hookStateFilePath = getHookStateFilePath();
+
+  if (hookStateFilePath === null) {
+    return;
+  }
+
+  try {
+    fs.mkdirSync(dirname(hookStateFilePath), { recursive: true });
+    fs.writeFileSync(
+      hookStateFilePath,
+      JSON.stringify(nextState, null, 2),
+      'utf8',
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      appendTrace(`failed to write hook state file error=${error.message}`);
+    }
+  }
+}
+
+function getPendingPermission(hookState) {
+  if (typeof hookState !== 'object' || hookState === null) {
+    return null;
+  }
+
+  const pendingPermission = hookState.pendingPermission;
+
+  if (typeof pendingPermission !== 'object' || pendingPermission === null) {
+    return null;
+  }
+
+  return pendingPermission;
+}
+
+function buildNextHookState(eventName, payload, hookState) {
+  const nextState = {
+    ...hookState,
+    lastEvent: eventName,
+  };
+
+  if (
+    eventName === 'PermissionRequest' ||
+    (eventName === 'Notification' && isPermissionPromptNotification(payload))
+  ) {
+    nextState.pendingPermission = {
+      task: summarizePermission(payload),
+      toolName:
+        readStringField(payload, ['tool_name', 'toolName', 'tool', 'name']) ?? '',
+      requestedAt: new Date().toISOString(),
+    };
+    return nextState;
+  }
+
+  if (
+    eventName === 'UserPromptSubmit' ||
+    eventName === 'PermissionDenied' ||
+    eventName === 'PreToolUse' ||
+    eventName === 'PostToolUse' ||
+    eventName === 'PostToolUseFailure' ||
+    eventName === 'Stop' ||
+    eventName === 'StopFailure' ||
+    eventName === 'SessionEnd'
+  ) {
+    delete nextState.pendingPermission;
+    return nextState;
+  }
+
+  return nextState;
 }
 
 function describePayloadForTrace(payload) {
@@ -199,10 +330,17 @@ function describePayloadForTrace(payload) {
       key === 'stopReason' ||
       key === 'last_assistant_message' ||
       key === 'tool_name' ||
+      key === 'type' ||
+      key === 'subtype' ||
+      key === 'notification' ||
       key === 'prompt' ||
       key === 'message'
     ) {
       return typeof value === 'string' && value.length > 0;
+    }
+
+    if (key === 'is_interrupt') {
+      return typeof value === 'boolean';
     }
 
     return false;
@@ -219,7 +357,9 @@ function describePayloadForTrace(payload) {
     .join(' | ');
 }
 
-function createUpdate(eventName, payload) {
+function createUpdate(eventName, payload, hookState) {
+  const pendingPermission = getPendingPermission(hookState);
+
   if (eventName === 'SessionStart') {
     return {
       state: 'waiting',
@@ -232,7 +372,10 @@ function createUpdate(eventName, payload) {
   if (eventName === 'UserPromptSubmit') {
     return {
       state: 'thinking',
-      line: '질문 읽고 흐름 잡는 중이에요...!',
+      line:
+        pendingPermission === null
+          ? '질문 읽고 흐름 잡는 중이에요...!'
+          : '권한 승인 없이 넘어와서 새 입력을 읽는 중이에요...!',
       task: summarizePrompt(payload),
       intensity: 'medium',
     };
@@ -277,6 +420,16 @@ function createUpdate(eventName, payload) {
   }
 
   if (eventName === 'Notification') {
+    if (isPermissionPromptNotification(payload)) {
+      return {
+        state: 'waiting',
+        line: '권한 팝업 확인 중이에요...!',
+        task: summarizePermission(payload),
+        intensity: 'medium',
+        durationMs: 12000,
+      };
+    }
+
     return {
       state: 'surprised',
       line: '새 알림이 와서 확인 중이에요...!',
@@ -341,17 +494,26 @@ function createUpdate(eventName, payload) {
     };
   }
 
-  if (eventName === 'Stop') {
-    if (hasInterruptedSignal(payload)) {
+  if (eventName === 'PostToolUseFailure') {
+    if (isToolInterrupt(payload)) {
       return {
         state: 'waiting',
-        line: '응답이 중단돼서 다음 지시를 기다리고 잇어요...!',
-        task: summarizeStop(payload),
+        line: '유저가 도구 실행을 중간에 멈췃어요...!',
+        task: summarizeTool(payload, 'Interrupted during tool use'),
         intensity: 'medium',
         durationMs: 6000,
       };
     }
 
+    return {
+      state: 'error',
+      line: '도구 실행 중에 문제가 생겻어요...!',
+      task: summarizeTool(payload, 'Claude tool failed'),
+      intensity: 'high',
+    };
+  }
+
+  if (eventName === 'Stop') {
     return {
       state: 'waiting',
       line: '응답을 마치고 다음 입력을 기다리고 잇어요...!',
@@ -370,6 +532,16 @@ function createUpdate(eventName, payload) {
   }
 
   if (eventName === 'SessionEnd') {
+    if (pendingPermission !== null) {
+      return {
+        state: 'disconnected',
+        line: '권한 승인 없이 세션이 닫혓어요...!',
+        task: summarizePermissionCancellation(pendingPermission),
+        intensity: 'low',
+        durationMs: 6000,
+      };
+    }
+
     return {
       state: 'disconnected',
       line: 'Claude 세션이 종료돼서 지금은 미연결 상태예요...!',
@@ -431,11 +603,17 @@ function main() {
 
   const payloadText = readStdinText();
   const payload = parsePayload(payloadText);
-  const update = createUpdate(eventName, payload);
+  const hookState = readHookState();
+  const update = createUpdate(eventName, payload, hookState);
+  const nextHookState = buildNextHookState(eventName, payload, hookState);
 
   appendTrace(
     `event=${eventName} payloadKeys=${payload !== null ? Object.keys(payload).join(',') : 'none'} payloadSummary=${describePayloadForTrace(payload)}`,
   );
+  appendTrace(
+    `hook-state pendingPermission=${getPendingPermission(nextHookState) === null ? 'none' : 'active'} lastEvent=${typeof nextHookState.lastEvent === 'string' ? nextHookState.lastEvent : 'none'}`,
+  );
+  writeHookState(nextHookState);
 
   if (update === null) {
     appendTrace(`no status update mapped for event=${eventName}`);

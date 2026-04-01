@@ -40,6 +40,9 @@ describe('claude hooks settings', () => {
     expect(settings.hooks.PostToolUse[0]?.hooks[0]?.command).toContain(
       'PostToolUse',
     );
+    expect(settings.hooks.PostToolUseFailure[0]?.hooks[0]?.command).toContain(
+      'PostToolUseFailure',
+    );
     expect(settings.hooks.Notification[0]?.hooks[0]?.command).toContain(
       'Notification',
     );

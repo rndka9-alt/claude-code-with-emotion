@@ -9,6 +9,7 @@ type ClaudeHookEvent =
   | 'PermissionDenied'
   | 'PreToolUse'
   | 'PostToolUse'
+  | 'PostToolUseFailure'
   | 'Notification'
   | 'Elicitation'
   | 'ElicitationResult'
@@ -65,6 +66,7 @@ export function createClaudeHooksSettings(
     'PermissionDenied',
     'PreToolUse',
     'PostToolUse',
+    'PostToolUseFailure',
     'Notification',
     'Elicitation',
     'ElicitationResult',
@@ -100,6 +102,7 @@ export function createClaudeHooksSettings(
       PermissionDenied: hooks.PermissionDenied ?? [],
       PreToolUse: hooks.PreToolUse ?? [],
       PostToolUse: hooks.PostToolUse ?? [],
+      PostToolUseFailure: hooks.PostToolUseFailure ?? [],
       Notification: hooks.Notification ?? [],
       Elicitation: hooks.Elicitation ?? [],
       ElicitationResult: hooks.ElicitationResult ?? [],

@@ -59,6 +59,9 @@ describe('createRuntimeEnv', () => {
     expect(env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR).toBe('/tmp/helper-bin');
     expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe('/tmp/trace.log');
     expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
+    expect(env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE).toBe(
+      '/tmp/status.json.hook-state.json',
+    );
     expect(Object.hasOwn(env, 'INVALID')).toBe(false);
   });
 });
@@ -74,6 +77,7 @@ describe('createShellLaunchConfig', () => {
       PATH: '/tmp/helper-bin:/usr/bin',
       CLAUDE_WITH_EMOTION_ORIGINAL_PATH: '/usr/bin',
       CLAUDE_WITH_EMOTION_STATUS_FILE: '/tmp/status.json',
+      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: '/tmp/status.json.hook-state.json',
       CLAUDE_WITH_EMOTION_TRACE_FILE: '/tmp/trace.log',
     };
 
@@ -97,6 +101,9 @@ describe('createShellLaunchConfig', () => {
       );
       expect(zshrc).toContain(
         "export CLAUDE_WITH_EMOTION_STATUS_FILE='/tmp/status.json'",
+      );
+      expect(zshrc).toContain(
+        "export CLAUDE_WITH_EMOTION_HOOK_STATE_FILE='/tmp/status.json.hook-state.json'",
       );
     } finally {
       if (wrapperDir.length > 0) {
