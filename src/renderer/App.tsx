@@ -1,101 +1,42 @@
-import { useState, type ReactElement } from 'react';
-import type { AssistantStatusSnapshot } from '../shared/assistant-status';
+import type { ReactElement } from 'react';
 import { PaneStack } from './features/workspace/PaneStack';
 import { StatusPanel } from './features/workspace/StatusPanel';
 import { TabBar } from './features/workspace/TabBar';
 import { VisualAssetManagerDialog } from './features/workspace/VisualAssetManagerDialog';
-import { getActiveTab, getVisibleTabs } from './features/workspace/model';
-import { resolveStatusPanelVisual } from './features/workspace/status-panel-visual';
-import {
-  mergePickedVisualAssets,
-  removeVisualAsset,
-  setVisualAssetDefault,
-  setVisualAssetEmotionMapping,
-  setVisualAssetStateEmotionMapping,
-  setVisualAssetStateMapping,
-} from './features/workspace/visual-asset-catalog-edits';
-import { useAssistantStatusBridge } from './features/workspace/use-assistant-status-bridge';
-import { useVisualAssetCatalog } from './features/workspace/use-visual-asset-catalog';
-import { useWorkspaceState } from './features/workspace/use-workspace-state';
+import { useWorkspaceScreenViewModel } from './features/workspace/use-workspace-screen-view-model';
 
 export function App(): ReactElement {
   const {
-    state,
     activateTab,
+    activeTabId,
+    assistantSnapshot,
+    closeAssetManager,
     closeTab,
     createTab,
+    handleLaunchClaude,
+    isVisualAssetManagerOpen,
+    openAssetManager,
+    paneSizes,
+    pickVisualAssets,
+    removeAsset,
     reorderTab,
     resizePane,
+    setDefaultAsset,
+    statusVisual,
+    tabs,
+    toggleEmotion,
+    toggleState,
+    toggleStateEmotion,
     updateTabTitle,
-  } = useWorkspaceState();
-  const [isVisualAssetManagerOpen, setIsVisualAssetManagerOpen] = useState(false);
-  const activeTab = getActiveTab(state);
-  const visibleTabs = getVisibleTabs(state);
-  const panelId = activeTab !== null ? `panel-${activeTab.id}` : 'panel-stack';
-  const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
-    activityLabel: '작업중',
-    emotion: null,
-    overlayLine: null,
-    state: state.assistantStatus.visualState,
-    line: state.assistantStatus.line,
-    currentTask: state.assistantStatus.currentTask,
-    updatedAtMs: state.assistantStatus.statusSinceMs,
-    intensity: 'medium',
-    source: 'workspace',
-  };
-  const assistantSnapshot = useAssistantStatusBridge(
-    activeTab?.id ?? 'session-1',
-    fallbackAssistantSnapshot,
-  );
-  const {
-    catalog: visualAssetCatalog,
-    pickFiles: pickVisualAssetFiles,
-    saveCatalog: saveVisualAssetCatalog,
-  } = useVisualAssetCatalog();
-  const statusVisual = resolveStatusPanelVisual(
-    assistantSnapshot,
     visualAssetCatalog,
-  );
-
-  const persistVisualAssetCatalog = async (
-    nextCatalog: Parameters<typeof saveVisualAssetCatalog>[0],
-  ): Promise<void> => {
-    await saveVisualAssetCatalog(nextCatalog);
-  };
-
-  const handlePickVisualAssets = async (): Promise<void> => {
-    const pickedFiles = await pickVisualAssetFiles();
-
-    if (pickedFiles.length === 0) {
-      return;
-    }
-
-    await persistVisualAssetCatalog(
-      mergePickedVisualAssets(visualAssetCatalog, pickedFiles),
-    );
-  };
-
-  const handleLaunchClaude = (): void => {
-    if (activeTab === null) {
-      return;
-    }
-
-    const terminalsBridge = window.claudeApp?.terminals;
-
-    if (terminalsBridge === undefined) {
-      return;
-    }
-
-    void terminalsBridge.sendInput({
-      sessionId: activeTab.id,
-      data: `${activeTab.command}\r`,
-    });
-  };
+    visibleTabs,
+  } = useWorkspaceScreenViewModel();
+  const panelId = visibleTabs[0] !== undefined ? `panel-${visibleTabs[0].id}` : 'panel-stack';
 
   return (
     <div className="app-shell">
       <TabBar
-        activeTabId={state.activeTabId}
+        activeTabId={activeTabId}
         onActivateTab={activateTab}
         onCloseTab={closeTab}
         onCreateTab={createTab}
@@ -103,7 +44,7 @@ export function App(): ReactElement {
           updateTabTitle(tabId, title, 'manual');
         }}
         onReorderTab={reorderTab}
-        tabs={state.tabs}
+        tabs={tabs}
       />
 
       <main className="workspace">
@@ -115,7 +56,7 @@ export function App(): ReactElement {
         >
           <PaneStack
             onResizePane={resizePane}
-            paneSizes={state.paneSizes}
+            paneSizes={paneSizes}
             onSyncTabTitle={(tabId, title) => {
               updateTabTitle(tabId, title, 'terminal');
             }}
@@ -126,9 +67,7 @@ export function App(): ReactElement {
         <StatusPanel
           assistantStatus={assistantSnapshot}
           onLaunchClaude={handleLaunchClaude}
-          onOpenAssetManager={() => {
-            setIsVisualAssetManagerOpen(true);
-          }}
+          onOpenAssetManager={openAssetManager}
           statusVisual={statusVisual}
         />
       </main>
@@ -136,53 +75,13 @@ export function App(): ReactElement {
       {isVisualAssetManagerOpen ? (
         <VisualAssetManagerDialog
           catalog={visualAssetCatalog}
-          onClose={() => {
-            setIsVisualAssetManagerOpen(false);
-          }}
-          onPickFiles={() => {
-            void handlePickVisualAssets();
-          }}
-          onRemoveAsset={(assetId) => {
-            void persistVisualAssetCatalog(
-              removeVisualAsset(visualAssetCatalog, assetId),
-            );
-          }}
-          onSetDefaultAsset={(assetId, isDefault) => {
-            void persistVisualAssetCatalog(
-              setVisualAssetDefault(visualAssetCatalog, assetId, isDefault),
-            );
-          }}
-          onToggleEmotion={(assetId, emotion, isEnabled) => {
-            void persistVisualAssetCatalog(
-              setVisualAssetEmotionMapping(
-                visualAssetCatalog,
-                assetId,
-                emotion,
-                isEnabled,
-              ),
-            );
-          }}
-          onToggleState={(assetId, statePreset, isEnabled) => {
-            void persistVisualAssetCatalog(
-              setVisualAssetStateMapping(
-                visualAssetCatalog,
-                assetId,
-                statePreset,
-                isEnabled,
-              ),
-            );
-          }}
-          onToggleStateEmotion={(assetId, statePreset, emotion, isEnabled) => {
-            void persistVisualAssetCatalog(
-              setVisualAssetStateEmotionMapping(
-                visualAssetCatalog,
-                assetId,
-                statePreset,
-                emotion,
-                isEnabled,
-              ),
-            );
-          }}
+          onClose={closeAssetManager}
+          onPickFiles={pickVisualAssets}
+          onRemoveAsset={removeAsset}
+          onSetDefaultAsset={setDefaultAsset}
+          onToggleEmotion={toggleEmotion}
+          onToggleState={toggleState}
+          onToggleStateEmotion={toggleStateEmotion}
         />
       ) : null}
     </div>

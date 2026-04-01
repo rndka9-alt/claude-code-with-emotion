@@ -262,27 +262,124 @@ export function resizePaneSizes(
   });
 }
 
+function activateTabState(
+  state: WorkspaceState,
+  action: Extract<WorkspaceAction, { type: 'activateTab' }>,
+): WorkspaceState {
+  const nextActiveTab = state.tabs.find((tab) => tab.id === action.tabId);
+
+  if (nextActiveTab === undefined) {
+    return state;
+  }
+
+  return {
+    ...state,
+    activeTabId: nextActiveTab.id,
+    assistantStatus: createAssistantStatus(
+      'working',
+      '세션 전환 완료. 흐름 안 놓쳣어요...!',
+      `Reviewing "${nextActiveTab.title}"`,
+      action.nowMs,
+    ),
+  };
+}
+
+function updateTabTitleState(
+  state: WorkspaceState,
+  action: Extract<WorkspaceAction, { type: 'updateTabTitle' }>,
+): WorkspaceState {
+  const normalizedTitle = action.title.trim();
+
+  if (normalizedTitle.length === 0) {
+    return state;
+  }
+
+  const tabToRename = state.tabs.find((tab) => tab.id === action.tabId);
+
+  if (tabToRename === undefined || tabToRename.title === normalizedTitle) {
+    return state;
+  }
+
+  return {
+    ...state,
+    tabs: state.tabs.map((tab) =>
+      tab.id === action.tabId ? { ...tab, title: normalizedTitle } : tab,
+    ),
+    assistantStatus: createAssistantStatus(
+      action.source === 'manual' ? 'happy' : 'working',
+      action.source === 'manual'
+        ? '탭 이름 바꿧어요. 더 알아보기 쉬워요...!'
+        : '터미널 타이틀을 탭 이름으로 동기화햇어요...!',
+      `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
+      action.nowMs,
+    ),
+  };
+}
+
+function reorderTabState(
+  state: WorkspaceState,
+  action: Extract<WorkspaceAction, { type: 'reorderTab' }>,
+): WorkspaceState {
+  if (action.tabId === action.targetTabId) {
+    return state;
+  }
+
+  const fromIndex = state.tabs.findIndex((tab) => tab.id === action.tabId);
+  const targetIndex = state.tabs.findIndex((tab) => tab.id === action.targetTabId);
+
+  if (fromIndex < 0 || targetIndex < 0) {
+    return state;
+  }
+
+  const movedTab = state.tabs[fromIndex];
+
+  if (movedTab === undefined) {
+    return state;
+  }
+
+  const reorderedTabs = [...state.tabs];
+  reorderedTabs.splice(fromIndex, 1);
+  reorderedTabs.splice(targetIndex, 0, movedTab);
+
+  return {
+    ...state,
+    tabs: reorderedTabs,
+    assistantStatus: createAssistantStatus(
+      'working',
+      '탭 순서 바꿔놨어요. 동선이 좀 더 편해질 거예요...!',
+      `Moved "${movedTab.title}"`,
+      action.nowMs,
+    ),
+  };
+}
+
+function createTabState(
+  state: WorkspaceState,
+  action: Extract<WorkspaceAction, { type: 'createTab' }>,
+): WorkspaceState {
+  const nextTab = createSessionTab(state.nextTabNumber, action.nowMs);
+  const nextTabs = [...state.tabs, nextTab];
+
+  return {
+    tabs: nextTabs,
+    paneSizes: createBalancedPaneSizes(nextTabs.length),
+    activeTabId: nextTab.id,
+    nextTabNumber: state.nextTabNumber + 1,
+    assistantStatus: createAssistantStatus(
+      'happy',
+      '새 탭 하나 추가햇어요. 멀티세션 기분 좋다...!',
+      `Bootstrapping "${nextTab.title}"`,
+      action.nowMs,
+    ),
+  };
+}
+
 export function workspaceReducer(
   state: WorkspaceState,
   action: WorkspaceAction,
 ): WorkspaceState {
   if (action.type === 'activateTab') {
-    const nextActiveTab = state.tabs.find((tab) => tab.id === action.tabId);
-
-    if (nextActiveTab === undefined) {
-      return state;
-    }
-
-    return {
-      ...state,
-      activeTabId: nextActiveTab.id,
-      assistantStatus: createAssistantStatus(
-        'working',
-        '세션 전환 완료. 흐름 안 놓쳣어요...!',
-        `Reviewing "${nextActiveTab.title}"`,
-        action.nowMs,
-      ),
-    };
+    return activateTabState(state, action);
   }
 
   if (action.type === 'resizePane') {
@@ -301,81 +398,12 @@ export function workspaceReducer(
   }
 
   if (action.type === 'updateTabTitle') {
-    const normalizedTitle = action.title.trim();
-
-    if (normalizedTitle.length === 0) {
-      return state;
-    }
-
-    const tabToRename = state.tabs.find((tab) => tab.id === action.tabId);
-
-    if (tabToRename === undefined || tabToRename.title === normalizedTitle) {
-      return state;
-    }
-
-    return {
-      ...state,
-      tabs: state.tabs.map((tab) =>
-        tab.id === action.tabId ? { ...tab, title: normalizedTitle } : tab,
-      ),
-      assistantStatus: createAssistantStatus(
-        action.source === 'manual' ? 'happy' : 'working',
-        action.source === 'manual'
-          ? '탭 이름 바꿧어요. 더 알아보기 쉬워요...!'
-          : '터미널 타이틀을 탭 이름으로 동기화햇어요...!',
-        `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
-        action.nowMs,
-      ),
-    };
+    return updateTabTitleState(state, action);
   }
 
   if (action.type === 'reorderTab') {
-    if (action.tabId === action.targetTabId) {
-      return state;
-    }
-
-    const fromIndex = state.tabs.findIndex((tab) => tab.id === action.tabId);
-    const targetIndex = state.tabs.findIndex((tab) => tab.id === action.targetTabId);
-
-    if (fromIndex < 0 || targetIndex < 0) {
-      return state;
-    }
-
-    const movedTab = state.tabs[fromIndex];
-
-    if (movedTab === undefined) {
-      return state;
-    }
-
-    const reorderedTabs = [...state.tabs];
-    reorderedTabs.splice(fromIndex, 1);
-    reorderedTabs.splice(targetIndex, 0, movedTab);
-
-    return {
-      ...state,
-      tabs: reorderedTabs,
-      assistantStatus: createAssistantStatus(
-        'working',
-        '탭 순서 바꿔놨어요. 동선이 좀 더 편해질 거예요...!',
-        `Moved "${movedTab.title}"`,
-        action.nowMs,
-      ),
-    };
+    return reorderTabState(state, action);
   }
 
-  const nextTab = createSessionTab(state.nextTabNumber, action.nowMs);
-  const nextTabs = [...state.tabs, nextTab];
-
-  return {
-    tabs: nextTabs,
-    paneSizes: createBalancedPaneSizes(nextTabs.length),
-    activeTabId: nextTab.id,
-    nextTabNumber: state.nextTabNumber + 1,
-    assistantStatus: createAssistantStatus(
-      'happy',
-      '새 탭 하나 추가햇어요. 멀티세션 기분 좋다...!',
-      `Bootstrapping "${nextTab.title}"`,
-      action.nowMs,
-    ),
-  };
+  return createTabState(state, action);
 }
