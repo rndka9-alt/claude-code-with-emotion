@@ -285,6 +285,13 @@ export function TerminalSurface({
       requestFit('resize');
     });
 
+    const removeOutputListener =
+      bridge?.onOutput((event) => {
+        if (event.sessionId === session.id) {
+          terminal.write(event.data);
+        }
+      }) ?? (() => {});
+
     resizeObserver.observe(host);
     requestFit('initial-open');
 
@@ -294,13 +301,6 @@ export function TerminalSurface({
           'The xterm surface is mounted, but Electron IPC is unavailable.\r\n',
       );
     }
-
-    const removeOutputListener =
-      bridge?.onOutput((event) => {
-        if (event.sessionId === session.id) {
-          terminal.write(event.data);
-        }
-      }) ?? (() => {});
 
     const inputSubscription = terminal.onData((data) => {
       if (bridge !== undefined) {
