@@ -4,9 +4,9 @@ import {
   BrowserWindow,
   ipcMain,
   type IpcMainEvent,
-  type MenuItemConstructorOptions,
 } from 'electron';
 import path from 'node:path';
+import { createApplicationMenuTemplate } from './application-menu';
 import {
   createRuntimeLog,
   resolveRuntimeLogPath,
@@ -90,28 +90,7 @@ function hasOpenWindows(): boolean {
 }
 
 function installApplicationMenu(): void {
-  const template: MenuItemConstructorOptions[] = [
-    {
-      label: app.name,
-      submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'quit' }],
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-      ],
-    },
-    {
-      label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'close' }],
-    },
-  ];
+  const template = createApplicationMenuTemplate(app.name);
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
