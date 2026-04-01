@@ -1,7 +1,7 @@
 import { FitAddon } from '@xterm/addon-fit';
 import { useEffect, useRef } from 'react';
 import type { ReactElement } from 'react';
-import { Terminal } from 'xterm';
+import { Terminal } from '@xterm/xterm';
 import type { SessionTab } from './model';
 
 interface TerminalSurfaceProps {
