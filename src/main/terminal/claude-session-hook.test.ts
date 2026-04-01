@@ -99,4 +99,17 @@ describe('claude-session-hook', () => {
     );
     expect(status.durationMs).toBe(4500);
   });
+
+  it('maps interrupted stop signals into a waiting interruption message', () => {
+    const result = invokeHook('Stop', {
+      stop_reason: 'Interrupted',
+      last_assistant_message: 'Interrupted by user',
+    });
+    const status = readStatusFile(result.statusFilePath);
+
+    expect(status.state).toBe('waiting');
+    expect(status.line).toBe('응답이 중단돼서 다음 지시를 기다리고 잇어요...!');
+    expect(status.currentTask).toBe('Stop: Interrupted');
+    expect(status.durationMs).toBe(6000);
+  });
 });

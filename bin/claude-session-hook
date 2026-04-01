@@ -158,6 +158,67 @@ function summarizeBackgroundTask(payload, fallback) {
   );
 }
 
+function summarizeStop(payload) {
+  return summarizeText(
+    readStringField(payload, [
+      'stop_reason',
+      'stopReason',
+      'reason',
+      'last_assistant_message',
+    ]),
+    'Waiting for the next prompt',
+    'Stop: ',
+  );
+}
+
+function hasInterruptedSignal(payload) {
+  const candidates = [
+    readStringField(payload, ['stop_reason']),
+    readStringField(payload, ['stopReason']),
+    readStringField(payload, ['reason']),
+    readStringField(payload, ['last_assistant_message']),
+  ];
+
+  return candidates.some((value) => {
+    return typeof value === 'string' && value.toLowerCase().includes('interrupt');
+  });
+}
+
+function describePayloadForTrace(payload) {
+  if (typeof payload !== 'object' || payload === null) {
+    return 'none';
+  }
+
+  const selectedEntries = Object.entries(payload).filter((entry) => {
+    const key = entry[0];
+    const value = entry[1];
+
+    if (
+      key === 'reason' ||
+      key === 'stop_reason' ||
+      key === 'stopReason' ||
+      key === 'last_assistant_message' ||
+      key === 'tool_name' ||
+      key === 'prompt' ||
+      key === 'message'
+    ) {
+      return typeof value === 'string' && value.length > 0;
+    }
+
+    return false;
+  });
+
+  if (selectedEntries.length === 0) {
+    return 'none';
+  }
+
+  return selectedEntries
+    .map(([key, value]) => {
+      return `${key}=${String(value).replace(/\s+/g, ' ').slice(0, 140)}`;
+    })
+    .join(' | ');
+}
+
 function createUpdate(eventName, payload) {
   if (eventName === 'SessionStart') {
     return {
@@ -281,6 +342,16 @@ function createUpdate(eventName, payload) {
   }
 
   if (eventName === 'Stop') {
+    if (hasInterruptedSignal(payload)) {
+      return {
+        state: 'waiting',
+        line: '응답이 중단돼서 다음 지시를 기다리고 잇어요...!',
+        task: summarizeStop(payload),
+        intensity: 'medium',
+        durationMs: 6000,
+      };
+    }
+
     return {
       state: 'waiting',
       line: '응답을 마치고 다음 입력을 기다리고 잇어요...!',
@@ -363,7 +434,7 @@ function main() {
   const update = createUpdate(eventName, payload);
 
   appendTrace(
-    `event=${eventName} payloadKeys=${payload !== null ? Object.keys(payload).join(',') : 'none'}`,
+    `event=${eventName} payloadKeys=${payload !== null ? Object.keys(payload).join(',') : 'none'} payloadSummary=${describePayloadForTrace(payload)}`,
   );
 
   if (update === null) {
