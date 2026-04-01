@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { SessionTab } from './model';
 
@@ -8,6 +8,7 @@ interface TabBarProps {
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
+  onRenameTab: (tabId: string, title: string) => void;
   onReorderTab: (tabId: string, targetTabId: string) => void;
 }
 
@@ -17,9 +18,30 @@ export function TabBar({
   onActivateTab,
   onCloseTab,
   onCreateTab,
+  onRenameTab,
   onReorderTab,
 }: TabBarProps): ReactElement {
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState('');
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+  const editInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (editingTabId !== null) {
+      editInputRef.current?.focus();
+      editInputRef.current?.select();
+    }
+  }, [editingTabId]);
+
+  const startRenaming = (tabId: string, title: string): void => {
+    setEditingTabId(tabId);
+    setDraftTitle(title);
+  };
+
+  const finishRenaming = (tabId: string): void => {
+    onRenameTab(tabId, draftTitle);
+    setEditingTabId(null);
+  };
 
   return (
     <header className="tab-bar">
@@ -30,6 +52,7 @@ export function TabBar({
       >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
+          const isEditing = tab.id === editingTabId;
 
           return (
             <div
@@ -64,12 +87,52 @@ export function TabBar({
                 id={`tab-${tab.id}`}
                 title={tab.title}
                 onClick={() => {
+                  if (isEditing) {
+                    return;
+                  }
                   onActivateTab(tab.id);
+                }}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  startRenaming(tab.id, tab.title);
+                }}
+                onDoubleClick={() => {
+                  startRenaming(tab.id, tab.title);
                 }}
                 role="tab"
                 type="button"
               >
-                <span className="tab-button__label">{tab.title}</span>
+                {isEditing ? (
+                  <input
+                    aria-label={`${tab.title} title editor`}
+                    className="tab-title-editor"
+                    onBlur={() => {
+                      finishRenaming(tab.id);
+                    }}
+                    onChange={(event) => {
+                      setDraftTitle(event.target.value);
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        finishRenaming(tab.id);
+                      }
+
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setEditingTabId(null);
+                      }
+                    }}
+                    ref={editInputRef}
+                    type="text"
+                    value={draftTitle}
+                  />
+                ) : (
+                  <span className="tab-button__label">{tab.title}</span>
+                )}
               </button>
 
               <button
