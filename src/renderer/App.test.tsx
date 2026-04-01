@@ -17,17 +17,61 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'New Session' }));
 
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
     expect(
       screen.getByRole('tab', {
-        name: 'new session 3 · claude-code-with-emotion',
+        name: 'new session 2 · claude-code-with-emotion',
       }),
     ).toHaveAttribute('aria-selected', 'true');
     expect(
       screen.getByRole('tab', {
-        name: 'new session 3 · claude-code-with-emotion',
+        name: 'new session 2 · claude-code-with-emotion',
       }),
-    ).toHaveAttribute('title', 'new session 3 · claude-code-with-emotion');
+    ).toHaveAttribute('title', 'new session 2 · claude-code-with-emotion');
+  });
+
+  it('creates a new session tab when cmd+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: 't',
+      metaKey: true,
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(
+      screen.getByRole('tab', {
+        name: 'new session 2 · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('creates a new session tab when ctrl+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      ctrlKey: true,
+      key: 't',
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(
+      screen.getByRole('tab', {
+        name: 'new session 2 · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('does not create a new session tab when cmd+shift+t is pressed', () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: 't',
+      metaKey: true,
+      shiftKey: true,
+    });
+
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
   });
 
   it('closes a tab from the tab strip close button', () => {
@@ -35,14 +79,14 @@ describe('App', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Close claude-code-with-emotion · main workspace',
+        name: 'Close new session 1 · claude-code-with-emotion',
       }),
     );
 
     expect(screen.getAllByRole('tab')).toHaveLength(1);
     expect(
       screen.getByRole('tab', {
-        name: 'terminal-resize prototype · claude-code-with-emotion',
+        name: 'new session 2 · claude-code-with-emotion',
       }),
     ).toHaveAttribute('aria-selected', 'true');
   });
@@ -58,12 +102,12 @@ describe('App', () => {
     expect(screen.getByLabelText('Terminal pane stack')).toBeInTheDocument();
     expect(
       screen.getByRole('article', {
-        name: 'claude-code-with-emotion · main workspace',
+        name: 'new session 1 · claude-code-with-emotion',
       }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('article', {
-        name: 'terminal-resize prototype · claude-code-with-emotion',
+        name: 'new session 2 · claude-code-with-emotion',
       }),
     ).not.toBeInTheDocument();
     expect(screen.queryAllByRole('separator')).toHaveLength(0);
@@ -115,5 +159,29 @@ describe('App', () => {
       sessionId: 'session-1',
       data: 'claude\r',
     });
+  });
+
+  it('reorders tabs via drag and drop in the tab strip', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'New Session' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New Session' }));
+
+    const firstTab = screen.getByRole('tab', {
+      name: 'new session 1 · claude-code-with-emotion',
+    });
+    const secondTab = screen.getByRole('tab', {
+      name: 'new session 3 · claude-code-with-emotion',
+    });
+
+    fireEvent.dragStart(secondTab.parentElement as HTMLElement);
+    fireEvent.dragOver(firstTab.parentElement as HTMLElement);
+    fireEvent.drop(firstTab.parentElement as HTMLElement);
+    fireEvent.dragEnd(secondTab.parentElement as HTMLElement);
+
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[0]).toHaveAccessibleName(
+      'new session 3 · claude-code-with-emotion',
+    );
   });
 });

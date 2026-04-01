@@ -7,6 +7,7 @@ import { handleTerminalShortcut } from './terminal-keyboard';
 interface TerminalSurfaceProps {
   isActive: boolean;
   session: SessionTab;
+  onTitleChange: (tabId: string, title: string) => void;
 }
 
 interface TerminalSize {
@@ -148,6 +149,7 @@ function scheduleTask(callback: () => void, delayMs: number): ScheduledTask {
 
 export function TerminalSurface({
   isActive,
+  onTitleChange,
   session,
 }: TerminalSurfaceProps): ReactElement {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -296,10 +298,14 @@ export function TerminalSurface({
         terminal.write(data);
       }
     });
+    const titleSubscription = terminal.onTitleChange((nextTitle) => {
+      onTitleChange(session.id, nextTitle);
+    });
 
     return () => {
       disposed = true;
       inputSubscription.dispose();
+      titleSubscription.dispose();
       removeOutputListener();
       resizeObserver.disconnect();
       for (const task of scheduledTasks) {
@@ -308,7 +314,7 @@ export function TerminalSurface({
       terminal.dispose();
       terminalRef.current = null;
     };
-  }, [session.command, session.cwd, session.id, session.title]);
+  }, [onTitleChange, session.command, session.cwd, session.id, session.title]);
 
   useEffect(() => {
     if (isActive) {

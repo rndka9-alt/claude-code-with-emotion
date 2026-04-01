@@ -133,6 +133,17 @@ button {
   line-height: 1.2;
 }
 
+.tab-title-editor {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  outline: none;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+}
+
 .tab-close-button {
   position: absolute;
   top: 50%;

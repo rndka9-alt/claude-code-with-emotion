@@ -24,7 +24,9 @@ export function App(): ReactElement {
     activateTab,
     closeTab,
     createTab,
+    reorderTab,
     resizePane,
+    updateTabTitle,
   } = useWorkspaceState();
   const [isVisualAssetManagerOpen, setIsVisualAssetManagerOpen] = useState(false);
   const activeTab = getActiveTab(state);
@@ -94,6 +96,10 @@ export function App(): ReactElement {
         onActivateTab={activateTab}
         onCloseTab={closeTab}
         onCreateTab={createTab}
+        onRenameTab={(tabId, title) => {
+          updateTabTitle(tabId, title, 'manual');
+        }}
+        onReorderTab={reorderTab}
         tabs={state.tabs}
       />
 
@@ -107,6 +113,9 @@ export function App(): ReactElement {
           <PaneStack
             onResizePane={resizePane}
             paneSizes={state.paneSizes}
+            onSyncTabTitle={(tabId, title) => {
+              updateTabTitle(tabId, title, 'terminal');
+            }}
             tabs={visibleTabs}
           />
         </section>

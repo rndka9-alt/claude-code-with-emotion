@@ -1,12 +1,22 @@
 import { useEffect, useReducer } from 'react';
 import { createInitialWorkspaceState, workspaceReducer } from './model';
+import {
+  shouldCreateSessionShortcut,
+  shouldUseCloseSessionShortcut,
+} from './terminal-keyboard';
 
 export interface WorkspaceViewModel {
   state: ReturnType<typeof createInitialWorkspaceState>;
   activateTab: (tabId: string) => void;
   closeTab: (tabId: string) => void;
   createTab: () => void;
+  reorderTab: (tabId: string, targetTabId: string) => void;
   resizePane: (index: number, deltaRatio: number) => void;
+  updateTabTitle: (
+    tabId: string,
+    title: string,
+    source: 'manual' | 'terminal',
+  ) => void;
 }
 
 export function useWorkspaceState(): WorkspaceViewModel {
@@ -33,6 +43,50 @@ export function useWorkspaceState(): WorkspaceViewModel {
     });
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (shouldCreateSessionShortcut(event)) {
+        event.preventDefault();
+        dispatch({ type: 'createTab', nowMs: Date.now() });
+        return;
+      }
+
+      if (!shouldUseCloseSessionShortcut(event)) {
+        return;
+      }
+
+      if (state.tabs.length <= 1) {
+        return;
+      }
+
+      event.preventDefault();
+      const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
+
+      if (activeTab === undefined) {
+        return;
+      }
+
+      const terminalsBridge = window.claudeApp?.terminals;
+
+      if (terminalsBridge !== undefined) {
+        void terminalsBridge.closeSession({ sessionId: activeTab.id });
+      }
+
+      dispatch({
+        type: 'closeTab',
+        tabId: activeTab.id,
+        nowMs: Date.now(),
+        reason: 'manual',
+      });
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [state.activeTabId, state.tabs]);
+
   return {
     state,
     activateTab: (tabId: string) => {
@@ -50,8 +104,14 @@ export function useWorkspaceState(): WorkspaceViewModel {
     createTab: () => {
       dispatch({ type: 'createTab', nowMs: Date.now() });
     },
+    reorderTab: (tabId: string, targetTabId: string) => {
+      dispatch({ type: 'reorderTab', tabId, targetTabId, nowMs: Date.now() });
+    },
     resizePane: (index: number, deltaRatio: number) => {
       dispatch({ type: 'resizePane', index, deltaRatio });
+    },
+    updateTabTitle: (tabId, title, source) => {
+      dispatch({ type: 'updateTabTitle', tabId, title, nowMs: Date.now(), source });
     },
   };
 }
