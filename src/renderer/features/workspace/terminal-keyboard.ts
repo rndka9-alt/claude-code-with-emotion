@@ -5,13 +5,17 @@ export interface TerminalShortcutKeyEvent {
   ctrlKey: boolean;
   key: string;
   metaKey: boolean;
+  repeat?: boolean;
   shiftKey: boolean;
+  type?: string;
 }
 
 export function shouldUseMultilineShortcut(
   event: TerminalShortcutKeyEvent,
 ): boolean {
   return (
+    (event.type === undefined || event.type === 'keydown') &&
+    event.repeat !== true &&
     event.key === 'Enter' &&
     (event.shiftKey || event.altKey) &&
     !event.ctrlKey &&

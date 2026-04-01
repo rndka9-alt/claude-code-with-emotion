@@ -12,7 +12,9 @@ describe('terminal keyboard shortcuts', () => {
         ctrlKey: false,
         key: 'Enter',
         metaKey: false,
+        repeat: false,
         shiftKey: true,
+        type: 'keydown',
       }),
     ).toBe(true);
   });
@@ -24,7 +26,9 @@ describe('terminal keyboard shortcuts', () => {
         ctrlKey: false,
         key: 'Enter',
         metaKey: false,
+        repeat: false,
         shiftKey: false,
+        type: 'keydown',
       }),
     ).toBe(true);
   });
@@ -36,7 +40,9 @@ describe('terminal keyboard shortcuts', () => {
         ctrlKey: false,
         key: 'Enter',
         metaKey: false,
+        repeat: false,
         shiftKey: false,
+        type: 'keydown',
       }),
     ).toBe(false);
   });
@@ -48,7 +54,37 @@ describe('terminal keyboard shortcuts', () => {
         ctrlKey: false,
         key: 'Enter',
         metaKey: true,
+        repeat: false,
         shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBe(false);
+  });
+
+  it('ignores repeated multiline enter events', () => {
+    expect(
+      shouldUseMultilineShortcut({
+        altKey: false,
+        ctrlKey: false,
+        key: 'Enter',
+        metaKey: false,
+        repeat: true,
+        shiftKey: true,
+        type: 'keydown',
+      }),
+    ).toBe(false);
+  });
+
+  it('ignores non-keydown multiline enter events', () => {
+    expect(
+      shouldUseMultilineShortcut({
+        altKey: true,
+        ctrlKey: false,
+        key: 'Enter',
+        metaKey: false,
+        repeat: false,
+        shiftKey: false,
+        type: 'keyup',
       }),
     ).toBe(false);
   });
@@ -62,7 +98,9 @@ describe('terminal keyboard shortcuts', () => {
         ctrlKey: false,
         key: 'Enter',
         metaKey: false,
+        repeat: false,
         shiftKey: true,
+        type: 'keydown',
       },
       (data) => {
         sentData.push(data);
