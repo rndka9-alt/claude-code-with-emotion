@@ -38,9 +38,9 @@ describe('resolveShell', () => {
 });
 
 describe('createRuntimeEnv', () => {
-  it('adds terminal-specific env vars', () => {
+  it('adds terminal-specific env vars and drops non-string values', () => {
     const env = createRuntimeEnv(
-      { HOME: '/tmp/home', PATH: '/usr/bin' },
+      { HOME: '/tmp/home', PATH: '/usr/bin', INVALID: undefined },
       '/tmp/app',
       '/tmp/helper-bin',
       '/tmp/status.json',
@@ -51,6 +51,7 @@ describe('createRuntimeEnv', () => {
     expect(env.TERM_PROGRAM).toBe('claude-code-with-emotion');
     expect(env.PATH).toBe('/tmp/helper-bin:/usr/bin');
     expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
+    expect(Object.hasOwn(env, 'INVALID')).toBe(false);
   });
 });
 

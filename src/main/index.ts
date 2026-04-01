@@ -14,6 +14,7 @@ import {
 } from './diagnostics/runtime-log';
 import { AssistantStatusFileBridge } from './status/assistant-status-file-bridge';
 import { AssistantStatusStore } from './status/assistant-status-store';
+import { ensureNodePtySpawnHelpersExecutable } from './terminal/node-pty-runtime';
 import { createTerminalSessionManager } from './terminal/session-manager';
 import {
   ASSISTANT_STATUS_CHANNELS,
@@ -264,6 +265,24 @@ void app.whenReady().then(() => {
       `type=${details.type} reason=${details.reason} exitCode=${details.exitCode}`,
     );
   });
+  const nodePtyPackageRoot = path.dirname(require.resolve('node-pty/package.json'));
+  const helperPreflight = ensureNodePtySpawnHelpersExecutable(
+    nodePtyPackageRoot,
+    process.platform,
+    process.arch,
+  );
+
+  if (helperPreflight.foundHelperPaths.length === 0) {
+    runtimeLog.write(
+      'terminal-helper',
+      `no node-pty spawn-helper found under ${nodePtyPackageRoot}`,
+    );
+  } else {
+    runtimeLog.write(
+      'terminal-helper',
+      `spawn-helper paths=${helperPreflight.foundHelperPaths.join(', ')} updated=${helperPreflight.updatedHelperPaths.length}`,
+    );
+  }
 
   installApplicationMenu();
   const mainWindow = createMainWindow();

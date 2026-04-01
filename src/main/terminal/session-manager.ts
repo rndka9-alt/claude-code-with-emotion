@@ -32,7 +32,7 @@ interface RuntimeFactoryOptions {
   cwd: string;
   shell: string;
   shellArgs: string[];
-  env: NodeJS.ProcessEnv;
+  env: Record<string, string>;
 }
 
 type RuntimeFactory = (options: RuntimeFactoryOptions) => TerminalSessionRuntime;
@@ -90,7 +90,10 @@ export function createRuntimeEnv(
   cwd: string,
   helperBinDir: string,
   statusFilePath: string,
-): NodeJS.ProcessEnv {
+): Record<string, string> {
+  const sanitizedEnvEntries = Object.entries(env).filter((entry) => {
+    return typeof entry[1] === 'string';
+  });
   const pathSegments = [helperBinDir];
   const existingPath = env.PATH;
 
@@ -99,7 +102,7 @@ export function createRuntimeEnv(
   }
 
   return {
-    ...env,
+    ...Object.fromEntries(sanitizedEnvEntries),
     CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
     PWD: cwd,
     PATH: pathSegments.join(':'),

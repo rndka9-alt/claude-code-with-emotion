@@ -39,7 +39,9 @@ In development the app also:
 
 - opens DevTools automatically in a detached window after the renderer finishes loading
 - installs a standard macOS `View -> Toggle Developer Tools` menu entry
+- installs a standard macOS `Edit` menu so native `Cmd+C`, `Cmd+V`, and `Cmd+A` shortcuts work inside the app
 - writes runtime diagnostics to `.runtime-logs/electron-dev.log`
+- preflights `node-pty` helper binaries and restores execute bits when a local install leaves `spawn-helper` non-executable
 
 ## Build
 
@@ -127,6 +129,8 @@ When `pnpm dev` is running:
 ```
 
 If the window goes black, reproducing the issue and then sharing the newest lines from that log file is usually enough for debugging.
+
+If terminal bootstrapping fails, check the same log for `terminal-helper` entries. The app now reports which `node-pty` `spawn-helper` binary it found and whether it had to repair its execute permissions.
 
 ## Project Layout
 
