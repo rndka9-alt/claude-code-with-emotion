@@ -46,7 +46,7 @@ describe('App shell', () => {
 
     expect(sendInput).toHaveBeenCalledWith({
       sessionId: 'session-1',
-      data: 'claude\r',
+      data: '\u0015claude\r',
     });
   });
 });

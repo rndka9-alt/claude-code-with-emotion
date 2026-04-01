@@ -120,7 +120,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
 
     void terminalsBridge.sendInput({
       sessionId: activeTab.id,
-      data: 'claude\r',
+      data: '\u0015claude\r',
     });
     setTerminalFocusRequestKey((current) => current + 1);
   };
