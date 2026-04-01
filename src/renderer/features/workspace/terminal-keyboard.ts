@@ -10,6 +10,8 @@ export interface TerminalShortcutKeyEvent {
   type?: string;
 }
 
+export type SessionNavigationDirection = 'previous' | 'next';
+
 export function shouldUseMultilineShortcut(
   event: TerminalShortcutKeyEvent,
 ): boolean {
@@ -30,7 +32,8 @@ export function shouldCreateSessionShortcut(
     (event.type === undefined || event.type === 'keydown') &&
     event.repeat !== true &&
     event.key.toLowerCase() === 't' &&
-    ((event.metaKey && !event.ctrlKey) || (event.ctrlKey && !event.metaKey)) &&
+    event.metaKey &&
+    !event.ctrlKey &&
     !event.altKey &&
     !event.shiftKey
   );
@@ -39,15 +42,40 @@ export function shouldCreateSessionShortcut(
 export function shouldUseCloseSessionShortcut(
   event: TerminalShortcutKeyEvent,
 ): boolean {
-  const isCommandOrControlW =
-    event.key.toLowerCase() === 'w' && (event.metaKey || event.ctrlKey);
+  const isCommandW =
+    event.key.toLowerCase() === 'w' && event.metaKey && !event.ctrlKey;
 
   return (
     (event.type === undefined || event.type === 'keydown') &&
     event.repeat !== true &&
-    isCommandOrControlW &&
+    isCommandW &&
     !event.altKey
   );
+}
+
+export function getSessionNavigationDirection(
+  event: TerminalShortcutKeyEvent,
+): SessionNavigationDirection | null {
+  const isCommandArrow =
+    event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+
+  if (
+    (event.type !== undefined && event.type !== 'keydown') ||
+    event.repeat === true ||
+    !isCommandArrow
+  ) {
+    return null;
+  }
+
+  if (event.key === 'ArrowLeft') {
+    return 'previous';
+  }
+
+  if (event.key === 'ArrowRight') {
+    return 'next';
+  }
+
+  return null;
 }
 
 export function handleTerminalShortcut(

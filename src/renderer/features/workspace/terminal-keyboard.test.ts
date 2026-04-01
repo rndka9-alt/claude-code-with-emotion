@@ -1,4 +1,5 @@
 import {
+  getSessionNavigationDirection,
   handleTerminalShortcut,
   MULTILINE_TERMINAL_INPUT,
   shouldCreateSessionShortcut,
@@ -127,7 +128,7 @@ describe('terminal keyboard shortcuts', () => {
     ).toBe(true);
   });
 
-  it('treats ctrl+t as a create-session shortcut', () => {
+  it('does not treat ctrl+t as a create-session shortcut', () => {
     expect(
       shouldCreateSessionShortcut({
         altKey: false,
@@ -138,7 +139,7 @@ describe('terminal keyboard shortcuts', () => {
         shiftKey: false,
         type: 'keydown',
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('does not treat cmd+shift+t as a create-session shortcut', () => {
@@ -169,7 +170,7 @@ describe('terminal keyboard shortcuts', () => {
     ).toBe(true);
   });
 
-  it('detects ctrl+w as a session close shortcut', () => {
+  it('does not detect ctrl+w as a session close shortcut', () => {
     expect(
       shouldUseCloseSessionShortcut({
         altKey: false,
@@ -180,7 +181,7 @@ describe('terminal keyboard shortcuts', () => {
         shiftKey: false,
         type: 'keydown',
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('does not treat alt+cmd+w as a session close shortcut', () => {
@@ -195,5 +196,47 @@ describe('terminal keyboard shortcuts', () => {
         type: 'keydown',
       }),
     ).toBe(false);
+  });
+
+  it('treats cmd+left as a previous-session shortcut', () => {
+    expect(
+      getSessionNavigationDirection({
+        altKey: false,
+        ctrlKey: false,
+        key: 'ArrowLeft',
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBe('previous');
+  });
+
+  it('does not treat ctrl+right as a next-session shortcut', () => {
+    expect(
+      getSessionNavigationDirection({
+        altKey: false,
+        ctrlKey: true,
+        key: 'ArrowRight',
+        metaKey: false,
+        repeat: false,
+        shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBeNull();
+  });
+
+  it('does not treat alt+cmd+left as a session shortcut', () => {
+    expect(
+      getSessionNavigationDirection({
+        altKey: true,
+        ctrlKey: false,
+        key: 'ArrowLeft',
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: 'keydown',
+      }),
+    ).toBeNull();
   });
 });
