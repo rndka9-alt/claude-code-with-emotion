@@ -28,13 +28,20 @@ describe('App', () => {
     expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 
-  it('renders vertically stacked terminal panes for each session', () => {
+  it('renders only the active terminal session inside the workspace', () => {
     render(<App />);
 
     expect(screen.getByLabelText('Terminal pane stack')).toBeInTheDocument();
     expect(
-      screen.getAllByLabelText(/claude-code-with-emotion/i).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getAllByRole('separator')).toHaveLength(1);
+      screen.getByRole('article', {
+        name: 'claude-code-with-emotion · main workspace',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('article', {
+        name: 'terminal-resize prototype · claude-code-with-emotion',
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('separator')).toHaveLength(0);
   });
 });

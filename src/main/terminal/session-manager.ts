@@ -38,6 +38,11 @@ interface RuntimeFactoryOptions {
 type RuntimeFactory = (options: RuntimeFactoryOptions) => TerminalSessionRuntime;
 type OutputListener = (sessionId: string, data: string) => void;
 
+interface TerminalDimensions {
+  cols: number;
+  rows: number;
+}
+
 function adaptPty(ptyProcess: IPty): TerminalSessionRuntime {
   return {
     write: (data) => {
@@ -103,6 +108,16 @@ export function createRuntimeEnv(
   };
 }
 
+function normalizeTerminalDimensions(
+  cols: number,
+  rows: number,
+): TerminalDimensions {
+  return {
+    cols: Math.max(2, cols),
+    rows: Math.max(1, rows),
+  };
+}
+
 export class TerminalSessionManager {
   private readonly sessions = new Map<string, TerminalSessionRecord>();
 
@@ -119,15 +134,18 @@ export class TerminalSessionManager {
     const existingSession = this.sessions.get(request.sessionId);
 
     if (existingSession !== undefined) {
-      existingSession.runtime.resize(request.cols, request.rows);
+      const size = normalizeTerminalDimensions(request.cols, request.rows);
+
+      existingSession.runtime.resize(size.cols, size.rows);
 
       return { initialOutput: '' };
     }
 
     const shell = resolveShell(process.env);
+    const size = normalizeTerminalDimensions(request.cols, request.rows);
     const runtime = this.runtimeFactory({
-      cols: request.cols,
-      rows: request.rows,
+      cols: size.cols,
+      rows: size.rows,
       cwd: request.cwd,
       env: createRuntimeEnv(
         process.env,

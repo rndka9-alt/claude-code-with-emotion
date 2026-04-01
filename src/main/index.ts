@@ -66,7 +66,7 @@ function createMainWindow(): BrowserWindow {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
     },
   });
 
@@ -201,8 +201,18 @@ function registerTerminalBridge(
         'terminal',
         `bootstrap session=${request.sessionId} cwd=${request.cwd} command=${request.command} cols=${request.cols} rows=${request.rows}`,
       );
+      try {
+        return terminalSessionManager.bootstrapSession(request);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown terminal error';
 
-      return terminalSessionManager.bootstrapSession(request);
+        runtimeLog.write(
+          'terminal-error',
+          `bootstrap failed for ${request.sessionId}: ${message}`,
+        );
+        throw error;
+      }
     },
   );
 

@@ -114,6 +114,16 @@ export function getActiveTab(state: WorkspaceState): SessionTab | null {
   return firstTab !== undefined ? firstTab : null;
 }
 
+export function getVisibleTabs(state: WorkspaceState): SessionTab[] {
+  const activeTab = getActiveTab(state);
+
+  if (activeTab === null) {
+    return [];
+  }
+
+  return [activeTab];
+}
+
 export function formatElapsedLabel(elapsedMs: number): string {
   const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
 

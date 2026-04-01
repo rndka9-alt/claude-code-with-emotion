@@ -9,6 +9,11 @@ interface TerminalSurfaceProps {
   session: SessionTab;
 }
 
+interface TerminalSize {
+  cols: number;
+  rows: number;
+}
+
 function supportsXtermRuntime(): boolean {
   if (typeof window.matchMedia !== 'function') {
     return false;
@@ -21,6 +26,13 @@ function supportsXtermRuntime(): boolean {
   } catch {
     return false;
   }
+}
+
+function getTerminalSize(terminal: Terminal): TerminalSize {
+  return {
+    cols: Math.max(2, terminal.cols),
+    rows: Math.max(1, terminal.rows),
+  };
 }
 
 export function TerminalSurface({
@@ -68,12 +80,13 @@ export function TerminalSurface({
 
     const resizeObserver = new ResizeObserver(() => {
       fitAddon.fit();
+      const nextSize = getTerminalSize(terminal);
 
       if (bridge !== undefined) {
         void bridge.resizeSession({
           sessionId: session.id,
-          cols: terminal.cols,
-          rows: terminal.rows,
+          cols: nextSize.cols,
+          rows: nextSize.rows,
         });
       }
     });
@@ -82,17 +95,28 @@ export function TerminalSurface({
     fitAddon.fit();
 
     if (bridge !== undefined) {
+      const initialSize = getTerminalSize(terminal);
+
       void bridge
         .bootstrapSession({
           sessionId: session.id,
           title: session.title,
           cwd: session.cwd,
           command: session.command,
-          cols: terminal.cols,
-          rows: terminal.rows,
+          cols: initialSize.cols,
+          rows: initialSize.rows,
         })
         .then((response) => {
           terminal.write(response.initialOutput);
+        })
+        .catch((error: unknown) => {
+          const message =
+            error instanceof Error ? error.message : 'Unknown bootstrap error';
+
+          console.error(`Failed to bootstrap ${session.id}: ${message}`);
+          terminal.write(
+            `\r\n[terminal bootstrap failed for ${session.id}: ${message}]\r\n`,
+          );
         });
     } else {
       terminal.write(

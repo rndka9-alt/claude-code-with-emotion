@@ -3,7 +3,11 @@ import type { AssistantStatusSnapshot } from '../shared/assistant-status';
 import { PaneStack } from './features/workspace/PaneStack';
 import { StatusPanel } from './features/workspace/StatusPanel';
 import { TabBar } from './features/workspace/TabBar';
-import { formatElapsedLabel, getActiveTab } from './features/workspace/model';
+import {
+  formatElapsedLabel,
+  getActiveTab,
+  getVisibleTabs,
+} from './features/workspace/model';
 import { useAssistantStatusBridge } from './features/workspace/use-assistant-status-bridge';
 import { useWorkspaceState } from './features/workspace/use-workspace-state';
 
@@ -19,6 +23,7 @@ export function App(): ReactElement {
   } = useWorkspaceState();
   const appVersion = window.claudeApp?.appVersion ?? 'unknown';
   const activeTab = getActiveTab(state);
+  const visibleTabs = getVisibleTabs(state);
   const panelId = activeTab !== null ? `panel-${activeTab.id}` : 'panel-stack';
   const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
     state: state.assistantStatus.visualState,
@@ -55,8 +60,8 @@ export function App(): ReactElement {
               {activeTabTitle}
             </h1>
             <p className="workspace__copy">
-              탭은 세션 포커스를 바꾸고, 아래 pane stack은 각 세션을 세로로
-              쌓아 보여줘요. 높이 조절은 drag handle로 바로 만질 수 잇어요.
+              탭은 세션 포커스를 바꾸고, 본문은 지금 선택한 세션만 보여줘요.
+              다른 세션은 탭 뒤에서 살아 잇고, 보이는 건 딱 하나만 남겨둘게요.
             </p>
           </div>
 
@@ -65,7 +70,7 @@ export function App(): ReactElement {
             onActivateTab={activateTab}
             onResizePane={resizePane}
             paneSizes={state.paneSizes}
-            tabs={state.tabs}
+            tabs={visibleTabs}
           />
         </section>
 

@@ -1,6 +1,7 @@
 import {
   createInitialWorkspaceState,
   formatElapsedLabel,
+  getVisibleTabs,
   resizePaneSizes,
   workspaceReducer,
 } from './model';
@@ -41,6 +42,19 @@ describe('formatElapsedLabel', () => {
     expect(formatElapsedLabel(9_000)).toBe('9s');
     expect(formatElapsedLabel(125_000)).toBe('2m 5s');
     expect(formatElapsedLabel(4_200_000)).toBe('1h 10m');
+  });
+});
+
+describe('getVisibleTabs', () => {
+  it('returns only the active tab for the workspace content area', () => {
+    const state = createInitialWorkspaceState(20_000);
+    const nextState = workspaceReducer(state, {
+      type: 'activateTab',
+      tabId: 'session-2',
+      nowMs: 21_000,
+    });
+
+    expect(getVisibleTabs(nextState)).toEqual([nextState.tabs[1]]);
   });
 });
 
