@@ -378,6 +378,26 @@ button {
   object-fit: cover;
 }
 
+.status-panel__launch-button {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(174, 198, 244, 0.4);
+  background: rgba(8, 12, 19, 0.82);
+  color: #f7fbff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+
+.status-panel__launch-button:hover {
+  background: rgba(35, 50, 78, 0.96);
+}
+
 .visual-asset-manager {
   position: fixed;
   inset: 0;

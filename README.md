@@ -191,6 +191,26 @@ The MCP surface now splits its guidance across dedicated prompt files in `bin/pr
 When Claude is launched through the embedded terminal, the wrapper now writes a temporary MCP config file and passes it through `--mcp-config`, so the local visual MCP server is attached automatically instead of requiring a manual Claude-side setup step.
 The wrapper also appends a session-level visual-tool usage prompt, loaded from dedicated files in `bin/prompts/`, so Claude gets explicit guidance about when to call the emotion and one-line tools.
 
+### MCP troubleshooting (when tools do not appear in Claude Code CLI)
+
+The local visual MCP server is **auto-attached only when Claude is launched via this app's wrapper** (`bin/claude`).
+
+If you launch Claude Code from your normal shell with the globally installed `claude` binary, this repo's visual MCP tools will not be attached unless you pass an MCP config yourself.
+
+Inside the wrapper implementation:
+
+- `bin/claude` reads `CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE` and appends `--mcp-config <path>` only when that env var is present.
+- `src/main/terminal/session-manager.ts` is the code path that populates `CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE` for app-managed terminal sessions.
+
+So a plain external CLI session will not automatically get:
+
+- `get_available_visual_options`
+- `set_visual_emotion`
+- `set_visual_line`
+- `clear_visual_line`
+
+unless you explicitly provide an MCP config (for example with `--mcp-config`), or run Claude through the embedded terminal that injects it for you.
+
 ## Verification
 
 Current verification commands:
