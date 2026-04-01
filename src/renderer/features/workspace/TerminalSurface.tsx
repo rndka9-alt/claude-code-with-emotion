@@ -154,6 +154,11 @@ export function TerminalSurface({
 }: TerminalSurfaceProps): ReactElement {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
+  const onTitleChangeRef = useRef(onTitleChange);
+
+  useEffect(() => {
+    onTitleChangeRef.current = onTitleChange;
+  }, [onTitleChange]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -310,7 +315,7 @@ export function TerminalSurface({
       }
     });
     const titleSubscription = terminal.onTitleChange((nextTitle) => {
-      onTitleChange(session.id, nextTitle);
+      onTitleChangeRef.current(session.id, nextTitle);
     });
 
     return () => {
@@ -325,7 +330,7 @@ export function TerminalSurface({
       terminal.dispose();
       terminalRef.current = null;
     };
-  }, [onTitleChange, session.command, session.cwd, session.id, session.title]);
+  }, [session.command, session.cwd, session.id]);
 
   useEffect(() => {
     if (isActive) {
