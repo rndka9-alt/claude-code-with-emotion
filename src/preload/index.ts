@@ -5,6 +5,10 @@ import {
   type AssistantStatusSnapshot,
 } from '../shared/assistant-status';
 import {
+  DIAGNOSTICS_CHANNELS,
+  type RendererDiagnosticPayload,
+} from '../shared/diagnostics';
+import {
   TERMINAL_CHANNELS,
   type TerminalOutputEvent,
 } from '../shared/terminal-bridge';
@@ -56,5 +60,50 @@ const claudeAppApi: ClaudeAppApi = {
     },
   },
 };
+
+function emitRendererDiagnostic(payload: RendererDiagnosticPayload): void {
+  ipcRenderer.send(DIAGNOSTICS_CHANNELS.rendererEvent, payload);
+}
+
+function emitUnhandledRendererDiagnostic(
+  type: RendererDiagnosticPayload['type'],
+  message: string,
+  stack?: string,
+): void {
+  const payload: RendererDiagnosticPayload = {
+    type,
+    message,
+  };
+
+  if (typeof stack === 'string' && stack.length > 0) {
+    payload.stack = stack;
+  }
+
+  emitRendererDiagnostic(payload);
+}
+
+window.addEventListener('error', (event: ErrorEvent) => {
+  emitUnhandledRendererDiagnostic(
+    'window-error',
+    event.message,
+    event.error instanceof Error ? event.error.stack : undefined,
+  );
+});
+
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  const reason = event.reason;
+  const message =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === 'string'
+        ? reason
+        : JSON.stringify(reason);
+
+  emitUnhandledRendererDiagnostic(
+    'unhandled-rejection',
+    message,
+    reason instanceof Error ? reason.stack : undefined,
+  );
+});
 
 contextBridge.exposeInMainWorld('claudeApp', claudeAppApi);

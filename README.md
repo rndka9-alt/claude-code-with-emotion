@@ -35,6 +35,12 @@ macOS Electron desktop app that embeds Claude Code in vertically stacked termina
 
 `pnpm dev` rebuilds the renderer into `dist/renderer`, watches Electron `main` / `preload`, and launches Electron from the generated files. This keeps development working in environments where opening a local dev-server port is blocked.
 
+In development the app also:
+
+- opens DevTools automatically in a detached window after the renderer finishes loading
+- installs a standard macOS `View -> Toggle Developer Tools` menu entry
+- writes runtime diagnostics to `.runtime-logs/electron-dev.log`
+
 ## Build
 
 Compile the production assets:
@@ -107,6 +113,20 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+## Debugging
+
+When `pnpm dev` is running:
+
+- DevTools should open automatically in a separate window
+- You can also use the app menu: `View -> Toggle Developer Tools`
+- Main-process, renderer-console, load, and crash diagnostics are appended to:
+
+```text
+.runtime-logs/electron-dev.log
+```
+
+If the window goes black, reproducing the issue and then sharing the newest lines from that log file is usually enough for debugging.
 
 ## Project Layout
 
