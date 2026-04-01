@@ -25,6 +25,12 @@ interface VisualAssetManagerDialogProps {
     state: VisualStatePresetId,
     isEnabled: boolean,
   ) => void;
+  onToggleStateEmotion: (
+    assetId: string,
+    state: VisualStatePresetId,
+    emotion: VisualEmotionPresetId,
+    isEnabled: boolean,
+  ) => void;
 }
 
 function assetHasStateMapping(
@@ -55,6 +61,21 @@ function assetHasEmotionMapping(
   });
 }
 
+function assetHasStateEmotionMapping(
+  catalog: VisualAssetCatalog,
+  assetId: string,
+  state: VisualStatePresetId,
+  emotion: VisualEmotionPresetId,
+): boolean {
+  return catalog.mappings.some((mapping) => {
+    return (
+      mapping.assetId === assetId &&
+      mapping.state === state &&
+      mapping.emotion === emotion
+    );
+  });
+}
+
 export function VisualAssetManagerDialog({
   catalog,
   onClose,
@@ -63,6 +84,7 @@ export function VisualAssetManagerDialog({
   onSetDefaultAsset,
   onToggleEmotion,
   onToggleState,
+  onToggleStateEmotion,
 }: VisualAssetManagerDialogProps): ReactElement {
   return (
     <div
@@ -115,6 +137,7 @@ export function VisualAssetManagerDialog({
               {catalog.assets.map((asset) => {
                 const stateMappingIdPrefix = `state-${asset.id}`;
                 const emotionMappingIdPrefix = `emotion-${asset.id}`;
+                const pairMappingIdPrefix = `pair-${asset.id}`;
 
                 return (
                   <li className="visual-asset-manager__asset" key={asset.id}>
@@ -247,6 +270,70 @@ export function VisualAssetManagerDialog({
                                 />
                                 <span>{preset.label}</span>
                               </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="visual-asset-manager__mapping-group">
+                        <h4 className="visual-asset-manager__mapping-title">
+                          Exact State + Emotion
+                        </h4>
+                        <p className="visual-asset-manager__mapping-copy">
+                          이건 state-only, emotion-only보다 먼저 잡혀요. 진짜 전용 표정 카드예요...!
+                        </p>
+                        <div className="visual-asset-manager__pair-grid">
+                          {EMOTION_PRESETS.map((emotionPreset) => {
+                            if (emotionPreset.id === 'neutral') {
+                              return null;
+                            }
+
+                            return (
+                              <div
+                                className="visual-asset-manager__pair-row"
+                                key={emotionPreset.id}
+                              >
+                                <div className="visual-asset-manager__pair-label">
+                                  {emotionPreset.label}
+                                </div>
+
+                                <div className="visual-asset-manager__chips">
+                                  {STATE_PRESETS.map((statePreset) => {
+                                    const inputId = `${pairMappingIdPrefix}-${statePreset.id}-${emotionPreset.id}`;
+
+                                    return (
+                                      <label
+                                        className="visual-asset-manager__chip visual-asset-manager__chip--pair"
+                                        htmlFor={inputId}
+                                        key={`${statePreset.id}-${emotionPreset.id}`}
+                                        title={`${statePreset.label} + ${emotionPreset.label}`}
+                                      >
+                                        <input
+                                          checked={assetHasStateEmotionMapping(
+                                            catalog,
+                                            asset.id,
+                                            statePreset.id,
+                                            emotionPreset.id,
+                                          )}
+                                          id={inputId}
+                                          onChange={(
+                                            event: ChangeEvent<HTMLInputElement>,
+                                          ) => {
+                                            onToggleStateEmotion(
+                                              asset.id,
+                                              statePreset.id,
+                                              emotionPreset.id,
+                                              event.currentTarget.checked,
+                                            );
+                                          }}
+                                          type="checkbox"
+                                        />
+                                        <span>{statePreset.label}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             );
                           })}
                         </div>

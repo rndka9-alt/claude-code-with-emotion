@@ -403,7 +403,8 @@ button {
 }
 
 .visual-asset-manager__copy,
-.visual-asset-manager__asset-path {
+.visual-asset-manager__asset-path,
+.visual-asset-manager__mapping-copy {
   margin: 4px 0 0;
   color: #8f9dbd;
   font-size: 12px;
@@ -513,6 +514,29 @@ button {
   color: #d5def4;
   background: #171d28;
   border: 1px solid rgba(121, 137, 175, 0.2);
+}
+
+.visual-asset-manager__pair-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.visual-asset-manager__pair-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.visual-asset-manager__pair-label {
+  padding-top: 6px;
+  color: #b7c4e2;
+  font-size: 12px;
+}
+
+.visual-asset-manager__chip--pair {
+  font-size: 12px;
 }
 
 .visual-asset-manager__icon {

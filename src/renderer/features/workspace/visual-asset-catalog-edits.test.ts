@@ -3,6 +3,7 @@ import {
   removeVisualAsset,
   setVisualAssetDefault,
   setVisualAssetEmotionMapping,
+  setVisualAssetStateEmotionMapping,
   setVisualAssetStateMapping,
 } from './visual-asset-catalog-edits';
 
@@ -159,5 +160,42 @@ describe('visual asset catalog edits', () => {
       assets: [],
       mappings: [],
     });
+  });
+
+  it('adds and removes exact state-and-emotion mappings independently', () => {
+    const withPair = setVisualAssetStateEmotionMapping(
+      {
+        version: 1,
+        assets: [
+          {
+            id: 'asset-a',
+            kind: 'image',
+            label: 'A',
+            path: '/tmp/a.png',
+          },
+        ],
+        mappings: [],
+      },
+      'asset-a',
+      'working',
+      'sad',
+      true,
+    );
+    const withoutPair = setVisualAssetStateEmotionMapping(
+      withPair,
+      'asset-a',
+      'working',
+      'sad',
+      false,
+    );
+
+    expect(withPair.mappings).toEqual([
+      {
+        assetId: 'asset-a',
+        state: 'working',
+        emotion: 'sad',
+      },
+    ]);
+    expect(withoutPair.mappings).toEqual([]);
   });
 });

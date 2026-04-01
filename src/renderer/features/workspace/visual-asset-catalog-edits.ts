@@ -37,6 +37,19 @@ function hasEmotionOnlyMapping(
   );
 }
 
+function hasStateAndEmotionMapping(
+  mapping: VisualAssetMapping,
+  assetId: string,
+  state: VisualStatePresetId,
+  emotion: VisualEmotionPresetId,
+): boolean {
+  return (
+    mapping.assetId === assetId &&
+    mapping.state === state &&
+    mapping.emotion === emotion
+  );
+}
+
 export function mergePickedVisualAssets(
   catalog: VisualAssetCatalog,
   files: ReadonlyArray<VisualAssetPickerFile>,
@@ -139,6 +152,31 @@ export function setVisualAssetEmotionMapping(
   if (isEnabled) {
     nextMappings.push({
       assetId,
+      emotion,
+    });
+  }
+
+  return {
+    ...catalog,
+    mappings: nextMappings,
+  };
+}
+
+export function setVisualAssetStateEmotionMapping(
+  catalog: VisualAssetCatalog,
+  assetId: string,
+  state: VisualStatePresetId,
+  emotion: VisualEmotionPresetId,
+  isEnabled: boolean,
+): VisualAssetCatalog {
+  const nextMappings = catalog.mappings.filter((mapping) => {
+    return !hasStateAndEmotionMapping(mapping, assetId, state, emotion);
+  });
+
+  if (isEnabled) {
+    nextMappings.push({
+      assetId,
+      state,
       emotion,
     });
   }

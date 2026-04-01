@@ -11,6 +11,7 @@ import {
   removeVisualAsset,
   setVisualAssetDefault,
   setVisualAssetEmotionMapping,
+  setVisualAssetStateEmotionMapping,
   setVisualAssetStateMapping,
 } from './features/workspace/visual-asset-catalog-edits';
 import { useAssistantStatusBridge } from './features/workspace/use-assistant-status-bridge';
@@ -135,6 +136,17 @@ export function App(): ReactElement {
                 visualAssetCatalog,
                 assetId,
                 statePreset,
+                isEnabled,
+              ),
+            );
+          }}
+          onToggleStateEmotion={(assetId, statePreset, emotion, isEnabled) => {
+            void persistVisualAssetCatalog(
+              setVisualAssetStateEmotionMapping(
+                visualAssetCatalog,
+                assetId,
+                statePreset,
+                emotion,
                 isEnabled,
               ),
             );
