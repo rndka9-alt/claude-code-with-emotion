@@ -33,6 +33,10 @@ if (typeof window.matchMedia !== 'function') {
   });
 }
 
+if (typeof window.PointerEvent === 'undefined') {
+  window.PointerEvent = MouseEvent as typeof PointerEvent;
+}
+
 Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
   configurable: true,
   value: () => {

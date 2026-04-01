@@ -39,7 +39,7 @@ export type WorkspaceAction =
       nowMs: number;
       source: 'manual' | 'terminal';
     }
-  | { type: 'reorderTab'; tabId: string; targetTabId: string; nowMs: number }
+  | { type: 'reorderTab'; tabId: string; destinationIndex: number; nowMs: number }
   | { type: 'resizePane'; index: number; deltaRatio: number };
 
 const MIN_PANE_SIZE = 0.18;
@@ -344,14 +344,9 @@ function reorderTabState(
   state: WorkspaceState,
   action: Extract<WorkspaceAction, { type: 'reorderTab' }>,
 ): WorkspaceState {
-  if (action.tabId === action.targetTabId) {
-    return state;
-  }
-
   const fromIndex = state.tabs.findIndex((tab) => tab.id === action.tabId);
-  const targetIndex = state.tabs.findIndex((tab) => tab.id === action.targetTabId);
 
-  if (fromIndex < 0 || targetIndex < 0) {
+  if (fromIndex < 0) {
     return state;
   }
 
@@ -363,7 +358,20 @@ function reorderTabState(
 
   const reorderedTabs = [...state.tabs];
   reorderedTabs.splice(fromIndex, 1);
-  reorderedTabs.splice(targetIndex, 0, movedTab);
+  const boundedDestinationIndex = Math.min(
+    Math.max(action.destinationIndex, 0),
+    state.tabs.length,
+  );
+  const nextIndex =
+    boundedDestinationIndex > fromIndex
+      ? boundedDestinationIndex - 1
+      : boundedDestinationIndex;
+
+  if (nextIndex === fromIndex) {
+    return state;
+  }
+
+  reorderedTabs.splice(nextIndex, 0, movedTab);
 
   return {
     ...state,

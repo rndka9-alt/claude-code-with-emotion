@@ -56,6 +56,10 @@ button {
   padding-bottom: 0;
 }
 
+.tab-strip[data-dragging="true"] {
+  cursor: grabbing;
+}
+
 .tab-chip {
   --tab-background: #161a22;
   --tab-border: rgba(121, 137, 175, 0.28);
@@ -66,12 +70,47 @@ button {
   align-items: stretch;
   max-width: 240px;
   min-width: 160px;
+  transition:
+    opacity 140ms ease,
+    box-shadow 180ms ease;
+}
+
+.tab-chip::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 1px;
+  width: 2px;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, #d5e3ff 0%, #8db1ff 100%);
+  box-shadow: 0 0 0 1px rgba(141, 177, 255, 0.22);
+  transition: opacity 120ms ease;
 }
 
 .tab-chip--active {
   --tab-background: #0f1319;
   --tab-border: rgba(145, 161, 201, 0.42);
   --tab-foreground: #f5f8ff;
+}
+
+.tab-chip--dragging {
+  z-index: 2;
+  opacity: 0.86;
+  box-shadow: 0 10px 24px rgba(4, 8, 15, 0.34);
+}
+
+.tab-chip--drop-before::before,
+.tab-chip--drop-after::before {
+  opacity: 1;
+}
+
+.tab-chip--drop-before::before {
+  left: -2px;
+}
+
+.tab-chip--drop-after::before {
+  right: -2px;
 }
 
 .tab-button {
@@ -83,7 +122,8 @@ button {
   background: var(--tab-background);
   border: 1px solid var(--tab-border);
   border-bottom: 0;
-  cursor: default;
+  cursor: grab;
+  user-select: none;
 }
 
 .tab-button--active {

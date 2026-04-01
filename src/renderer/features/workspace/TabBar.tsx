@@ -11,7 +11,7 @@ interface TabBarProps {
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
   onRenameTab: (tabId: string, title: string) => void;
-  onReorderTab: (tabId: string, targetTabId: string) => void;
+  onReorderTab: (tabId: string, destinationIndex: number) => void;
 }
 
 export function TabBar({
@@ -33,35 +33,43 @@ export function TabBar({
     startRenaming,
   } = useTabTitleEditor(onRenameTab);
   const {
-    handleDragEnd,
-    handleDragOver,
-    handleDragStart,
-    handleDrop,
-  } = useTabDragReorder(onReorderTab);
+    draggingTabId,
+    dropIndicatorSide,
+    dropIndicatorTabId,
+    handlePointerDown,
+    setTabElement,
+    shouldSuppressClick,
+    stripRef,
+  } = useTabDragReorder(tabs, onReorderTab);
 
   return (
     <header className="tab-bar">
       <div
         className="tab-strip"
         aria-label="Terminal sessions"
+        data-dragging={draggingTabId !== null}
+        ref={stripRef}
         role="tablist"
       >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           const isEditing = tab.id === editingTabId;
+          const isDragging = tab.id === draggingTabId;
+          const isDropIndicatorTarget = tab.id === dropIndicatorTabId;
+          const dropIndicatorClassName =
+            isDropIndicatorTarget && dropIndicatorSide !== null
+              ? ` tab-chip--drop-${dropIndicatorSide}`
+              : '';
 
           return (
             <div
-              className={`tab-chip${isActive ? ' tab-chip--active' : ''}`}
-              draggable
+              className={`tab-chip${isActive ? ' tab-chip--active' : ''}${isDragging ? ' tab-chip--dragging' : ''}${dropIndicatorClassName}`}
               key={tab.id}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDragStart={() => {
-                handleDragStart(tab.id);
+              onPointerDown={(event) => {
+                handlePointerDown(event, tab.id);
               }}
-              onDrop={(event) => {
-                handleDrop(event, tab.id);
+              ref={(element) => {
+                setTabElement(tab.id, element);
               }}
               role="presentation"
             >
@@ -72,7 +80,7 @@ export function TabBar({
                 id={`tab-${tab.id}`}
                 title={tab.title}
                 onClick={() => {
-                  if (isEditing) {
+                  if (isEditing || shouldSuppressClick(tab.id)) {
                     return;
                   }
                   onActivateTab(tab.id);

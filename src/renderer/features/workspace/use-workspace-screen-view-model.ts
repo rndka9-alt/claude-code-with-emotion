@@ -31,7 +31,7 @@ export interface WorkspaceScreenViewModel {
   pickVisualAssets: () => void;
   paneSizes: number[];
   removeAsset: (assetId: string) => void;
-  reorderTab: (tabId: string, targetTabId: string) => void;
+  reorderTab: (tabId: string, destinationIndex: number) => void;
   resizePane: (index: number, deltaRatio: number) => void;
   setDefaultAsset: (assetId: string, isDefault: boolean) => void;
   statusVisual: ReturnType<typeof resolveStatusPanelVisual>;

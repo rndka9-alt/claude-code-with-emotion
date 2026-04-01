@@ -118,7 +118,7 @@ describe('workspaceReducer', () => {
     const nextState = workspaceReducer(state, {
       type: 'reorderTab',
       tabId: 'session-3',
-      targetTabId: 'session-1',
+      destinationIndex: 0,
       nowMs: 21_500,
     });
 
