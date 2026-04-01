@@ -58,6 +58,16 @@ interface ShellLaunchConfig {
   shellArgs: string[];
 }
 
+function createInitialCommandInput(command: string): string {
+  const trimmedCommand = command.trim();
+
+  if (trimmedCommand.length === 0) {
+    return '';
+  }
+
+  return `${trimmedCommand}\r`;
+}
+
 function adaptPty(ptyProcess: IPty): TerminalSessionRuntime {
   return {
     write: (data) => {
@@ -323,6 +333,12 @@ export class TerminalSessionManager {
       runtime,
       disposables: [dataSubscription, exitSubscription],
     });
+
+    const initialCommandInput = createInitialCommandInput(request.command);
+
+    if (initialCommandInput.length > 0) {
+      runtime.write(initialCommandInput);
+    }
 
     return {
       initialOutput:

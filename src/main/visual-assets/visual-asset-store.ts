@@ -136,6 +136,20 @@ function parseCatalogFromDisk(
   }
 }
 
+function persistCatalogIfMissing(
+  filePath: string,
+  catalog: VisualAssetCatalog,
+  logEvent?: (message: string) => void,
+): void {
+  if (fs.existsSync(filePath)) {
+    return;
+  }
+
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(catalog, null, 2), 'utf8');
+  logEvent?.('initialized empty visual asset catalog on disk');
+}
+
 function createImportedAssetFilename(filePath: string): string {
   const fileBuffer = fs.readFileSync(filePath);
   const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
@@ -167,6 +181,7 @@ export class VisualAssetStore {
     private readonly logEvent?: (message: string) => void,
   ) {
     this.catalog = parseCatalogFromDisk(filePath, logEvent);
+    persistCatalogIfMissing(filePath, this.catalog, logEvent);
   }
 
   getAvailableOptions(): AvailableVisualOptions {

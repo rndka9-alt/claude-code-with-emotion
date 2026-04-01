@@ -4,7 +4,7 @@ import path from 'node:path';
 import { VisualAssetStore } from './visual-asset-store';
 
 describe('VisualAssetStore', () => {
-  it('starts empty when the catalog file does not exist yet', () => {
+  it('starts empty and writes an empty catalog file when none exists yet', () => {
     const directoryPath = fs.mkdtempSync(
       path.join(os.tmpdir(), 'visual-asset-store-empty-'),
     );
@@ -18,6 +18,11 @@ describe('VisualAssetStore', () => {
     );
 
     expect(store.getCatalog()).toEqual({
+      version: 1,
+      assets: [],
+      mappings: [],
+    });
+    expect(JSON.parse(fs.readFileSync(filePath, 'utf8'))).toEqual({
       version: 1,
       assets: [],
       mappings: [],

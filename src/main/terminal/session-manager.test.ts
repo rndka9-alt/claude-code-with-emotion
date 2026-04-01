@@ -138,7 +138,7 @@ describe('createShellLaunchConfig', () => {
 });
 
 describe('TerminalSessionManager', () => {
-  it('bootstraps a runtime without auto-launching the requested command', () => {
+  it('bootstraps a runtime and auto-launches the requested command', () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputEvents: string[] = [];
     const manager = new TerminalSessionManager(
@@ -215,7 +215,7 @@ describe('TerminalSessionManager', () => {
     const response = manager.bootstrapSession(createBootstrapRequest());
 
     expect(createdRuntimes).toHaveLength(1);
-    expect(createdRuntimes[0]?.writes).toEqual([]);
+    expect(createdRuntimes[0]?.writes).toEqual(['claude\r']);
     expect(response.initialOutput).toContain('Shell ready');
     expect(
       createdRuntimes[0]?.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE,
