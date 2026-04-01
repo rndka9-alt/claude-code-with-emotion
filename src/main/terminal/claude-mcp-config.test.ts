@@ -9,7 +9,7 @@ import {
 describe('claude visual mcp config', () => {
   it('creates a stdio MCP config for the visual helper server', () => {
     const config = createClaudeVisualMcpConfig('/tmp/helper-bin');
-    const serverConfig = config['claude-code-with-emotion-visuals'];
+    const serverConfig = config.mcpServers['claude-code-with-emotion-visuals'];
 
     expect(serverConfig).toEqual({
       command: '/tmp/helper-bin/claude-visual-mcp',

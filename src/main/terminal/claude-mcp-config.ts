@@ -8,7 +8,9 @@ interface ClaudeMcpServerConfig {
   env?: Record<string, string>;
 }
 
-type ClaudeMcpConfig = Record<string, ClaudeMcpServerConfig>;
+interface ClaudeMcpConfig {
+  mcpServers: Record<string, ClaudeMcpServerConfig>;
+}
 
 const VISUAL_MCP_SERVER_NAME = 'claude-code-with-emotion-visuals';
 
@@ -26,16 +28,18 @@ export function createClaudeVisualMcpConfig(
   const visualMcpServerPath = path.join(helperBinDir, 'claude-visual-mcp');
 
   return {
-    [VISUAL_MCP_SERVER_NAME]: {
-      command: visualMcpServerPath,
-      args: [],
-      env: {
-        CLAUDE_WITH_EMOTION_TRACE_FILE:
-          '${CLAUDE_WITH_EMOTION_TRACE_FILE}',
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE:
-          '${CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE}',
-        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE:
-          '${CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE}',
+    mcpServers: {
+      [VISUAL_MCP_SERVER_NAME]: {
+        command: visualMcpServerPath,
+        args: [],
+        env: {
+          CLAUDE_WITH_EMOTION_TRACE_FILE:
+            '${CLAUDE_WITH_EMOTION_TRACE_FILE}',
+          CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE:
+            '${CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE}',
+          CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE:
+            '${CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE}',
+        },
       },
     },
   };
