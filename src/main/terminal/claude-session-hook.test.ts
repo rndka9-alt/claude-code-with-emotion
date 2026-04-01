@@ -69,6 +69,7 @@ describe('claude-session-hook', () => {
     expect(status.state).toBe('waiting');
     expect(status.line).toBe('권한 확인 기다리는 중이에요...!');
     expect(status.currentTask).toBe('Waiting on permission for Bash');
+    expect(status.durationMs).toBe(12000);
   });
 
   it('maps Notification into a surprised transient state', () => {
