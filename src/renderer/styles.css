@@ -94,20 +94,23 @@ button {
 .tab-button--active::after {
   content: "";
   position: absolute;
-  bottom: 0;
-  width: 8px;
-  height: 10px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
   background: var(--tab-background);
+  border-bottom: 1px solid rgba(121, 137, 175, 0.22);
 }
 
 .tab-button--active::before {
-  left: -7px;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  left: -11px;
+  border-left: 1px solid var(--tab-border);
+  border-bottom-left-radius: 12px;
 }
 
 .tab-button--active::after {
-  right: -7px;
-  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  right: -11px;
+  border-right: 1px solid var(--tab-border);
+  border-bottom-right-radius: 12px;
 }
 
 .tab-create-button {
@@ -205,7 +208,7 @@ button {
   gap: 0;
   overflow: hidden;
   border-radius: 0;
-  padding: 0;
+  padding: 4px 0 0;
   border: 1px solid rgba(121, 137, 175, 0.22);
   background: #0b0f17;
 }
@@ -398,18 +401,13 @@ button {
 .status-panel__content {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: center;
   min-width: 0;
 }
 
 .status-panel__line {
   color: #f4f7ff;
   font-size: 1.08rem;
-}
-
-.status-panel__meta {
-  color: #91a0c8;
-  font-size: 0.95rem;
 }
 
 @media (max-width: 900px) {

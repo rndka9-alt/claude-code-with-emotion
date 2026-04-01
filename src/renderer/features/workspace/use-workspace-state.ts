@@ -1,13 +1,7 @@
-import { useEffect, useReducer, useState } from 'react';
-import {
-  createInitialWorkspaceState,
-  formatElapsedLabel,
-  getActiveTab,
-  workspaceReducer,
-} from './model';
+import { useEffect, useReducer } from 'react';
+import { createInitialWorkspaceState, workspaceReducer } from './model';
 
 export interface WorkspaceViewModel {
-  appElapsedLabel: string;
   state: ReturnType<typeof createInitialWorkspaceState>;
   activateTab: (tabId: string) => void;
   closeTab: (tabId: string) => void;
@@ -21,17 +15,6 @@ export function useWorkspaceState(): WorkspaceViewModel {
     Date.now(),
     createInitialWorkspaceState,
   );
-  const [nowMs, setNowMs] = useState(() => Date.now());
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setNowMs(Date.now());
-    }, 1_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, []);
 
   useEffect(() => {
     const terminalsBridge = window.claudeApp?.terminals;
@@ -50,13 +33,7 @@ export function useWorkspaceState(): WorkspaceViewModel {
     });
   }, []);
 
-  const activeTab = getActiveTab(state);
-  const appElapsedLabel = formatElapsedLabel(
-    activeTab !== null ? nowMs - activeTab.createdAtMs : 0,
-  );
-
   return {
-    appElapsedLabel,
     state,
     activateTab: (tabId: string) => {
       dispatch({ type: 'activateTab', tabId, nowMs: Date.now() });
