@@ -47,4 +47,24 @@ describe('createRuntimeLog', () => {
     expect(contents).toContain('[main] boot');
     expect(contents).toContain('[renderer] Error: boom');
   });
+
+  it('emits runtime payloads to an optional listener', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'runtime-log-test-'));
+    const filePath = path.join(tempDir, 'logs', 'runtime.log');
+    const payloads: Array<{
+      message: string;
+      scope: string;
+      timestamp: string;
+    }> = [];
+    const runtimeLog = createRuntimeLog(filePath, (payload) => {
+      payloads.push(payload);
+    });
+
+    runtimeLog.write('assistant-status', 'snapshot updated');
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]?.scope).toBe('assistant-status');
+    expect(payloads[0]?.message).toBe('snapshot updated');
+    expect(payloads[0]?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
 });

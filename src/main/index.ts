@@ -23,6 +23,7 @@ import {
 import {
   DIAGNOSTICS_CHANNELS,
   type RendererDiagnosticPayload,
+  type RuntimeDiagnosticPayload,
 } from '../shared/diagnostics';
 import {
   TERMINAL_CHANNELS,
@@ -259,6 +260,11 @@ void app.whenReady().then(() => {
       app.getPath('userData'),
       app.isPackaged,
     ),
+    (payload: RuntimeDiagnosticPayload) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send(DIAGNOSTICS_CHANNELS.runtimeEvent, payload);
+      }
+    },
   );
 
   runtimeLog.write('app', `runtime log ready at ${runtimeLog.filePath}`);

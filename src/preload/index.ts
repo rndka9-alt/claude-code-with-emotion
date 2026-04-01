@@ -7,6 +7,7 @@ import {
 import {
   DIAGNOSTICS_CHANNELS,
   type RendererDiagnosticPayload,
+  type RuntimeDiagnosticPayload,
 } from '../shared/diagnostics';
 import {
   TERMINAL_CHANNELS,
@@ -31,6 +32,22 @@ const claudeAppApi: ClaudeAppApi = {
 
       return () => {
         ipcRenderer.removeListener(ASSISTANT_STATUS_CHANNELS.snapshot, subscription);
+      };
+    },
+  },
+  diagnostics: {
+    onRuntimeEvent: (listener) => {
+      const subscription = (
+        _event: IpcRendererEvent,
+        payload: RuntimeDiagnosticPayload,
+      ) => {
+        listener(payload);
+      };
+
+      ipcRenderer.on(DIAGNOSTICS_CHANNELS.runtimeEvent, subscription);
+
+      return () => {
+        ipcRenderer.removeListener(DIAGNOSTICS_CHANNELS.runtimeEvent, subscription);
       };
     },
   },

@@ -4,8 +4,16 @@ export interface RendererDiagnosticPayload {
   stack?: string;
 }
 
+export interface RuntimeDiagnosticPayload {
+  scope: string;
+  message: string;
+  timestamp: string;
+}
+
 export const DIAGNOSTICS_CHANNELS: {
   rendererEvent: string;
+  runtimeEvent: string;
 } = {
   rendererEvent: 'diagnostics:renderer-event',
+  runtimeEvent: 'diagnostics:runtime-event',
 };

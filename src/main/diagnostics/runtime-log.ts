@@ -1,11 +1,14 @@
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import type { RuntimeDiagnosticPayload } from '../../shared/diagnostics';
 
 export interface RuntimeLog {
   readonly filePath: string;
   write: (scope: string, message: string) => void;
   writeError: (scope: string, error: unknown) => void;
 }
+
+type RuntimeLogListener = (payload: RuntimeDiagnosticPayload) => void;
 
 export function resolveRuntimeLogPath(
   appPath: string,
@@ -47,20 +50,43 @@ function stringifyError(error: unknown): string {
   return String(error);
 }
 
-export function createRuntimeLog(filePath: string): RuntimeLog {
+function emitRuntimeLogListener(
+  listener: RuntimeLogListener | undefined,
+  scope: string,
+  message: string,
+  now: Date,
+): void {
+  listener?.({
+    scope,
+    message,
+    timestamp: now.toISOString(),
+  });
+}
+
+export function createRuntimeLog(
+  filePath: string,
+  listener?: RuntimeLogListener,
+): RuntimeLog {
   ensureLogDirExists(filePath);
 
   return {
     filePath,
     write: (scope, message) => {
-      appendFileSync(filePath, formatRuntimeLogLine(scope, message), 'utf8');
+      const now = new Date();
+
+      appendFileSync(filePath, formatRuntimeLogLine(scope, message, now), 'utf8');
+      emitRuntimeLogListener(listener, scope, message, now);
     },
     writeError: (scope, error) => {
+      const now = new Date();
+      const message = stringifyError(error);
+
       appendFileSync(
         filePath,
-        formatRuntimeLogLine(scope, stringifyError(error)),
+        formatRuntimeLogLine(scope, message, now),
         'utf8',
       );
+      emitRuntimeLogListener(listener, scope, message, now);
     },
   };
 }
