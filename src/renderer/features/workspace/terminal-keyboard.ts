@@ -23,6 +23,20 @@ export function shouldUseMultilineShortcut(
   );
 }
 
+export function shouldUseCloseSessionShortcut(
+  event: TerminalShortcutKeyEvent,
+): boolean {
+  const isCommandOrControlW =
+    event.key.toLowerCase() === 'w' && (event.metaKey || event.ctrlKey);
+
+  return (
+    (event.type === undefined || event.type === 'keydown') &&
+    event.repeat !== true &&
+    isCommandOrControlW &&
+    !event.altKey
+  );
+}
+
 export function handleTerminalShortcut(
   event: TerminalShortcutKeyEvent,
   sendData: (data: string) => void,

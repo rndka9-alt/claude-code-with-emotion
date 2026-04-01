@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react';
 import { createInitialWorkspaceState, workspaceReducer } from './model';
+import { shouldUseCloseSessionShortcut } from './terminal-keyboard';
 
 export interface WorkspaceViewModel {
   state: ReturnType<typeof createInitialWorkspaceState>;
@@ -32,6 +33,44 @@ export function useWorkspaceState(): WorkspaceViewModel {
       });
     });
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!shouldUseCloseSessionShortcut(event)) {
+        return;
+      }
+
+      if (state.tabs.length <= 1) {
+        return;
+      }
+
+      event.preventDefault();
+      const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
+
+      if (activeTab === undefined) {
+        return;
+      }
+
+      const terminalsBridge = window.claudeApp?.terminals;
+
+      if (terminalsBridge !== undefined) {
+        void terminalsBridge.closeSession({ sessionId: activeTab.id });
+      }
+
+      dispatch({
+        type: 'closeTab',
+        tabId: activeTab.id,
+        nowMs: Date.now(),
+        reason: 'manual',
+      });
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [state.activeTabId, state.tabs]);
 
   return {
     state,
