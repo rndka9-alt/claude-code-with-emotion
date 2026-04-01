@@ -140,6 +140,9 @@ export function createRuntimeEnv(
     CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: visualOverlayFilePath,
     PWD: cwd,
     PATH: pathSegments.join(':'),
+    HEADLINE_INFO_MODE: env.HEADLINE_INFO_MODE ?? 'prompt',
+    HEADLINE_LINE_MODE: env.HEADLINE_LINE_MODE ?? 'off',
+    HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? 'false',
     TERM: 'xterm-256color',
     TERM_PROGRAM: 'claude-code-with-emotion',
   };
@@ -280,7 +283,7 @@ export class TerminalSessionManager {
 
       existingSession.runtime.resize(size.cols, size.rows);
 
-      return { initialOutput: '' };
+      return {};
     }
 
     const shell = resolveShell(process.env);
@@ -340,10 +343,7 @@ export class TerminalSessionManager {
       runtime.write(initialCommandInput);
     }
 
-    return {
-      initialOutput:
-        `Shell ready in ${shell}\r\n` + `cwd: ${request.cwd}\r\n`,
-    };
+    return {};
   }
 
   sendInput(request: TerminalInputRequest): void {

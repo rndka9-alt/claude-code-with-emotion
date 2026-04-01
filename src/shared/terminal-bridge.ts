@@ -7,9 +7,7 @@ export interface TerminalBootstrapRequest {
   rows: number;
 }
 
-export interface TerminalBootstrapResponse {
-  initialOutput: string;
-}
+export interface TerminalBootstrapResponse {}
 
 export interface TerminalInputRequest {
   sessionId: string;

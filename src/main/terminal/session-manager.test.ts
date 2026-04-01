@@ -57,6 +57,9 @@ describe('createRuntimeEnv', () => {
     expect(env.PWD).toBe('/tmp/app');
     expect(env.TERM).toBe('xterm-256color');
     expect(env.TERM_PROGRAM).toBe('claude-code-with-emotion');
+    expect(env.HEADLINE_INFO_MODE).toBe('prompt');
+    expect(env.HEADLINE_LINE_MODE).toBe('off');
+    expect(env.HEADLINE_DO_CLOCK).toBe('false');
     expect(env.PATH).toBe('/tmp/helper-bin:/usr/bin');
     expect(env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH).toBe('/usr/bin');
     expect(env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR).toBe('/tmp/helper-bin');
@@ -72,6 +75,28 @@ describe('createRuntimeEnv', () => {
       '/tmp/status.json.hook-state.json',
     );
     expect(Object.hasOwn(env, 'INVALID')).toBe(false);
+  });
+
+  it('preserves an existing headline mode override', () => {
+    const env = createRuntimeEnv(
+      {
+        HEADLINE_INFO_MODE: 'precmd',
+        HEADLINE_LINE_MODE: 'on',
+        HEADLINE_DO_CLOCK: 'true',
+        HOME: '/tmp/home',
+        PATH: '/usr/bin',
+      },
+      '/tmp/app',
+      '/tmp/helper-bin',
+      '/tmp/status.json',
+      '/tmp/trace.log',
+      '/tmp/visual-assets.json',
+      '/tmp/visual-overlay.json',
+    );
+
+    expect(env.HEADLINE_INFO_MODE).toBe('precmd');
+    expect(env.HEADLINE_LINE_MODE).toBe('on');
+    expect(env.HEADLINE_DO_CLOCK).toBe('true');
   });
 });
 
@@ -218,7 +243,7 @@ describe('TerminalSessionManager', () => {
 
     expect(createdRuntimes).toHaveLength(1);
     expect(createdRuntimes[0]?.writes).toEqual(['claude\r']);
-    expect(response.initialOutput).toContain('Shell ready');
+    expect(response).toEqual({});
     expect(
       createdRuntimes[0]?.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE,
     ).toContain('visual-mcp.json');

@@ -187,6 +187,7 @@ export function TerminalSurface({
     const bridge = window.claudeApp?.terminals;
     const scheduledTasks: ScheduledTask[] = [];
     let disposed = false;
+    let bootstrapStarted = false;
     terminalRef.current = terminal;
 
     terminal.open(host);
@@ -214,6 +215,33 @@ export function TerminalSurface({
       }
     };
 
+    const bootstrapSession = (size: TerminalSize): void => {
+      if (bridge === undefined || bootstrapStarted) {
+        return;
+      }
+
+      bootstrapStarted = true;
+
+      void bridge
+        .bootstrapSession({
+          sessionId: session.id,
+          title: session.title,
+          cwd: session.cwd,
+          command: session.command,
+          cols: size.cols,
+          rows: size.rows,
+        })
+        .catch((error: unknown) => {
+          const message =
+            error instanceof Error ? error.message : 'Unknown bootstrap error';
+
+          console.error(`Failed to bootstrap ${session.id}: ${message}`);
+          terminal.write(
+            `\r\n[terminal bootstrap failed for ${session.id}: ${message}]\r\n`,
+          );
+        });
+    };
+
     const requestFit = (reason: string): void => {
       const task = scheduleTask(() => {
         if (disposed) {
@@ -224,6 +252,7 @@ export function TerminalSurface({
 
         if (nextSize !== null) {
           syncTerminalSize();
+          bootstrapSession(nextSize);
           return;
         }
 
@@ -235,8 +264,14 @@ export function TerminalSurface({
               return;
             }
 
-            fitTerminalViewport(terminal, host, session.id, `${reason}-retry`);
+            const retrySize = fitTerminalViewport(
+              terminal,
+              host,
+              session.id,
+              `${reason}-retry`,
+            );
             syncTerminalSize();
+            bootstrapSession(retrySize ?? getTerminalSize(terminal));
           }, 32);
 
           scheduledTasks.push(retryTask);
@@ -253,31 +288,7 @@ export function TerminalSurface({
     resizeObserver.observe(host);
     requestFit('initial-open');
 
-    if (bridge !== undefined) {
-      const initialSize = getTerminalSize(terminal);
-
-      void bridge
-        .bootstrapSession({
-          sessionId: session.id,
-          title: session.title,
-          cwd: session.cwd,
-          command: session.command,
-          cols: initialSize.cols,
-          rows: initialSize.rows,
-        })
-        .then((response) => {
-          terminal.write(response.initialOutput);
-        })
-        .catch((error: unknown) => {
-          const message =
-            error instanceof Error ? error.message : 'Unknown bootstrap error';
-
-          console.error(`Failed to bootstrap ${session.id}: ${message}`);
-          terminal.write(
-            `\r\n[terminal bootstrap failed for ${session.id}: ${message}]\r\n`,
-          );
-        });
-    } else {
+    if (bridge === undefined) {
       terminal.write(
         `No preload bridge detected for ${session.title}\r\n` +
           'The xterm surface is mounted, but Electron IPC is unavailable.\r\n',
