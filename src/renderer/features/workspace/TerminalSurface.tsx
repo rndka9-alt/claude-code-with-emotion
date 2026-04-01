@@ -226,13 +226,6 @@ export function TerminalSurface({
 
   return (
     <div className="terminal-surface">
-      <div className="terminal-surface__meta">
-        <p className="terminal-surface__eyebrow">Embedded Terminal</p>
-        <p className="terminal-surface__copy">
-          xterm.js is mounted. The current bridge is mock-backed until node-pty
-          takes over in the next step.
-        </p>
-      </div>
       <div className="terminal-surface__viewport" ref={hostRef} />
     </div>
   );

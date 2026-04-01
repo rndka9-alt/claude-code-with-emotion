@@ -109,9 +109,9 @@ button {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  gap: 20px;
+  gap: 14px;
   border-radius: 24px;
-  padding: 24px;
+  padding: 18px;
   border: 1px solid rgba(133, 158, 219, 0.16);
   background:
     linear-gradient(180deg, rgba(15, 19, 28, 0.96), rgba(12, 14, 20, 0.96));
@@ -124,32 +124,18 @@ button {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 10px;
-}
-
-.workspace__eyebrow {
-  margin: 0;
-  color: #8ea0d7;
-  font-size: 0.9rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 0;
 }
 
 .workspace__title {
   margin: 0;
-  font-size: clamp(2.1rem, 5vw, 4rem);
-  line-height: 1.02;
+  font-size: clamp(1.45rem, 2.8vw, 2.2rem);
+  line-height: 1.08;
 }
 
-.workspace__copy,
 .status-panel__line,
 .status-panel__meta {
   margin: 0;
-}
-
-.workspace__copy {
-  color: #d6deff;
-  font-size: 1.05rem;
 }
 
 .pane-stack {
@@ -158,21 +144,22 @@ button {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  gap: 10px;
+  gap: 0;
 }
 
 .pane-stack__slot {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
-  gap: 10px;
+  gap: 0;
 }
 
 .terminal-pane {
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-height: 140px;
+  min-height: 0;
   border-radius: 22px;
   border: 1px solid rgba(151, 175, 235, 0.14);
   background:
@@ -185,53 +172,8 @@ button {
   box-shadow: 0 0 0 1px rgba(126, 169, 255, 0.14);
 }
 
-.terminal-pane__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  padding: 16px 18px;
-  text-align: left;
-  color: inherit;
-  background: rgba(20, 27, 40, 0.74);
-  border-bottom: 1px solid rgba(151, 175, 235, 0.12);
-}
-
-.terminal-pane__title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.terminal-pane__title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #f5f8ff;
-  margin: 0;
-  font-size: 1rem;
-}
-
-.terminal-pane__meta {
-  color: #8ea0d7;
-  font-size: 0.9rem;
-}
-
-.terminal-pane__badge {
-  flex: 0 0 auto;
-  padding: 6px 10px;
-  border-radius: 999px;
-  color: #dce6ff;
-  font-size: 0.82rem;
-  background: rgba(72, 98, 158, 0.28);
-}
-
 .terminal-pane__body {
-  display: grid;
   flex: 1;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
   min-height: 0;
 }
 
@@ -239,78 +181,19 @@ button {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
   min-width: 0;
   min-height: 0;
-}
-
-.terminal-surface__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 18px 0;
-  min-width: 0;
 }
 
 .terminal-surface__viewport {
   flex: 1;
   min-height: 0;
-  margin: 0 18px 18px;
-  border-radius: 18px;
+  margin: 0;
+  border-radius: 20px;
   overflow: hidden;
-  border: 1px solid rgba(151, 175, 235, 0.12);
+  border: 0;
   background:
     linear-gradient(180deg, rgba(11, 16, 25, 0.66), rgba(7, 10, 17, 0.96));
-}
-
-.terminal-surface__eyebrow,
-.terminal-surface__copy,
-.terminal-pane__details,
-.terminal-pane__detail dt,
-.terminal-pane__detail dd {
-  margin: 0;
-}
-
-.terminal-surface__eyebrow {
-  color: #8ea0d7;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.terminal-surface__copy {
-  color: #d6deff;
-  max-width: 56ch;
-}
-
-.terminal-pane__details {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
-  padding: 18px;
-  min-width: 0;
-  border-left: 1px solid rgba(151, 175, 235, 0.12);
-}
-
-.terminal-pane__detail {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.terminal-pane__detail dt {
-  color: #8ea0d7;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.terminal-pane__detail dd {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #f5f8ff;
 }
 
 .pane-resizer {
@@ -449,15 +332,6 @@ button {
 
   .workspace__terminal-area {
     padding: 18px;
-  }
-
-  .terminal-pane__body {
-    grid-template-columns: 1fr;
-  }
-
-  .terminal-pane__details {
-    border-left: 0;
-    border-top: 1px solid rgba(151, 175, 235, 0.12);
   }
 
   .status-panel {

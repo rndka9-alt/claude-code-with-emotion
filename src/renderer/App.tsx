@@ -15,9 +15,8 @@ export function App(): ReactElement {
   const {
     state,
     activeTabTitle,
-    activeTaskElapsedLabel,
-    appElapsedLabel,
     activateTab,
+    appElapsedLabel,
     createTab,
     resizePane,
   } = useWorkspaceState();
@@ -55,19 +54,12 @@ export function App(): ReactElement {
           role="tabpanel"
         >
           <div className="workspace__header">
-            <p className="workspace__eyebrow">Terminal Workspace</p>
             <h1 className="workspace__title" id="workspace-heading">
               {activeTabTitle}
             </h1>
-            <p className="workspace__copy">
-              탭은 세션 포커스를 바꾸고, 본문은 지금 선택한 세션만 보여줘요.
-              다른 세션은 탭 뒤에서 살아 잇고, 보이는 건 딱 하나만 남겨둘게요.
-            </p>
           </div>
 
           <PaneStack
-            activeTabId={state.activeTabId}
-            onActivateTab={activateTab}
             onResizePane={resizePane}
             paneSizes={state.paneSizes}
             tabs={visibleTabs}
