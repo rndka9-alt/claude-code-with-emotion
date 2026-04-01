@@ -28,5 +28,6 @@
 - Claude hook handling now tracks pending permission requests in a temp state file, detects `PostToolUseFailure.is_interrupt`, and infers soft permission cancels when follow-up tool events never arrive.
 - Shared visual preset catalogs and asset-resolution primitives now exist as the foundation for user-managed image mappings and future MCP exposure.
 - The Electron side now persists a sanitized visual-asset catalog in `userData`, exposes it through a typed preload bridge, and streams catalog snapshots back into the renderer for the upcoming asset-management UI.
+- The renderer now resolves assistant snapshots through the shared `state + emotion` resolver and swaps the status-panel placeholder orb for a mapped local image whenever the catalog provides one.
 - `pnpm package:macos` now produces an unsigned local `.app` bundle, but Electron smoke-launch still aborts in this sandbox environment even for trivial `electron -e` commands.
 - Packaging is intentionally deferred until the core multi-terminal flow is working.

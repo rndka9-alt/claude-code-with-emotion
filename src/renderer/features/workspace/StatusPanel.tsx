@@ -1,19 +1,37 @@
 import type { ReactElement } from 'react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
+import type { StatusPanelVisual } from './status-panel-visual';
 
 interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
+  statusVisual: StatusPanelVisual | null;
 }
 
 export function StatusPanel({
   assistantStatus,
+  statusVisual,
 }: StatusPanelProps): ReactElement {
+  const avatarClassName = [
+    'status-panel__avatar',
+    `status-panel__avatar--${assistantStatus.state}`,
+    `status-panel__avatar--${assistantStatus.intensity}`,
+    statusVisual !== null ? 'status-panel__avatar--image' : '',
+  ]
+    .filter((className) => className.length > 0)
+    .join(' ');
+
   return (
     <aside className="status-panel" aria-label="Assistant status panel">
-      <div
-        className={`status-panel__avatar status-panel__avatar--${assistantStatus.state} status-panel__avatar--${assistantStatus.intensity}`}
-      >
-        <div className="status-panel__avatar-orb" aria-hidden="true" />
+      <div className={avatarClassName}>
+        {statusVisual === null ? (
+          <div className="status-panel__avatar-orb" aria-hidden="true" />
+        ) : (
+          <img
+            alt={statusVisual.resolution.asset.label}
+            className="status-panel__avatar-image"
+            src={statusVisual.assetUrl}
+          />
+        )}
       </div>
 
       <div className="status-panel__content">

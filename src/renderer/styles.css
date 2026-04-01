@@ -304,6 +304,7 @@ button {
 
 .status-panel__avatar {
   display: flex;
+  position: relative;
   flex-direction: column;
   gap: 10px;
   align-items: center;
@@ -312,10 +313,22 @@ button {
   aspect-ratio: 1 / 1;
   border-radius: 0;
   background: #1a2233;
+  overflow: hidden;
 }
 
 .status-panel__avatar--happy {
   background: #1c2c39;
+}
+
+.status-panel__avatar--image {
+  background: #0b0f17;
+}
+
+.status-panel__avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .status-panel__avatar--working {

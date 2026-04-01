@@ -4,7 +4,9 @@ import { PaneStack } from './features/workspace/PaneStack';
 import { StatusPanel } from './features/workspace/StatusPanel';
 import { TabBar } from './features/workspace/TabBar';
 import { getActiveTab, getVisibleTabs } from './features/workspace/model';
+import { resolveStatusPanelVisual } from './features/workspace/status-panel-visual';
 import { useAssistantStatusBridge } from './features/workspace/use-assistant-status-bridge';
+import { useVisualAssetCatalog } from './features/workspace/use-visual-asset-catalog';
 import { useWorkspaceState } from './features/workspace/use-workspace-state';
 
 export function App(): ReactElement {
@@ -27,6 +29,11 @@ export function App(): ReactElement {
     source: 'workspace',
   };
   const assistantSnapshot = useAssistantStatusBridge(fallbackAssistantSnapshot);
+  const visualAssetCatalog = useVisualAssetCatalog();
+  const statusVisual = resolveStatusPanelVisual(
+    assistantSnapshot,
+    visualAssetCatalog,
+  );
 
   return (
     <div className="app-shell">
@@ -52,7 +59,10 @@ export function App(): ReactElement {
           />
         </section>
 
-        <StatusPanel assistantStatus={assistantSnapshot} />
+        <StatusPanel
+          assistantStatus={assistantSnapshot}
+          statusVisual={statusVisual}
+        />
       </main>
     </div>
   );
