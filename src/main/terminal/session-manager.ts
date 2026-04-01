@@ -264,14 +264,14 @@ export class TerminalSessionManager {
     private readonly emitOutput: OutputListener,
     private readonly emitExit: ExitListener,
     private readonly helperBinDir: string,
-    private readonly statusFilePath: string,
     private readonly traceFilePath: string,
     private readonly visualAssetCatalogFilePath: string,
-    private readonly visualOverlayFilePath: string,
   ) {}
 
   bootstrapSession(
     request: TerminalBootstrapRequest,
+    statusFilePath: string,
+    visualOverlayFilePath: string,
   ): TerminalBootstrapResponse {
     const existingSession = this.sessions.get(request.sessionId);
 
@@ -289,10 +289,10 @@ export class TerminalSessionManager {
       process.env,
       request.cwd,
       this.helperBinDir,
-      this.statusFilePath,
+      statusFilePath,
       this.traceFilePath,
       this.visualAssetCatalogFilePath,
-      this.visualOverlayFilePath,
+      visualOverlayFilePath,
     );
     const homeDir = runtimeEnv.HOME;
 
@@ -395,19 +395,15 @@ export function createTerminalSessionManager(
   emitOutput: OutputListener,
   emitExit: ExitListener,
   helperBinDir: string,
-  statusFilePath: string,
   traceFilePath: string,
   visualAssetCatalogFilePath: string,
-  visualOverlayFilePath: string,
 ): TerminalSessionManager {
   return new TerminalSessionManager(
     createNodePtyRuntime,
     emitOutput,
     emitExit,
     helperBinDir,
-    statusFilePath,
     traceFilePath,
     visualAssetCatalogFilePath,
-    visualOverlayFilePath,
   );
 }

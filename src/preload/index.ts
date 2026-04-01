@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { ClaudeAppApi } from '../shared/electron-api';
 import {
   ASSISTANT_STATUS_CHANNELS,
+  type AssistantStatusSnapshotEvent,
   type AssistantStatusSnapshot,
 } from '../shared/assistant-status';
 import {
@@ -22,15 +23,17 @@ import type { VisualAssetCatalog } from '../shared/visual-assets';
 const claudeAppApi: ClaudeAppApi = {
   appVersion: process.versions.electron,
   assistantStatus: {
-    getSnapshot: () => {
-      return ipcRenderer.invoke(ASSISTANT_STATUS_CHANNELS.getSnapshot);
+    getSnapshot: (request) => {
+      return ipcRenderer.invoke(ASSISTANT_STATUS_CHANNELS.getSnapshot, request);
     },
-    onSnapshot: (listener) => {
+    onSnapshot: (request, listener) => {
       const subscription = (
         _event: IpcRendererEvent,
-        payload: AssistantStatusSnapshot,
+        payload: AssistantStatusSnapshotEvent,
       ) => {
-        listener(payload);
+        if (payload.sessionId === request.sessionId) {
+          listener(payload.snapshot);
+        }
       };
 
       ipcRenderer.on(ASSISTANT_STATUS_CHANNELS.snapshot, subscription);

@@ -21,7 +21,10 @@ import { createTerminalSessionManager } from './terminal/session-manager';
 import { VisualAssetStore } from './visual-assets/visual-asset-store';
 import {
   ASSISTANT_STATUS_CHANNELS,
+  createDefaultAssistantStatusSnapshot,
   type AssistantStatusSnapshot,
+  type AssistantStatusSnapshotEvent,
+  type AssistantStatusSnapshotRequest,
 } from '../shared/assistant-status';
 import {
   DIAGNOSTICS_CHANNELS,
@@ -152,15 +155,6 @@ function registerTerminalBridge(
   mainWindow: BrowserWindow,
   runtimeLog: RuntimeLog,
 ): void {
-  const assistantStatusStore = new AssistantStatusStore();
-  const assistantStatusFilePath = path.join(
-    app.getPath('userData'),
-    'assistant-status.json',
-  );
-  const assistantVisualOverlayFilePath = path.join(
-    app.getPath('userData'),
-    'assistant-visual-overlay.json',
-  );
   const assistantStatusTraceFilePath = runtimeLog.filePath;
   const assistantStatusHelperBinDir = path.join(app.getAppPath(), 'bin');
   const visualAssetCatalogFilePath = path.join(
@@ -171,20 +165,66 @@ function registerTerminalBridge(
     app.getPath('userData'),
     'visual-assets',
   );
-  const assistantStatusFileBridge = new AssistantStatusFileBridge(
-    assistantStatusFilePath,
-    assistantStatusStore,
-    (message) => {
-      runtimeLog.write('assistant-status-file', message);
-    },
+  const sessionStatusStores = new Map<string, AssistantStatusStore>();
+  const sessionStatusFileBridges = new Map<string, AssistantStatusFileBridge>();
+  const sessionOverlayFileBridges = new Map<string, AssistantVisualOverlayFileBridge>();
+  const sessionStatusUnsubscribes = new Map<string, () => void>();
+  const sessionStatusRootDir = path.join(app.getPath('userData'), 'assistant-status');
+  const sessionOverlayRootDir = path.join(
+    app.getPath('userData'),
+    'assistant-visual-overlay',
   );
-  const assistantVisualOverlayFileBridge = new AssistantVisualOverlayFileBridge(
-    assistantVisualOverlayFilePath,
-    assistantStatusStore,
-    (message) => {
-      runtimeLog.write('assistant-visual-overlay-file', message);
-    },
-  );
+  const resolveStatusFilePath = (sessionId: string): string =>
+    path.join(sessionStatusRootDir, `${sessionId}.json`);
+  const resolveOverlayFilePath = (sessionId: string): string =>
+    path.join(sessionOverlayRootDir, `${sessionId}.json`);
+  const ensureSessionStatusBridges = (sessionId: string): void => {
+    if (sessionStatusStores.has(sessionId)) {
+      return;
+    }
+
+    const statusStore = new AssistantStatusStore();
+    const statusFilePath = resolveStatusFilePath(sessionId);
+    const overlayFilePath = resolveOverlayFilePath(sessionId);
+    const statusFileBridge = new AssistantStatusFileBridge(
+      statusFilePath,
+      statusStore,
+      (message) => {
+        runtimeLog.write('assistant-status-file', `session=${sessionId} ${message}`);
+      },
+    );
+    const overlayFileBridge = new AssistantVisualOverlayFileBridge(
+      overlayFilePath,
+      statusStore,
+      (message) => {
+        runtimeLog.write(
+          'assistant-visual-overlay-file',
+          `session=${sessionId} ${message}`,
+        );
+      },
+    );
+    const unsubscribe = statusStore.subscribe((snapshot: AssistantStatusSnapshot) => {
+      const payload: AssistantStatusSnapshotEvent = { sessionId, snapshot };
+      mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, payload);
+    });
+
+    sessionStatusStores.set(sessionId, statusStore);
+    sessionStatusFileBridges.set(sessionId, statusFileBridge);
+    sessionOverlayFileBridges.set(sessionId, overlayFileBridge);
+    sessionStatusUnsubscribes.set(sessionId, unsubscribe);
+    statusFileBridge.start();
+    overlayFileBridge.start();
+  };
+  const disposeSessionStatusBridges = (sessionId: string): void => {
+    sessionStatusFileBridges.get(sessionId)?.stop();
+    sessionOverlayFileBridges.get(sessionId)?.stop();
+    sessionStatusUnsubscribes.get(sessionId)?.();
+    sessionStatusStores.get(sessionId)?.dispose();
+    sessionStatusFileBridges.delete(sessionId);
+    sessionOverlayFileBridges.delete(sessionId);
+    sessionStatusUnsubscribes.delete(sessionId);
+    sessionStatusStores.delete(sessionId);
+  };
   const terminalSessionManager = createTerminalSessionManager(
     (sessionId, data) => {
       mainWindow.webContents.send(TERMINAL_CHANNELS.output, {
@@ -204,25 +244,14 @@ function registerTerminalBridge(
       });
     },
     assistantStatusHelperBinDir,
-    assistantStatusFilePath,
     assistantStatusTraceFilePath,
     visualAssetCatalogFilePath,
-    assistantVisualOverlayFilePath,
   );
   const visualAssetStore = new VisualAssetStore(
     visualAssetCatalogFilePath,
     visualAssetLibraryDirPath,
     (message) => {
       runtimeLog.write('visual-assets', message);
-    },
-  );
-  const unsubscribeAssistantStatus = assistantStatusStore.subscribe(
-    (snapshot: AssistantStatusSnapshot) => {
-      runtimeLog.write(
-        'assistant-status-snapshot',
-        `state=${snapshot.state} emotion=${snapshot.emotion ?? 'none'} source=${snapshot.source} intensity=${snapshot.intensity} line=${snapshot.line} task=${snapshot.currentTask}`,
-      );
-      mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, snapshot);
     },
   );
   const unsubscribeVisualAssets = visualAssetStore.subscribe((catalog) => {
@@ -233,24 +262,21 @@ function registerTerminalBridge(
     mainWindow.webContents.send(VISUAL_ASSET_CHANNELS.catalog, catalog);
   });
 
-  assistantStatusFileBridge.start();
-  assistantVisualOverlayFileBridge.start();
-  runtimeLog.write(
-    'assistant-status',
-    `watching helper file ${assistantStatusFilePath}`,
-  );
-  runtimeLog.write(
-    'assistant-visual-overlay',
-    `watching helper file ${assistantVisualOverlayFilePath}`,
-  );
   runtimeLog.write(
     'visual-assets',
     `watching catalog file ${visualAssetCatalogFilePath}`,
   );
 
-  ipcMain.handle(ASSISTANT_STATUS_CHANNELS.getSnapshot, () => {
-    return assistantStatusStore.getSnapshot();
-  });
+  ipcMain.handle(
+    ASSISTANT_STATUS_CHANNELS.getSnapshot,
+    (_event, request: AssistantStatusSnapshotRequest) => {
+      ensureSessionStatusBridges(request.sessionId);
+      return (
+        sessionStatusStores.get(request.sessionId)?.getSnapshot() ??
+        createDefaultAssistantStatusSnapshot(Date.now())
+      );
+    },
+  );
   ipcMain.handle(VISUAL_ASSET_CHANNELS.getCatalog, () => {
     return visualAssetStore.getCatalog();
   });
@@ -298,8 +324,13 @@ function registerTerminalBridge(
         'terminal',
         `bootstrap session=${request.sessionId} cwd=${request.cwd} command=${request.command} cols=${request.cols} rows=${request.rows}`,
       );
+      ensureSessionStatusBridges(request.sessionId);
       try {
-        return terminalSessionManager.bootstrapSession(request);
+        return terminalSessionManager.bootstrapSession(
+          request,
+          resolveStatusFilePath(request.sessionId),
+          resolveOverlayFilePath(request.sessionId),
+        );
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unknown terminal error';
@@ -332,6 +363,7 @@ function registerTerminalBridge(
     (_event, request: TerminalCloseRequest) => {
       runtimeLog.write('terminal', `close session=${request.sessionId}`);
       terminalSessionManager.closeSession(request);
+      disposeSessionStatusBridges(request.sessionId);
     },
   );
 
@@ -354,10 +386,9 @@ function registerTerminalBridge(
 
   mainWindow.on('closed', () => {
     unsubscribeVisualAssets();
-    unsubscribeAssistantStatus();
-    assistantStatusFileBridge.stop();
-    assistantVisualOverlayFileBridge.stop();
-    assistantStatusStore.dispose();
+    for (const sessionId of [...sessionStatusStores.keys()]) {
+      disposeSessionStatusBridges(sessionId);
+    }
     visualAssetStore.dispose();
     terminalSessionManager.dispose();
     ipcMain.removeListener(

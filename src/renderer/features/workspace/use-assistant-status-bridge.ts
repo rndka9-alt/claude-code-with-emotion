@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
 
 export function useAssistantStatusBridge(
+  sessionId: string,
   fallbackSnapshot: AssistantStatusSnapshot,
 ): AssistantStatusSnapshot {
   const bridge = window.claudeApp?.assistantStatus;
@@ -16,13 +17,13 @@ export function useAssistantStatusBridge(
 
     let isDisposed = false;
 
-    void bridge.getSnapshot().then((nextSnapshot) => {
+    void bridge.getSnapshot({ sessionId }).then((nextSnapshot) => {
       if (!isDisposed) {
         setSnapshot(nextSnapshot);
       }
     });
 
-    const unsubscribe = bridge.onSnapshot((nextSnapshot) => {
+    const unsubscribe = bridge.onSnapshot({ sessionId }, (nextSnapshot) => {
       setSnapshot(nextSnapshot);
     });
 
@@ -30,7 +31,7 @@ export function useAssistantStatusBridge(
       isDisposed = true;
       unsubscribe();
     };
-  }, [bridge]);
+  }, [bridge, sessionId]);
 
   useEffect(() => {
     if (bridge === undefined) {

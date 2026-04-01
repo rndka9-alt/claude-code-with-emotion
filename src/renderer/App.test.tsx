@@ -70,12 +70,13 @@ describe('App', () => {
 
   it('reorders tabs via drag and drop in the tab strip', () => {
     render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'New Session' }));
 
     const firstTab = screen.getByRole('tab', {
-      name: 'claude-code-with-emotion · main workspace',
+      name: 'new session 1 · claude-code-with-emotion',
     });
     const secondTab = screen.getByRole('tab', {
-      name: 'terminal-resize prototype · claude-code-with-emotion',
+      name: 'new session 2 · claude-code-with-emotion',
     });
 
     fireEvent.dragStart(secondTab.parentElement as HTMLElement);
@@ -84,8 +85,6 @@ describe('App', () => {
     fireEvent.dragEnd(secondTab.parentElement as HTMLElement);
 
     const tabs = screen.getAllByRole('tab');
-    expect(tabs[0]).toHaveAccessibleName(
-      'terminal-resize prototype · claude-code-with-emotion',
-    );
+    expect(tabs[0]).toHaveAccessibleName('new session 2 · claude-code-with-emotion');
   });
 });

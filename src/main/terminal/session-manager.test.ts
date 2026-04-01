@@ -206,13 +206,15 @@ describe('TerminalSessionManager', () => {
       },
       () => {},
       '/tmp/helper-bin',
-      '/tmp/status.json',
       '/tmp/trace.log',
       '/tmp/visual-assets.json',
-      '/tmp/visual-overlay.json',
     );
 
-    const response = manager.bootstrapSession(createBootstrapRequest());
+    const response = manager.bootstrapSession(
+      createBootstrapRequest(),
+      '/tmp/status.json',
+      '/tmp/visual-overlay.json',
+    );
 
     expect(createdRuntimes).toHaveLength(1);
     expect(createdRuntimes[0]?.writes).toEqual(['claude\r']);
@@ -300,13 +302,15 @@ describe('TerminalSessionManager', () => {
       () => {},
       () => {},
       '/tmp/helper-bin',
-      '/tmp/status.json',
       '/tmp/trace.log',
       '/tmp/visual-assets.json',
-      '/tmp/visual-overlay.json',
     );
 
-    manager.bootstrapSession(createBootstrapRequest());
+    manager.bootstrapSession(
+      createBootstrapRequest(),
+      '/tmp/status.json',
+      '/tmp/visual-overlay.json',
+    );
     manager.closeSession({ sessionId: 'session-1' });
 
     expect(createdRuntimes[0]?.killed).toBe(true);
