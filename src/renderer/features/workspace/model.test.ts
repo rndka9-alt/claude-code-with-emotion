@@ -18,6 +18,7 @@ describe('workspaceReducer', () => {
     const state = createInitialWorkspaceState(10_000);
 
     expect(state.tabs[0]?.cwd).toBe('/tmp/workspace-under-test');
+    expect(state.tabs[0]?.command).toBe('');
   });
 
   it('creates a new active tab with updated assistant status', () => {

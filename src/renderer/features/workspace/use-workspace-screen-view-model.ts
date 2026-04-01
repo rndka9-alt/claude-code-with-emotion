@@ -118,7 +118,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
 
     void terminalsBridge.sendInput({
       sessionId: activeTab.id,
-      data: `${activeTab.command.trim().length > 0 ? activeTab.command : 'claude'}\r`,
+      data: 'claude\r',
     });
   };
 

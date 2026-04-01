@@ -67,17 +67,14 @@ function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
     id: `session-${tabNumber}`,
     title: createSessionTitle(tabNumber),
     cwd: resolveDefaultSessionCwd(),
-    command: 'claude',
+    command: '',
     lifecycle: 'bootstrapping',
     createdAtMs: nowMs,
   };
 }
 
 function createRecoverySessionTab(tabNumber: number, nowMs: number): SessionTab {
-  return {
-    ...createSessionTab(tabNumber, nowMs),
-    command: '',
-  };
+  return createSessionTab(tabNumber, nowMs);
 }
 
 function createAssistantStatus(
