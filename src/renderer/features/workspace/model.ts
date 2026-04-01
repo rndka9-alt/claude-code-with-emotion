@@ -37,6 +37,7 @@ export type WorkspaceAction =
       nowMs: number;
       source: 'manual' | 'terminal';
     }
+  | { type: 'reorderTab'; tabId: string; targetTabId: string; nowMs: number }
   | { type: 'resizePane'; index: number; deltaRatio: number };
 
 const MIN_PANE_SIZE = 0.18;
@@ -46,14 +47,6 @@ function roundPaneSize(size: number): number {
 }
 
 function createSessionTitle(tabNumber: number): string {
-  if (tabNumber === 1) {
-    return 'claude-code-with-emotion · main workspace';
-  }
-
-  if (tabNumber === 2) {
-    return 'terminal-resize prototype · claude-code-with-emotion';
-  }
-
   return `new session ${tabNumber} · claude-code-with-emotion`;
 }
 
@@ -63,7 +56,7 @@ function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
     title: createSessionTitle(tabNumber),
     cwd: '/Users/igangmin/workspace/github/personal/claude-code-with-emotion',
     command: 'claude',
-    lifecycle: tabNumber === 1 ? 'ready' : 'bootstrapping',
+    lifecycle: 'bootstrapping',
     createdAtMs: nowMs,
   };
 }
@@ -178,18 +171,17 @@ function closeTabState(
 }
 
 export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
-  const firstTab = createSessionTab(1, nowMs - 8_000);
-  const secondTab = createSessionTab(2, nowMs - 2_500);
+  const firstTab = createSessionTab(1, nowMs - 2_500);
 
   return {
-    tabs: [firstTab, secondTab],
-    paneSizes: [0.56, 0.44],
+    tabs: [firstTab],
+    paneSizes: [1],
     activeTabId: firstTab.id,
-    nextTabNumber: 3,
+    nextTabNumber: 2,
     assistantStatus: createAssistantStatus(
       'working',
-      '탭 구조를 정리하는 중이에요. 이제 좀 앱 같죠...!',
-      `Keeping "${firstTab.title}" in focus`,
+      '새 세션 하나만 먼저 열어뒀어요...!',
+      `Bootstrapping "${firstTab.title}"`,
       nowMs,
     ),
   };
@@ -332,6 +324,40 @@ export function workspaceReducer(
           ? '탭 이름 바꿧어요. 더 알아보기 쉬워요...!'
           : '터미널 타이틀을 탭 이름으로 동기화햇어요...!',
         `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
+        action.nowMs,
+      ),
+    };
+  }
+
+  if (action.type === 'reorderTab') {
+    if (action.tabId === action.targetTabId) {
+      return state;
+    }
+
+    const fromIndex = state.tabs.findIndex((tab) => tab.id === action.tabId);
+    const targetIndex = state.tabs.findIndex((tab) => tab.id === action.targetTabId);
+
+    if (fromIndex < 0 || targetIndex < 0) {
+      return state;
+    }
+
+    const movedTab = state.tabs[fromIndex];
+
+    if (movedTab === undefined) {
+      return state;
+    }
+
+    const reorderedTabs = [...state.tabs];
+    reorderedTabs.splice(fromIndex, 1);
+    reorderedTabs.splice(targetIndex, 0, movedTab);
+
+    return {
+      ...state,
+      tabs: reorderedTabs,
+      assistantStatus: createAssistantStatus(
+        'working',
+        '탭 순서 바꿔놨어요. 동선이 좀 더 편해질 거예요...!',
+        `Moved "${movedTab.title}"`,
         action.nowMs,
       ),
     };

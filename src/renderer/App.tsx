@@ -24,6 +24,7 @@ export function App(): ReactElement {
     activateTab,
     closeTab,
     createTab,
+    reorderTab,
     resizePane,
     updateTabTitle,
   } = useWorkspaceState();
@@ -81,6 +82,7 @@ export function App(): ReactElement {
         onRenameTab={(tabId, title) => {
           updateTabTitle(tabId, title, 'manual');
         }}
+        onReorderTab={reorderTab}
         tabs={state.tabs}
       />
 

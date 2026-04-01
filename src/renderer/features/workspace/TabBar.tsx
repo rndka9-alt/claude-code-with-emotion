@@ -9,6 +9,7 @@ interface TabBarProps {
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
   onRenameTab: (tabId: string, title: string) => void;
+  onReorderTab: (tabId: string, targetTabId: string) => void;
 }
 
 export function TabBar({
@@ -18,9 +19,11 @@ export function TabBar({
   onCloseTab,
   onCreateTab,
   onRenameTab,
+  onReorderTab,
 }: TabBarProps): ReactElement {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
+  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -54,7 +57,27 @@ export function TabBar({
           return (
             <div
               className={`tab-chip${isActive ? ' tab-chip--active' : ''}`}
+              draggable
               key={tab.id}
+              onDragEnd={() => {
+                setDraggingTabId(null);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+              }}
+              onDragStart={() => {
+                setDraggingTabId(tab.id);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+
+                if (draggingTabId === null) {
+                  return;
+                }
+
+                onReorderTab(draggingTabId, tab.id);
+                setDraggingTabId(null);
+              }}
               role="presentation"
             >
               <button
