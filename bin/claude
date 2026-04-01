@@ -4,6 +4,22 @@ const { accessSync, constants } = require('node:fs');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+function appendTrace(message) {
+  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+
+  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+    return;
+  }
+
+  const line = `[${new Date().toISOString()}] [claude-wrapper] ${message}\n`;
+
+  try {
+    require('node:fs').appendFileSync(traceFilePath, line, 'utf8');
+  } catch {
+    // Ignore trace write failures inside the wrapper.
+  }
+}
+
 function isExecutable(pathname) {
   try {
     accessSync(pathname, constants.X_OK);
@@ -50,12 +66,14 @@ function main() {
   const realClaude = resolveClaudeBinary(originalPath);
 
   if (realClaude === null) {
+    appendTrace('failed to resolve real Claude binary');
     process.stderr.write(
       'Unable to locate the real `claude` binary on CLAUDE_WITH_EMOTION_ORIGINAL_PATH.\n',
     );
     process.exit(1);
   }
 
+  appendTrace(`launching Claude binary ${realClaude}`);
   publishStatus([
     '--state',
     'working',
@@ -75,12 +93,16 @@ function main() {
     },
   });
 
+  appendTrace(
+    `Claude finished status=${child.status ?? 'null'} signal=${child.signal ?? 'null'} error=${child.error instanceof Error ? child.error.message : 'none'}`,
+  );
+
   if (child.status === 0) {
     publishStatus([
       '--state',
-      'waiting',
+      'disconnected',
       '--line',
-      '세션 대기 중이에요. 말 걸리면 바로 움직여요...!',
+      'Claude 세션이 종료돼서 지금은 미연결 상태예요...!',
       '--task',
       'Waiting for the next Claude run',
       '--intensity',

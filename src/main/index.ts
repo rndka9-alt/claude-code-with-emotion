@@ -143,10 +143,14 @@ function registerTerminalBridge(
     app.getPath('userData'),
     'assistant-status.json',
   );
+  const assistantStatusTraceFilePath = runtimeLog.filePath;
   const assistantStatusHelperBinDir = path.join(app.getAppPath(), 'bin');
   const assistantStatusFileBridge = new AssistantStatusFileBridge(
     assistantStatusFilePath,
     assistantStatusStore,
+    (message) => {
+      runtimeLog.write('assistant-status-file', message);
+    },
   );
   const terminalSessionManager = createTerminalSessionManager(
     (sessionId, data) => {
@@ -157,9 +161,14 @@ function registerTerminalBridge(
     },
     assistantStatusHelperBinDir,
     assistantStatusFilePath,
+    assistantStatusTraceFilePath,
   );
   const unsubscribeAssistantStatus = assistantStatusStore.subscribe(
     (snapshot: AssistantStatusSnapshot) => {
+      runtimeLog.write(
+        'assistant-status-snapshot',
+        `state=${snapshot.state} source=${snapshot.source} intensity=${snapshot.intensity} line=${snapshot.line} task=${snapshot.currentTask}`,
+      );
       mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, snapshot);
     },
   );

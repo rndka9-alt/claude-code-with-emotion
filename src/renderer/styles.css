@@ -267,7 +267,8 @@ button {
 }
 
 .status-panel__avatar--waiting,
-.status-panel__avatar--idle {
+.status-panel__avatar--idle,
+.status-panel__avatar--disconnected {
   background:
     linear-gradient(145deg, rgba(34, 44, 70, 0.92), rgba(13, 18, 28, 0.92));
 }

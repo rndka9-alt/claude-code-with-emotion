@@ -2,6 +2,22 @@
 
 const fs = require('node:fs');
 
+function appendTrace(message) {
+  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+
+  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+    return;
+  }
+
+  const line = `[${new Date().toISOString()}] [claude-status-helper] ${message}\n`;
+
+  try {
+    fs.appendFileSync(traceFilePath, line, 'utf8');
+  } catch {
+    // Ignore trace write failures inside the terminal helper.
+  }
+}
+
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0].trim().startsWith('{')) {
     return JSON.parse(argv[0]);
@@ -52,6 +68,9 @@ function main() {
     process.exit(1);
   }
 
+  appendTrace(
+    `writing status state=${payload.state} line=${payload.line} task=${payload.currentTask ?? ''}`,
+  );
   fs.writeFileSync(statusFilePath, JSON.stringify(payload), 'utf8');
 }
 

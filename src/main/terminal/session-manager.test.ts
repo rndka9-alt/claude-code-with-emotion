@@ -44,6 +44,7 @@ describe('createRuntimeEnv', () => {
       '/tmp/app',
       '/tmp/helper-bin',
       '/tmp/status.json',
+      '/tmp/trace.log',
     );
 
     expect(env.PWD).toBe('/tmp/app');
@@ -51,6 +52,7 @@ describe('createRuntimeEnv', () => {
     expect(env.TERM_PROGRAM).toBe('claude-code-with-emotion');
     expect(env.PATH).toBe('/tmp/helper-bin:/usr/bin');
     expect(env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH).toBe('/usr/bin');
+    expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe('/tmp/trace.log');
     expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
     expect(Object.hasOwn(env, 'INVALID')).toBe(false);
   });
@@ -124,6 +126,7 @@ describe('TerminalSessionManager', () => {
       },
       '/tmp/helper-bin',
       '/tmp/status.json',
+      '/tmp/trace.log',
     );
 
     const response = manager.bootstrapSession(createBootstrapRequest());

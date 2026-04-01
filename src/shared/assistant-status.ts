@@ -1,4 +1,5 @@
 export type AssistantSemanticState =
+  | 'disconnected'
   | 'idle'
   | 'thinking'
   | 'working'
@@ -47,9 +48,9 @@ export function createDefaultAssistantStatusSnapshot(
   nowMs: number,
 ): AssistantStatusSnapshot {
   return {
-    state: 'idle',
-    line: '세션 대기 중이에요. 말 걸리면 바로 움직여요...!',
-    currentTask: 'Waiting for assistant activity',
+    state: 'disconnected',
+    line: 'Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!',
+    currentTask: 'Waiting for Claude to start',
     updatedAtMs: nowMs,
     intensity: 'low',
     source: 'app',

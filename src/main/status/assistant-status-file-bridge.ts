@@ -12,6 +12,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 
 function isSemanticState(value: string): value is AssistantSemanticState {
   return (
+    value === 'disconnected' ||
     value === 'idle' ||
     value === 'thinking' ||
     value === 'working' ||
@@ -93,6 +94,7 @@ export class AssistantStatusFileBridge {
   constructor(
     private readonly statusFilePath: string,
     private readonly statusStore: AssistantStatusStore,
+    private readonly logEvent?: (message: string) => void,
   ) {}
 
   start(): void {
@@ -102,7 +104,10 @@ export class AssistantStatusFileBridge {
       fs.writeFileSync(this.statusFilePath, '', 'utf8');
     }
 
+    this.logEvent?.(`watch start path=${this.statusFilePath}`);
+
     this.watcher = fs.watch(this.statusFilePath, () => {
+      this.logEvent?.('watch event received');
       this.scheduleRead();
     });
   }
@@ -132,18 +137,26 @@ export class AssistantStatusFileBridge {
     const fileContents = fs.readFileSync(this.statusFilePath, 'utf8').trim();
 
     if (fileContents.length === 0) {
+      this.logEvent?.('read ignored empty payload');
       return;
     }
+
+    this.logEvent?.(`read payload=${fileContents}`);
 
     try {
       const parsed: unknown = JSON.parse(fileContents);
       const update = parseAssistantStatusUpdate(parsed);
 
       if (update !== null) {
+        this.logEvent?.(
+          `parsed update state=${update.state} line=${update.line} task=${update.currentTask ?? ''}`,
+        );
         this.statusStore.applyUpdate(update, 'assistant-command');
+      } else {
+        this.logEvent?.('parsed payload but it did not match AssistantStatusUpdate');
       }
     } catch {
-      // Ignore malformed writes from the helper command.
+      this.logEvent?.('malformed assistant-status payload ignored');
     }
   }
 }

@@ -9,6 +9,7 @@ interface StatusPanelProps {
 }
 
 const STATE_LABELS: Record<AssistantStatusSnapshot['state'], string> = {
+  disconnected: 'disconnected',
   idle: 'idle',
   thinking: 'thinking',
   working: 'working',

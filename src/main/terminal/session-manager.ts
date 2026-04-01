@@ -90,6 +90,7 @@ export function createRuntimeEnv(
   cwd: string,
   helperBinDir: string,
   statusFilePath: string,
+  traceFilePath: string,
 ): Record<string, string> {
   const sanitizedEnvEntries = Object.entries(env).filter((entry) => {
     return typeof entry[1] === 'string';
@@ -105,6 +106,7 @@ export function createRuntimeEnv(
     ...Object.fromEntries(sanitizedEnvEntries),
     CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
     CLAUDE_WITH_EMOTION_ORIGINAL_PATH: existingPath ?? '',
+    CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
     PWD: cwd,
     PATH: pathSegments.join(':'),
     TERM: 'xterm-256color',
@@ -130,6 +132,7 @@ export class TerminalSessionManager {
     private readonly emitOutput: OutputListener,
     private readonly helperBinDir: string,
     private readonly statusFilePath: string,
+    private readonly traceFilePath: string,
   ) {}
 
   bootstrapSession(
@@ -156,6 +159,7 @@ export class TerminalSessionManager {
         request.cwd,
         this.helperBinDir,
         this.statusFilePath,
+        this.traceFilePath,
       ),
       shell,
       shellArgs: ['-l'],
@@ -228,11 +232,13 @@ export function createTerminalSessionManager(
   emitOutput: OutputListener,
   helperBinDir: string,
   statusFilePath: string,
+  traceFilePath: string,
 ): TerminalSessionManager {
   return new TerminalSessionManager(
     createNodePtyRuntime,
     emitOutput,
     helperBinDir,
     statusFilePath,
+    traceFilePath,
   );
 }
