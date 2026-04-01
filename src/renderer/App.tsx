@@ -23,6 +23,7 @@ export function App(): ReactElement {
     resizePane,
     setDefaultAsset,
     statusVisual,
+    terminalFocusRequestKey,
     tabs,
     toggleEmotion,
     toggleState,
@@ -60,6 +61,7 @@ export function App(): ReactElement {
             onSyncTabTitle={(tabId, title) => {
               updateTabTitle(tabId, title, 'terminal');
             }}
+            terminalFocusRequestKey={terminalFocusRequestKey}
             tabs={visibleTabs}
           />
         </section>

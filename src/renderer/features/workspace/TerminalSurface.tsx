@@ -5,6 +5,7 @@ import type { SessionTab } from './model';
 import { handleTerminalShortcut } from './terminal-keyboard';
 
 interface TerminalSurfaceProps {
+  focusRequestKey: number;
   isActive: boolean;
   session: SessionTab;
   onTitleChange: (tabId: string, title: string) => void;
@@ -148,6 +149,7 @@ function scheduleTask(callback: () => void, delayMs: number): ScheduledTask {
 }
 
 export function TerminalSurface({
+  focusRequestKey,
   isActive,
   onTitleChange,
   session,
@@ -336,7 +338,7 @@ export function TerminalSurface({
     if (isActive) {
       terminalRef.current?.focus();
     }
-  }, [isActive]);
+  }, [focusRequestKey, isActive]);
 
   return (
     <div className="terminal-surface">

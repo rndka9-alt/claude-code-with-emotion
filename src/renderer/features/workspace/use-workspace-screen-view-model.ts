@@ -30,6 +30,7 @@ export interface WorkspaceScreenViewModel {
   openAssetManager: () => void;
   pickVisualAssets: () => void;
   paneSizes: number[];
+  terminalFocusRequestKey: number;
   removeAsset: (assetId: string) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
   resizePane: (index: number, deltaRatio: number) => void;
@@ -72,6 +73,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     updateTabTitle,
   } = useWorkspaceState();
   const [isVisualAssetManagerOpen, setIsVisualAssetManagerOpen] = useState(false);
+  const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
   const activeTab = getActiveTab(state);
   const visibleTabs = getVisibleTabs(state);
   const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
@@ -120,6 +122,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       sessionId: activeTab.id,
       data: 'claude\r',
     });
+    setTerminalFocusRequestKey((current) => current + 1);
   };
 
   return {
@@ -137,6 +140,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       setIsVisualAssetManagerOpen(true);
     },
     paneSizes: state.paneSizes,
+    terminalFocusRequestKey,
     pickVisualAssets: () => {
       void pickVisualAssetFiles().then((pickedFiles) => {
         if (pickedFiles.length === 0) {

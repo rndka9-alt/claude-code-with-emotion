@@ -8,6 +8,7 @@ interface PaneStackProps {
   tabs: SessionTab[];
   onResizePane: (index: number, deltaRatio: number) => void;
   onSyncTabTitle: (tabId: string, title: string) => void;
+  terminalFocusRequestKey: number;
 }
 
 export function PaneStack({
@@ -15,6 +16,7 @@ export function PaneStack({
   tabs,
   onResizePane,
   onSyncTabTitle,
+  terminalFocusRequestKey,
 }: PaneStackProps): ReactElement {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<{ index: number; lastY: number } | null>(null);
@@ -77,6 +79,7 @@ export function PaneStack({
             >
               <div className="terminal-pane__body">
                 <TerminalSurface
+                  focusRequestKey={terminalFocusRequestKey}
                   isActive={true}
                   onTitleChange={onSyncTabTitle}
                   session={tab}
