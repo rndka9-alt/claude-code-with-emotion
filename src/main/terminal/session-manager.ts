@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node-pty';
 import type { IPty } from 'node-pty';
+import { ensureClaudeHooksSettingsFile } from './claude-hooks-settings';
 import type {
   TerminalBootstrapRequest,
   TerminalBootstrapResponse,
@@ -258,6 +259,13 @@ export class TerminalSessionManager {
       this.statusFilePath,
       this.traceFilePath,
     );
+    const homeDir = runtimeEnv.HOME;
+
+    if (typeof homeDir === 'string' && homeDir.length > 0) {
+      runtimeEnv.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE =
+        ensureClaudeHooksSettingsFile(this.helperBinDir, homeDir);
+    }
+
     const launchConfig = createShellLaunchConfig(shell, runtimeEnv);
     const runtime = this.runtimeFactory({
       cols: size.cols,

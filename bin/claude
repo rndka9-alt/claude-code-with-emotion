@@ -63,6 +63,8 @@ function publishStatus(args) {
 
 function main() {
   const originalPath = process.env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH;
+  const hooksSettingsFilePath =
+    process.env.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE;
   const realClaude = resolveClaudeBinary(originalPath);
 
   if (realClaude === null) {
@@ -85,7 +87,16 @@ function main() {
     'medium',
   ]);
 
-  const child = spawnSync(realClaude, process.argv.slice(2), {
+  const claudeArgs =
+    typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0
+      ? ['--settings', hooksSettingsFilePath, ...process.argv.slice(2)]
+      : process.argv.slice(2);
+
+  appendTrace(
+    `starting Claude with ${claudeArgs.length} argv entries and hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'}`,
+  );
+
+  const child = spawnSync(realClaude, claudeArgs, {
     stdio: 'inherit',
     env: {
       ...process.env,

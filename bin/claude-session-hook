@@ -1,0 +1,222 @@
+#!/usr/bin/env node
+
+const fs = require('node:fs');
+const { spawnSync } = require('node:child_process');
+
+function appendTrace(message) {
+  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+
+  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+    return;
+  }
+
+  const line = `[${new Date().toISOString()}] [claude-session-hook] ${message}\n`;
+
+  try {
+    fs.appendFileSync(traceFilePath, line, 'utf8');
+  } catch {
+    // Ignore trace write failures inside the hook helper.
+  }
+}
+
+function readStdinText() {
+  try {
+    return fs.readFileSync(0, 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
+
+function parsePayload(text) {
+  if (text.length === 0) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+
+    if (typeof parsed === 'object' && parsed !== null) {
+      return parsed;
+    }
+  } catch {
+    appendTrace(`failed to parse hook payload text=${text}`);
+  }
+
+  return null;
+}
+
+function readStringField(payload, keys) {
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const value = payload[key];
+
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function summarizePrompt(payload) {
+  const prompt = readStringField(payload, [
+    'prompt',
+    'user_prompt',
+    'input',
+    'message',
+  ]);
+
+  if (typeof prompt !== 'string') {
+    return 'Reviewing the latest user prompt';
+  }
+
+  const singleLine = prompt.replace(/\s+/g, ' ').trim();
+
+  if (singleLine.length === 0) {
+    return 'Reviewing the latest user prompt';
+  }
+
+  return singleLine.length > 80
+    ? `Prompt: ${singleLine.slice(0, 77)}...`
+    : `Prompt: ${singleLine}`;
+}
+
+function summarizeTool(payload, fallback) {
+  const toolName = readStringField(payload, [
+    'tool_name',
+    'toolName',
+    'tool',
+    'name',
+  ]);
+
+  if (typeof toolName !== 'string') {
+    return fallback;
+  }
+
+  return `${fallback} (${toolName})`;
+}
+
+function createUpdate(eventName, payload) {
+  if (eventName === 'SessionStart') {
+    return {
+      state: 'waiting',
+      line: 'Claude 연결 완료! 다음 입력을 기다리고 잇어요...!',
+      task: 'Waiting for the next prompt',
+      intensity: 'low',
+    };
+  }
+
+  if (eventName === 'UserPromptSubmit') {
+    return {
+      state: 'thinking',
+      line: '질문 읽고 흐름 잡는 중이에요...!',
+      task: summarizePrompt(payload),
+      intensity: 'medium',
+    };
+  }
+
+  if (eventName === 'PreToolUse') {
+    return {
+      state: 'working',
+      line: '도구를 써서 확인하는 중이에요...!',
+      task: summarizeTool(payload, 'Using a Claude tool'),
+      intensity: 'medium',
+    };
+  }
+
+  if (eventName === 'PostToolUse') {
+    return {
+      state: 'thinking',
+      line: '방금 가져온 결과를 정리 중이에요...!',
+      task: summarizeTool(payload, 'Reviewing tool output'),
+      intensity: 'medium',
+    };
+  }
+
+  if (eventName === 'Stop') {
+    return {
+      state: 'waiting',
+      line: '응답을 마치고 다음 입력을 기다리고 잇어요...!',
+      task: 'Waiting for the next prompt',
+      intensity: 'low',
+    };
+  }
+
+  if (eventName === 'StopFailure') {
+    return {
+      state: 'error',
+      line: '응답 중에 문제가 생겻어요...!',
+      task: 'Claude hit a stop failure',
+      intensity: 'high',
+    };
+  }
+
+  if (eventName === 'SessionEnd') {
+    return {
+      state: 'disconnected',
+      line: 'Claude 세션이 종료돼서 지금은 미연결 상태예요...!',
+      task: 'Waiting for Claude to start',
+      intensity: 'low',
+    };
+  }
+
+  return null;
+}
+
+function publishStatus(update) {
+  const args = [
+    '--state',
+    update.state,
+    '--line',
+    update.line,
+    '--task',
+    update.task,
+    '--intensity',
+    update.intensity,
+  ];
+  const result = spawnSync('claude-status', args, {
+    stdio: 'ignore',
+  });
+
+  if (result.status === 0) {
+    return;
+  }
+
+  if (typeof result.error?.message === 'string') {
+    appendTrace(`claude-status invocation failed error=${result.error.message}`);
+  } else {
+    appendTrace(`claude-status invocation failed status=${result.status}`);
+  }
+}
+
+function main() {
+  const eventName = process.argv[2];
+
+  if (typeof eventName !== 'string' || eventName.length === 0) {
+    appendTrace('missing hook event name');
+    process.exit(1);
+  }
+
+  const payloadText = readStdinText();
+  const payload = parsePayload(payloadText);
+  const update = createUpdate(eventName, payload);
+
+  appendTrace(
+    `event=${eventName} payloadKeys=${payload !== null ? Object.keys(payload).join(',') : 'none'}`,
+  );
+
+  if (update === null) {
+    appendTrace(`no status update mapped for event=${eventName}`);
+    return;
+  }
+
+  appendTrace(
+    `publishing state=${update.state} line=${update.line} task=${update.task}`,
+  );
+  publishStatus(update);
+}
+
+main();

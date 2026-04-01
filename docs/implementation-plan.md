@@ -10,7 +10,7 @@
 - [x] Implement fixed bottom status panel layout
 - [x] Implement semantic visual state catalog and asset mapping
 - [x] Connect assistant one-line message and structured current task display
-- [ ] Pass dev/build flow and update documentation
+- [x] Pass dev/build flow and update documentation
 - [x] Review architecture and summarize remaining gaps
 
 ## Current Notes
@@ -22,7 +22,8 @@
 - Each pane now mounts an xterm.js surface through a typed preload bridge, with a temporary mock Electron backend standing in until node-pty is wired.
 - The Electron main process now owns real node-pty shell sessions and starts an interactive shell in each bootstrapped terminal pane.
 - The app now exposes a semantic assistant-status bridge, maps states to visuals in the status panel, and injects a `claude-status` helper command into terminal sessions.
-- Terminal sessions now leave Claude launch under user control and wrap the `claude` command so session start and exit can update the status panel automatically.
+- Terminal sessions now leave Claude launch under user control and wrap the `claude` command so session start, hook-driven activity, and exit can update the status panel automatically.
 - The Electron main process now preflights `node-pty` `spawn-helper` permissions at startup and sanitizes PTY environment variables before shell launch.
+- Claude lifecycle state changes are now traced through the runtime log so helper writes, hook events, and store snapshots can be compared in one place.
 - `pnpm package:macos` now produces an unsigned local `.app` bundle, but Electron smoke-launch still aborts in this sandbox environment even for trivial `electron -e` commands.
 - Packaging is intentionally deferred until the core multi-terminal flow is working.

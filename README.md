@@ -11,7 +11,7 @@ macOS Electron desktop app that embeds Claude Code in vertically stacked termina
 - `node-pty` shell sessions that start in an interactive shell inside the selected workspace
 - Fixed bottom status panel with semantic state-to-visual mapping
 - Internal `claude-status` helper command for updating assistant state from inside a terminal session
-- A `claude` wrapper on session `PATH` that updates the bottom status panel when a Claude session starts or exits
+- A `claude` wrapper on session `PATH` that updates the bottom status panel when a Claude session starts, moves through hooks, or exits
 
 ## Requirements
 
@@ -95,6 +95,7 @@ claude-status '{"state":"happy","line":"붙엇다!","currentTask":"Build passed"
 
 Supported semantic states:
 
+- `disconnected`
 - `idle`
 - `thinking`
 - `working`
@@ -106,6 +107,18 @@ Supported semantic states:
 - `error`
 
 The assistant chooses the semantic state and message. The app chooses how that state is rendered in the bottom panel.
+
+When Claude itself is launched through the embedded terminal, the app also injects a Claude Code hook settings file so coarse state transitions can be tracked automatically:
+
+- `SessionStart` -> `waiting`
+- `UserPromptSubmit` -> `thinking`
+- `PreToolUse` -> `working`
+- `PostToolUse` -> `thinking`
+- `Stop` -> `waiting`
+- `StopFailure` -> `error`
+- `SessionEnd` -> `disconnected`
+
+All helper writes and hook transitions are traced into `.runtime-logs/electron-dev.log`.
 
 ## Verification
 
