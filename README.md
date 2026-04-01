@@ -108,6 +108,12 @@ Supported semantic states:
 
 The assistant chooses the semantic state and message. The app chooses how that state is rendered in the bottom panel.
 
+The next asset-system layer is being built around shared preset catalogs:
+
+- lifecycle-oriented visual `state` presets that stay aligned with Claude hook outputs
+- optional `emotion` presets that can refine the visual without changing the underlying task state
+- a resolver order of `state + emotion` -> `state` -> `emotion` -> default asset
+
 When Claude itself is launched through the embedded terminal, the app also injects a Claude Code hook settings file so coarse state transitions can be tracked automatically:
 
 - `SessionStart` -> `waiting`
