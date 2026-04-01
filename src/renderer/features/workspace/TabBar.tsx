@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { SessionTab } from './model';
+import { useTabDragReorder } from './use-tab-drag-reorder';
+import { useTabTitleEditor } from './use-tab-title-editor';
 
 interface TabBarProps {
   activeTabId: string;
@@ -21,27 +23,21 @@ export function TabBar({
   onRenameTab,
   onReorderTab,
 }: TabBarProps): ReactElement {
-  const [editingTabId, setEditingTabId] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
-  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
-  const editInputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (editingTabId !== null) {
-      editInputRef.current?.focus();
-      editInputRef.current?.select();
-    }
-  }, [editingTabId]);
-
-  const startRenaming = (tabId: string, title: string): void => {
-    setEditingTabId(tabId);
-    setDraftTitle(title);
-  };
-
-  const finishRenaming = (tabId: string): void => {
-    onRenameTab(tabId, draftTitle);
-    setEditingTabId(null);
-  };
+  const {
+    draftTitle,
+    editInputRef,
+    editingTabId,
+    finishRenaming,
+    setDraftTitle,
+    setEditingTabId,
+    startRenaming,
+  } = useTabTitleEditor(onRenameTab);
+  const {
+    handleDragEnd,
+    handleDragOver,
+    handleDragStart,
+    handleDrop,
+  } = useTabDragReorder(onReorderTab);
 
   return (
     <header className="tab-bar">
@@ -59,24 +55,13 @@ export function TabBar({
               className={`tab-chip${isActive ? ' tab-chip--active' : ''}`}
               draggable
               key={tab.id}
-              onDragEnd={() => {
-                setDraggingTabId(null);
-              }}
-              onDragOver={(event) => {
-                event.preventDefault();
-              }}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
               onDragStart={() => {
-                setDraggingTabId(tab.id);
+                handleDragStart(tab.id);
               }}
               onDrop={(event) => {
-                event.preventDefault();
-
-                if (draggingTabId === null) {
-                  return;
-                }
-
-                onReorderTab(draggingTabId, tab.id);
-                setDraggingTabId(null);
+                handleDrop(event, tab.id);
               }}
               role="presentation"
             >
