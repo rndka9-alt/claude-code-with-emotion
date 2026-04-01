@@ -72,6 +72,29 @@ describe('workspaceReducer', () => {
       '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!',
     );
   });
+
+  it('reorders tabs when a tab is dragged over another tab', () => {
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: 'createTab',
+      nowMs: 21_000,
+    });
+    const nextState = workspaceReducer(state, {
+      type: 'reorderTab',
+      tabId: 'session-3',
+      targetTabId: 'session-1',
+      nowMs: 21_500,
+    });
+
+    expect(nextState.tabs.map((tab) => tab.id)).toEqual([
+      'session-3',
+      'session-1',
+      'session-2',
+    ]);
+    expect(nextState.activeTabId).toBe('session-3');
+    expect(nextState.assistantStatus.currentTask).toBe(
+      'Moved "new session 3 · claude-code-with-emotion"',
+    );
+  });
 });
 
 describe('formatElapsedLabel', () => {

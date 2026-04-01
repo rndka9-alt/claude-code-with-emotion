@@ -67,4 +67,25 @@ describe('App', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryAllByRole('separator')).toHaveLength(0);
   });
+
+  it('reorders tabs via drag and drop in the tab strip', () => {
+    render(<App />);
+
+    const firstTab = screen.getByRole('tab', {
+      name: 'claude-code-with-emotion · main workspace',
+    });
+    const secondTab = screen.getByRole('tab', {
+      name: 'terminal-resize prototype · claude-code-with-emotion',
+    });
+
+    fireEvent.dragStart(secondTab.parentElement as HTMLElement);
+    fireEvent.dragOver(firstTab.parentElement as HTMLElement);
+    fireEvent.drop(firstTab.parentElement as HTMLElement);
+    fireEvent.dragEnd(secondTab.parentElement as HTMLElement);
+
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[0]).toHaveAccessibleName(
+      'terminal-resize prototype · claude-code-with-emotion',
+    );
+  });
 });
