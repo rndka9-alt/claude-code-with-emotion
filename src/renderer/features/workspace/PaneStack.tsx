@@ -62,7 +62,9 @@ export function PaneStack({
       {tabs.map((tab, index) => {
         const paneHeight = paneSizes[index];
         const paneStyle =
-          paneHeight !== undefined ? { flexGrow: paneHeight, flexBasis: 0 } : undefined;
+          tabs.length > 1 && paneHeight !== undefined
+            ? { flexGrow: paneHeight, flexBasis: 0 }
+            : undefined;
 
         return (
           <div className="pane-stack__slot" key={tab.id} style={paneStyle}>
