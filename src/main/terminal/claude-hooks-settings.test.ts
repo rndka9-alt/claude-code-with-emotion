@@ -28,11 +28,38 @@ describe('claude hooks settings', () => {
     expect(settings.hooks.UserPromptSubmit[0]?.hooks[0]?.command).toContain(
       'UserPromptSubmit',
     );
+    expect(settings.hooks.PermissionRequest[0]?.hooks[0]?.command).toContain(
+      'PermissionRequest',
+    );
+    expect(settings.hooks.PermissionDenied[0]?.hooks[0]?.command).toContain(
+      'PermissionDenied',
+    );
     expect(settings.hooks.PreToolUse[0]?.hooks[0]?.command).toContain(
       'PreToolUse',
     );
     expect(settings.hooks.PostToolUse[0]?.hooks[0]?.command).toContain(
       'PostToolUse',
+    );
+    expect(settings.hooks.Notification[0]?.hooks[0]?.command).toContain(
+      'Notification',
+    );
+    expect(settings.hooks.Elicitation[0]?.hooks[0]?.command).toContain(
+      'Elicitation',
+    );
+    expect(settings.hooks.ElicitationResult[0]?.hooks[0]?.command).toContain(
+      'ElicitationResult',
+    );
+    expect(settings.hooks.SubagentStart[0]?.hooks[0]?.command).toContain(
+      'SubagentStart',
+    );
+    expect(settings.hooks.SubagentStop[0]?.hooks[0]?.command).toContain(
+      'SubagentStop',
+    );
+    expect(settings.hooks.TeammateIdle[0]?.hooks[0]?.command).toContain(
+      'TeammateIdle',
+    );
+    expect(settings.hooks.TaskCompleted[0]?.hooks[0]?.command).toContain(
+      'TaskCompleted',
     );
     expect(settings.hooks.Stop[0]?.hooks[0]?.command).toContain('Stop');
     expect(settings.hooks.StopFailure[0]?.hooks[0]?.command).toContain(

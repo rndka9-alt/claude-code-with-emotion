@@ -5,8 +5,17 @@ import path from 'node:path';
 type ClaudeHookEvent =
   | 'SessionStart'
   | 'UserPromptSubmit'
+  | 'PermissionRequest'
+  | 'PermissionDenied'
   | 'PreToolUse'
   | 'PostToolUse'
+  | 'Notification'
+  | 'Elicitation'
+  | 'ElicitationResult'
+  | 'SubagentStart'
+  | 'SubagentStop'
+  | 'TeammateIdle'
+  | 'TaskCompleted'
   | 'Stop'
   | 'StopFailure'
   | 'SessionEnd';
@@ -52,8 +61,17 @@ export function createClaudeHooksSettings(
   const events: ClaudeHookEvent[] = [
     'SessionStart',
     'UserPromptSubmit',
+    'PermissionRequest',
+    'PermissionDenied',
     'PreToolUse',
     'PostToolUse',
+    'Notification',
+    'Elicitation',
+    'ElicitationResult',
+    'SubagentStart',
+    'SubagentStop',
+    'TeammateIdle',
+    'TaskCompleted',
     'Stop',
     'StopFailure',
     'SessionEnd',
@@ -78,8 +96,17 @@ export function createClaudeHooksSettings(
     hooks: {
       SessionStart: hooks.SessionStart ?? [],
       UserPromptSubmit: hooks.UserPromptSubmit ?? [],
+      PermissionRequest: hooks.PermissionRequest ?? [],
+      PermissionDenied: hooks.PermissionDenied ?? [],
       PreToolUse: hooks.PreToolUse ?? [],
       PostToolUse: hooks.PostToolUse ?? [],
+      Notification: hooks.Notification ?? [],
+      Elicitation: hooks.Elicitation ?? [],
+      ElicitationResult: hooks.ElicitationResult ?? [],
+      SubagentStart: hooks.SubagentStart ?? [],
+      SubagentStop: hooks.SubagentStop ?? [],
+      TeammateIdle: hooks.TeammateIdle ?? [],
+      TaskCompleted: hooks.TaskCompleted ?? [],
       Stop: hooks.Stop ?? [],
       StopFailure: hooks.StopFailure ?? [],
       SessionEnd: hooks.SessionEnd ?? [],

@@ -112,8 +112,17 @@ When Claude itself is launched through the embedded terminal, the app also injec
 
 - `SessionStart` -> `waiting`
 - `UserPromptSubmit` -> `thinking`
+- `PermissionRequest` -> `waiting`
+- `PermissionDenied` -> `sad`
 - `PreToolUse` -> `working`
 - `PostToolUse` -> `thinking`
+- `Notification` -> `surprised`
+- `Elicitation` -> `waiting`
+- `ElicitationResult` -> `thinking`
+- `SubagentStart` -> `working`
+- `SubagentStop` -> `thinking`
+- `TeammateIdle` -> `waiting`
+- `TaskCompleted` -> `happy`
 - `Stop` -> `waiting`
 - `StopFailure` -> `error`
 - `SessionEnd` -> `disconnected`
