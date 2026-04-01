@@ -115,6 +115,7 @@ export function createRuntimeEnv(
     ...Object.fromEntries(sanitizedEnvEntries),
     CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
     CLAUDE_WITH_EMOTION_ORIGINAL_PATH: existingPath ?? '',
+    CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: helperBinDir,
     CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
     PWD: cwd,
     PATH: pathSegments.join(':'),

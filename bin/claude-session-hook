@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('node:fs');
+const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 function appendTrace(message) {
@@ -167,6 +168,11 @@ function createUpdate(eventName, payload) {
 }
 
 function publishStatus(update) {
+  const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
+  const statusCommand =
+    typeof helperBinDir === 'string' && helperBinDir.length > 0
+      ? join(helperBinDir, 'claude-status')
+      : 'claude-status';
   const args = [
     '--state',
     update.state,
@@ -177,7 +183,7 @@ function publishStatus(update) {
     '--intensity',
     update.intensity,
   ];
-  const result = spawnSync('claude-status', args, {
+  const result = spawnSync(statusCommand, args, {
     stdio: 'ignore',
   });
 
@@ -186,9 +192,13 @@ function publishStatus(update) {
   }
 
   if (typeof result.error?.message === 'string') {
-    appendTrace(`claude-status invocation failed error=${result.error.message}`);
+    appendTrace(
+      `claude-status invocation failed command=${statusCommand} error=${result.error.message}`,
+    );
   } else {
-    appendTrace(`claude-status invocation failed status=${result.status}`);
+    appendTrace(
+      `claude-status invocation failed command=${statusCommand} status=${result.status}`,
+    );
   }
 }
 
