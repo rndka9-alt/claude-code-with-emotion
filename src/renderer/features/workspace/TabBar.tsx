@@ -38,6 +38,7 @@ export function TabBar({
                 aria-selected={isActive}
                 className={`tab-button${isActive ? ' tab-button--active' : ''}`}
                 id={`tab-${tab.id}`}
+                title={tab.title}
                 onClick={() => {
                   onActivateTab(tab.id);
                 }}

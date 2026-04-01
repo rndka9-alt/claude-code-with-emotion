@@ -22,6 +22,11 @@ describe('App', () => {
         name: 'new session 3 · claude-code-with-emotion',
       }),
     ).toHaveAttribute('aria-selected', 'true');
+    expect(
+      screen.getByRole('tab', {
+        name: 'new session 3 · claude-code-with-emotion',
+      }),
+    ).toHaveAttribute('title', 'new session 3 · claude-code-with-emotion');
   });
 
   it('closes a tab from the tab strip close button', () => {
