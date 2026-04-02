@@ -4,6 +4,10 @@ const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createVisualPromptHints } = require('./lib/claude-visual-mcp-prompts');
+const {
+  createVisualMcpChildEnv,
+  resolveVisualMcpRuntime,
+} = require('./lib/claude-visual-mcp-state');
 
 const SERVER_NAME = 'claude-code-with-emotion-visuals';
 const SERVER_VERSION = '0.1.0';
@@ -17,7 +21,7 @@ let negotiatedProtocolVersion = '2024-11-05';
 let transportMode = 'content-length';
 
 function appendTrace(message) {
-  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+  const traceFilePath = resolveVisualMcpRuntime().traceFilePath;
 
   if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
     return;
@@ -68,12 +72,21 @@ function sendError(id, code, message) {
 }
 
 function readAvailableVisualOptions() {
+  const runtime = resolveVisualMcpRuntime();
+
+  if (runtime.visualAssetCatalogFilePath.length === 0) {
+    return {
+      states: [],
+      emotions: [],
+    };
+  }
+
   const result = spawnSync(
     nodeRuntimePath,
     [statusHelperPath, '--list-visual-options'],
     {
       cwd: process.cwd(),
-      env: process.env,
+      env: createVisualMcpChildEnv(process.env),
       encoding: 'utf8',
     },
   );
@@ -107,6 +120,14 @@ function readAvailableVisualOptions() {
 }
 
 function createToolsListResult() {
+  const runtime = resolveVisualMcpRuntime();
+
+  if (runtime.visualOverlayFilePath.length === 0) {
+    return {
+      tools: [],
+    };
+  }
+
   const availableOptions = readAvailableVisualOptions();
   const emotionEnum = ['neutral', ...availableOptions.emotions];
   const promptHints = createVisualPromptHints();
@@ -195,7 +216,7 @@ function callVisualEmotionTool(argumentsObject) {
     [visualStateHelperPath, '--emotion', emotion],
     {
       cwd: process.cwd(),
-      env: process.env,
+      env: createVisualMcpChildEnv(process.env),
       encoding: 'utf8',
     },
   );
@@ -253,7 +274,7 @@ function callVisualLineTool(argumentsObject) {
     [visualStateHelperPath, '--line', line],
     {
       cwd: process.cwd(),
-      env: process.env,
+      env: createVisualMcpChildEnv(process.env),
       encoding: 'utf8',
     },
   );
@@ -289,7 +310,7 @@ function clearVisualLineTool() {
     [visualStateHelperPath, '--clear-line'],
     {
       cwd: process.cwd(),
-      env: process.env,
+      env: createVisualMcpChildEnv(process.env),
       encoding: 'utf8',
     },
   );

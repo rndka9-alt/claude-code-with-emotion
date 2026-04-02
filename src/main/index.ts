@@ -6,6 +6,7 @@ import {
   ipcMain,
   type IpcMainEvent,
 } from 'electron';
+import fs from 'node:fs';
 import path from 'node:path';
 import { createApplicationMenuTemplate } from './application-menu';
 import {
@@ -35,6 +36,7 @@ import {
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
 } from '../shared/diagnostics';
+import { MCP_SETUP_CHANNELS } from '../shared/mcp-setup-bridge';
 import {
   TERMINAL_CHANNELS,
   type TerminalBootstrapRequest,
@@ -51,6 +53,11 @@ import {
   type AppThemeSelection,
 } from '../shared/theme';
 import { ThemeStore } from './theme/theme-store';
+import {
+  getVisualMcpSetupStatus,
+  installVisualMcpUserSetup,
+  removeVisualMcpUserSetup,
+} from './terminal/claude-mcp-user-setup';
 
 const WINDOW_SIZE = {
   width: 920,
@@ -171,6 +178,10 @@ function registerTerminalBridge(
     app.getPath('userData'),
     'visual-assets.json',
   );
+  const visualMcpStateFilePath = path.join(
+    app.getPath('userData'),
+    'assistant-visual-mcp.json',
+  );
   const appThemeFilePath = path.join(app.getPath('userData'), 'app-theme.json');
   const visualAssetLibraryDirPath = path.join(
     app.getPath('userData'),
@@ -193,6 +204,22 @@ function registerTerminalBridge(
     path.join(sessionStatusRootDir, `${sessionId}.json`);
   const resolveOverlayFilePath = (sessionId: string): string =>
     path.join(sessionOverlayRootDir, `${sessionId}.json`);
+  const writeVisualMcpState = (visualOverlayFilePath: string): void => {
+    const nextState = {
+      traceFilePath: assistantStatusTraceFilePath,
+      visualAssetCatalogFilePath,
+      visualOverlayFilePath,
+    };
+
+    fs.mkdirSync(path.dirname(visualMcpStateFilePath), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      visualMcpStateFilePath,
+      JSON.stringify(nextState, null, 2),
+      'utf8',
+    );
+  };
   const ensureSessionStatusBridges = (sessionId: string): void => {
     if (sessionStatusStores.has(sessionId)) {
       return;
@@ -200,7 +227,6 @@ function registerTerminalBridge(
 
     const statusStore = new AssistantStatusStore();
     const statusFilePath = resolveStatusFilePath(sessionId);
-    const overlayFilePath = resolveOverlayFilePath(sessionId);
     const statusFileBridge = new AssistantStatusFileBridge(
       statusFilePath,
       statusStore,
@@ -209,11 +235,11 @@ function registerTerminalBridge(
       },
     );
     const overlayFileBridge = new AssistantVisualOverlayFileBridge(
-      overlayFilePath,
+      resolveOverlayFilePath(sessionId),
       statusStore,
       (message) => {
         runtimeLog.write(
-          'assistant-visual-overlay-file',
+          'assistant-visual-overlay',
           `session=${sessionId} ${message}`,
         );
       },
@@ -295,7 +321,7 @@ function registerTerminalBridge(
 
   ipcMain.handle(
     ASSISTANT_STATUS_CHANNELS.getSnapshot,
-    (_event, request: AssistantStatusSnapshotRequest) => {
+    async (_event, request: AssistantStatusSnapshotRequest) => {
       ensureSessionStatusBridges(request.sessionId);
       return (
         sessionStatusStores.get(request.sessionId)?.getSnapshot() ??
@@ -303,6 +329,18 @@ function registerTerminalBridge(
       );
     },
   );
+  ipcMain.handle(MCP_SETUP_CHANNELS.getStatus, () => {
+    return getVisualMcpSetupStatus(visualMcpStateFilePath);
+  });
+  ipcMain.handle(MCP_SETUP_CHANNELS.install, () => {
+    return installVisualMcpUserSetup(
+      assistantStatusHelperBinDir,
+      visualMcpStateFilePath,
+    );
+  });
+  ipcMain.handle(MCP_SETUP_CHANNELS.remove, () => {
+    return removeVisualMcpUserSetup(visualMcpStateFilePath);
+  });
   ipcMain.handle(VISUAL_ASSET_CHANNELS.getCatalog, () => {
     return visualAssetStore.getCatalog();
   });
@@ -354,12 +392,14 @@ function registerTerminalBridge(
 
   ipcMain.handle(
     TERMINAL_CHANNELS.bootstrap,
-    (_event, request: TerminalBootstrapRequest) => {
+    async (_event, request: TerminalBootstrapRequest) => {
       runtimeLog.write(
         'terminal',
         `bootstrap session=${request.sessionId} cwd=${request.cwd} command=${request.command} cols=${request.cols} rows=${request.rows}`,
       );
       ensureSessionStatusBridges(request.sessionId);
+      writeVisualMcpState(resolveOverlayFilePath(request.sessionId));
+
       try {
         return terminalSessionManager.bootstrapSession(
           request,
@@ -432,6 +472,9 @@ function registerTerminalBridge(
       rendererDiagnosticListener,
     );
     ipcMain.removeHandler(ASSISTANT_STATUS_CHANNELS.getSnapshot);
+    ipcMain.removeHandler(MCP_SETUP_CHANNELS.getStatus);
+    ipcMain.removeHandler(MCP_SETUP_CHANNELS.install);
+    ipcMain.removeHandler(MCP_SETUP_CHANNELS.remove);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getCatalog);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getAvailableOptions);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.pickFiles);

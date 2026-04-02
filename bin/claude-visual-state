@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 const fs = require('node:fs');
+const { resolveVisualMcpRuntime } = require('./lib/claude-visual-mcp-state');
 
 function appendTrace(message) {
-  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+  const traceFilePath = resolveVisualMcpRuntime().traceFilePath;
 
   if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
     return;
@@ -55,11 +56,13 @@ function parseArgs(argv) {
   return result;
 }
 
-function main() {
-  const overlayFilePath = process.env.CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE;
+async function main() {
+  const overlayFilePath = resolveVisualMcpRuntime().visualOverlayFilePath;
 
   if (typeof overlayFilePath !== 'string' || overlayFilePath.length === 0) {
-    console.error('CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE is not set.');
+    console.error(
+      'CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE must be set.',
+    );
     process.exit(1);
   }
 
@@ -79,7 +82,11 @@ function main() {
   appendTrace(
     `writing visual overlay emotion=${payload.emotion ?? 'none'} line=${payload.line ?? ''}`,
   );
+
   fs.writeFileSync(overlayFilePath, JSON.stringify(payload), 'utf8');
 }
 
-main();
+void main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

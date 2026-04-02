@@ -16,6 +16,19 @@ const assistantStatus: AssistantStatusSnapshot = {
   source: 'test',
 };
 
+const defaultProps = {
+  availableThemes: APP_THEME_OPTIONS,
+  currentThemeId: 'current-dark' as const,
+  isInstallingVisualMcp: false,
+  mcpSetupError: null,
+  mcpSetupInstalled: true,
+  onInstallVisualMcp: () => {},
+  onLaunchClaude: () => {},
+  onOpenAssetManager: () => {},
+  onSelectTheme: () => {},
+  statusLine: '(자료를 찾는 중)',
+};
+
 describe('StatusPanel', () => {
   it('renders a mapped visual asset when one exists', () => {
     const statusVisual: StatusPanelVisual = {
@@ -38,12 +51,7 @@ describe('StatusPanel', () => {
     render(
       <StatusPanel
         assistantStatus={assistantStatus}
-        availableThemes={APP_THEME_OPTIONS}
-        currentThemeId="current-dark"
-        onLaunchClaude={() => {}}
-        onOpenAssetManager={() => {}}
-        onSelectTheme={() => {}}
-        statusLine="(자료를 찾는 중)"
+        {...defaultProps}
         statusVisual={statusVisual}
       />,
     );
@@ -58,12 +66,7 @@ describe('StatusPanel', () => {
     const { container } = render(
       <StatusPanel
         assistantStatus={assistantStatus}
-        availableThemes={APP_THEME_OPTIONS}
-        currentThemeId="current-dark"
-        onLaunchClaude={() => {}}
-        onOpenAssetManager={() => {}}
-        onSelectTheme={() => {}}
-        statusLine="(자료를 찾는 중)"
+        {...defaultProps}
         statusVisual={null}
       />,
     );
@@ -79,11 +82,7 @@ describe('StatusPanel', () => {
           overlayLine: '문제를 좀 더 파볼게요!',
           line: '문제를 좀 더 파볼게요!',
         }}
-        availableThemes={APP_THEME_OPTIONS}
-        currentThemeId="current-dark"
-        onLaunchClaude={() => {}}
-        onOpenAssetManager={() => {}}
-        onSelectTheme={() => {}}
+        {...defaultProps}
         statusLine="문제를 좀 더 파볼게요! (자료를 찾는 중)"
         statusVisual={null}
       />,
@@ -101,12 +100,7 @@ describe('StatusPanel', () => {
           ...assistantStatus,
           state: 'disconnected',
         }}
-        availableThemes={APP_THEME_OPTIONS}
-        currentThemeId="current-dark"
-        onLaunchClaude={() => {}}
-        onOpenAssetManager={() => {}}
-        onSelectTheme={() => {}}
-        statusLine="(자료를 찾는 중)"
+        {...defaultProps}
         statusVisual={null}
       />,
     );
@@ -122,12 +116,8 @@ describe('StatusPanel', () => {
     render(
       <StatusPanel
         assistantStatus={assistantStatus}
-        availableThemes={APP_THEME_OPTIONS}
+        {...defaultProps}
         currentThemeId="gruvbox-dark"
-        onLaunchClaude={() => {}}
-        onOpenAssetManager={() => {}}
-        onSelectTheme={() => {}}
-        statusLine="(자료를 찾는 중)"
         statusVisual={null}
       />,
     );
@@ -135,5 +125,20 @@ describe('StatusPanel', () => {
     expect(screen.getByRole('combobox', { name: 'App theme' })).toHaveValue(
       'gruvbox-dark',
     );
+  });
+
+  it('shows a visual MCP install prompt when setup is missing', () => {
+    render(
+      <StatusPanel
+        assistantStatus={assistantStatus}
+        {...defaultProps}
+        mcpSetupInstalled={false}
+        statusVisual={null}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Visual MCP 설치' }),
+    ).toBeInTheDocument();
   });
 });

@@ -12,6 +12,10 @@ interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
   availableThemes: AppThemeOption[];
   currentThemeId: AppThemeId;
+  isInstallingVisualMcp: boolean;
+  mcpSetupError: string | null;
+  mcpSetupInstalled: boolean;
+  onInstallVisualMcp: () => void;
   onOpenAssetManager: () => void;
   onLaunchClaude: () => void;
   onSelectTheme: (themeId: AppThemeId) => void;
@@ -35,7 +39,10 @@ const avatarBackgroundVariableByState: Record<
   error: '--color-avatar-error',
 };
 
-const orbClassNameByIntensity: Record<AssistantStatusSnapshot['intensity'], string> = {
+const orbClassNameByIntensity: Record<
+  AssistantStatusSnapshot['intensity'],
+  string
+> = {
   low: 'opacity-75',
   medium: 'opacity-90',
   high: 'scale-[1.06] shadow-[var(--shadow-avatar-orb-strong)]',
@@ -49,6 +56,10 @@ export function StatusPanel({
   assistantStatus,
   availableThemes,
   currentThemeId,
+  isInstallingVisualMcp,
+  mcpSetupError,
+  mcpSetupInstalled,
+  onInstallVisualMcp,
   onOpenAssetManager,
   onLaunchClaude,
   onSelectTheme,
@@ -65,11 +76,12 @@ export function StatusPanel({
     'status-panel__avatar-orb h-16 w-16 bg-[var(--color-avatar-orb)] shadow-[var(--shadow-avatar-orb)] transition-[transform,opacity,box-shadow] duration-150 max-[900px]:h-[52px] max-[900px]:w-[52px]',
     orbClassNameByIntensity[assistantStatus.intensity],
   ].join(' ');
+  const visibleLine = statusLine.length > 0 ? statusLine : assistantStatus.line;
 
   return (
     <aside
-      className="grid min-h-32 max-h-32 flex-none grid-cols-[112px_minmax(0,1fr)] items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28 max-[900px]:max-h-28 max-[900px]:grid-cols-[88px_minmax(0,1fr)]"
       aria-label="Assistant status panel"
+      className="grid min-h-32 max-h-32 flex-none grid-cols-[112px_minmax(0,1fr)] items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28 max-[900px]:max-h-28 max-[900px]:grid-cols-[88px_minmax(0,1fr)]"
     >
       <div
         className="group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]"
@@ -86,7 +98,7 @@ export function StatusPanel({
         </button>
 
         {statusVisual === null ? (
-          <div className={orbClassName} aria-hidden="true" />
+          <div aria-hidden="true" className={orbClassName} />
         ) : (
           <img
             alt={statusVisual.resolution.asset.label}
@@ -108,8 +120,29 @@ export function StatusPanel({
 
       <div className="flex min-w-0 flex-col justify-center gap-3">
         <p className="m-0 text-[1.08rem] text-[var(--color-text-highlight)]">
-          {statusLine}
+          {visibleLine}
         </p>
+        {!mcpSetupInstalled ? (
+          <div className="flex flex-col items-start gap-2">
+            <p className="m-0 text-[0.88rem] leading-5 text-[color:rgba(226,233,255,0.78)]">
+              Visual MCP를 쓰려면 Claude user-scope MCP 서버를 한 번 설치해야
+              합니다.
+            </p>
+            <button
+              className="inline-flex h-[26px] items-center justify-center border border-[var(--color-border-launch)] bg-[var(--color-surface-launch)] px-2.5 text-xs font-semibold tracking-[0.01em] text-[var(--color-text-tooltip)] transition-colors duration-150 hover:bg-[var(--color-surface-launch-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isInstallingVisualMcp}
+              onClick={onInstallVisualMcp}
+              type="button"
+            >
+              {isInstallingVisualMcp ? '설치중...' : 'Visual MCP 설치'}
+            </button>
+            {mcpSetupError !== null ? (
+              <p className="m-0 text-[0.82rem] leading-5 text-[#ffb4b4]">
+                {mcpSetupError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <label className="flex items-center gap-2 text-xs text-[var(--color-text-subtle)]">
           <span className="shrink-0 uppercase tracking-[0.08em]">Theme</span>
           <select

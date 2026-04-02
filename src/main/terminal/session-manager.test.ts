@@ -251,10 +251,6 @@ describe('TerminalSessionManager', () => {
         outputSnapshot: '',
         outputVersion: 0,
       });
-      expect(
-        createdRuntimes[0]?.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE,
-      ).toContain('visual-mcp.json');
-
       const inputRequest: TerminalInputRequest = {
         sessionId: 'session-1',
         data: 'ping\r',

@@ -17,6 +17,10 @@ export function App(): ReactElement {
     createTab,
     handleLaunchClaude,
     isVisualAssetManagerOpen,
+    isInstallingVisualMcp,
+    installVisualMcp,
+    mcpSetupError,
+    mcpSetupStatus,
     openAssetManager,
     paneSizes,
     pickVisualAssets,
@@ -75,6 +79,10 @@ export function App(): ReactElement {
           assistantStatus={assistantSnapshot}
           currentThemeId={currentThemeId}
           availableThemes={availableThemes}
+          isInstallingVisualMcp={isInstallingVisualMcp}
+          mcpSetupError={mcpSetupError}
+          mcpSetupInstalled={mcpSetupStatus?.installed ?? true}
+          onInstallVisualMcp={installVisualMcp}
           onLaunchClaude={handleLaunchClaude}
           onOpenAssetManager={openAssetManager}
           onSelectTheme={setThemeId}

@@ -14,6 +14,7 @@ import {
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
 } from '../shared/diagnostics';
+import { MCP_SETUP_CHANNELS } from '../shared/mcp-setup-bridge';
 import {
   TERMINAL_CHANNELS,
   type TerminalExitEvent,
@@ -84,6 +85,17 @@ const claudeAppApi: ClaudeAppApi = {
       return () => {
         ipcRenderer.removeListener(DIAGNOSTICS_CHANNELS.runtimeEvent, subscription);
       };
+    },
+  },
+  mcpSetup: {
+    getStatus: () => {
+      return ipcRenderer.invoke(MCP_SETUP_CHANNELS.getStatus);
+    },
+    install: () => {
+      return ipcRenderer.invoke(MCP_SETUP_CHANNELS.install);
+    },
+    remove: () => {
+      return ipcRenderer.invoke(MCP_SETUP_CHANNELS.remove);
     },
   },
   terminals: {

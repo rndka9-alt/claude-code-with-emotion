@@ -66,8 +66,6 @@ function main() {
   const originalPath = process.env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH;
   const hooksSettingsFilePath =
     process.env.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE;
-  const visualMcpConfigFilePath =
-    process.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE;
   const visualToolUsagePrompt = createVisualToolUsagePrompt();
   const realClaude = resolveClaudeBinary(originalPath);
 
@@ -102,13 +100,6 @@ function main() {
     runtimeArgs.push('--settings', hooksSettingsFilePath);
   }
 
-  if (
-    typeof visualMcpConfigFilePath === 'string' &&
-    visualMcpConfigFilePath.length > 0
-  ) {
-    runtimeArgs.push('--mcp-config', visualMcpConfigFilePath);
-  }
-
   if (visualToolUsagePrompt.trim().length > 0) {
     runtimeArgs.push('--append-system-prompt', visualToolUsagePrompt);
   }
@@ -116,7 +107,7 @@ function main() {
   const claudeArgs = [...runtimeArgs, ...process.argv.slice(2)];
 
   appendTrace(
-    `starting Claude with ${claudeArgs.length} argv entries hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'} visualMcp=${typeof visualMcpConfigFilePath === 'string' && visualMcpConfigFilePath.length > 0 ? visualMcpConfigFilePath : 'none'} visualPrompt=${visualToolUsagePrompt.trim().length > 0 ? 'present' : 'none'}`,
+    `starting Claude with ${claudeArgs.length} argv entries hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'} visualMcp=user-scope visualPrompt=${visualToolUsagePrompt.trim().length > 0 ? 'present' : 'none'}`,
   );
 
   const child = spawnSync(realClaude, claudeArgs, {

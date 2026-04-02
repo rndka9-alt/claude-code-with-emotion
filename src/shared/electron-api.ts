@@ -1,6 +1,7 @@
 import type { AppThemeBridge } from './app-theme-bridge';
 import type { AssistantStatusBridge } from './assistant-status';
 import type { RuntimeDiagnosticPayload } from './diagnostics';
+import type { VisualMcpSetupBridge } from './mcp-setup-bridge';
 import type { TerminalBridge } from './terminal-bridge';
 import type { VisualAssetBridge } from './visual-assets-bridge';
 
@@ -16,6 +17,7 @@ export interface ClaudeAppApi {
   readonly appTheme: AppThemeBridge;
   readonly assistantStatus: AssistantStatusBridge;
   readonly diagnostics: DiagnosticsBridge;
+  readonly mcpSetup: VisualMcpSetupBridge;
   readonly terminals: TerminalBridge;
   readonly visualAssets: VisualAssetBridge;
 }

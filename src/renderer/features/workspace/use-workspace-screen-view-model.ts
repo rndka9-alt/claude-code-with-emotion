@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
 import type { AppThemeId, AppThemeOption } from '../../../shared/theme';
+import type { VisualMcpSetupStatus } from '../../../shared/mcp-setup-bridge';
 import type {
   VisualEmotionPresetId,
   VisualStatePresetId,
@@ -33,7 +34,11 @@ export interface WorkspaceScreenViewModel {
   createTab: () => void;
   handleLaunchClaude: () => void;
   isVisualAssetManagerOpen: boolean;
+  isInstallingVisualMcp: boolean;
+  mcpSetupError: string | null;
+  mcpSetupStatus: VisualMcpSetupStatus | null;
   openAssetManager: () => void;
+  installVisualMcp: () => void;
   pickVisualAssets: () => void;
   paneSizes: number[];
   terminalFocusRequestKey: number;
@@ -87,6 +92,11 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     themeOptions,
   } = useAppTheme();
   const [isVisualAssetManagerOpen, setIsVisualAssetManagerOpen] = useState(false);
+  const [isInstallingVisualMcp, setIsInstallingVisualMcp] = useState(false);
+  const [mcpSetupError, setMcpSetupError] = useState<string | null>(null);
+  const [mcpSetupStatus, setMcpSetupStatus] = useState<VisualMcpSetupStatus | null>(
+    null,
+  );
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
   const activeTab = getActiveTab(state);
   const visibleTabs = getVisibleTabs(state);
@@ -119,6 +129,18 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     visualAssetCatalog,
   );
 
+  useEffect(() => {
+    const bridge = window.claudeApp?.mcpSetup;
+
+    if (bridge === undefined) {
+      return;
+    }
+
+    void bridge.getStatus().then((status) => {
+      setMcpSetupStatus(status);
+    });
+  }, []);
+
   const persistVisualAssetCatalog = async (
     nextCatalog: Parameters<typeof saveVisualAssetCatalog>[0],
   ): Promise<void> => {
@@ -143,6 +165,30 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     setTerminalFocusRequestKey((current) => current + 1);
   };
 
+  const installVisualMcp = (): void => {
+    const bridge = window.claudeApp?.mcpSetup;
+
+    if (bridge === undefined) {
+      return;
+    }
+
+    setIsInstallingVisualMcp(true);
+    setMcpSetupError(null);
+    void bridge
+      .install()
+      .then((status) => {
+        setMcpSetupStatus(status);
+      })
+      .catch((error: unknown) => {
+        setMcpSetupError(
+          error instanceof Error ? error.message : 'Visual MCP 설치에 실패했습니다.',
+        );
+      })
+      .finally(() => {
+        setIsInstallingVisualMcp(false);
+      });
+  };
+
   return {
     activateTab,
     activeTabId: state.activeTabId,
@@ -156,6 +202,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     createTab,
     handleLaunchClaude,
     isVisualAssetManagerOpen,
+    isInstallingVisualMcp,
+    installVisualMcp,
+    mcpSetupError,
+    mcpSetupStatus,
     openAssetManager: () => {
       setIsVisualAssetManagerOpen(true);
     },

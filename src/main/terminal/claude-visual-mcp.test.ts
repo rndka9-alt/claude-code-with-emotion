@@ -173,6 +173,10 @@ describe('claude-visual-mcp', () => {
       fs.mkdtempSync(path.join(os.tmpdir(), 'claude-visual-mcp-catalog-')),
       'visual-assets.json',
     );
+    const overlayFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), 'claude-visual-mcp-overlay-')),
+      'overlay.json',
+    );
 
     fs.writeFileSync(
       catalogFilePath,
@@ -222,6 +226,7 @@ describe('claude-visual-mcp', () => {
       {
         ...process.env,
         CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
+        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
       },
     );
     const toolsListResponse = responses.find((response) => response.id === 2);
