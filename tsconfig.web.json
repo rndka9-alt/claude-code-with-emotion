@@ -12,6 +12,6 @@
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
     "src/shared/**/*.ts",
-    "vite.config.ts"
+    "vite.config.mts"
   ]
 }
