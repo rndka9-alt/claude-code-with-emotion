@@ -1,0 +1,20 @@
+# <repo>/.codex/rules/default.rules
+prefix_rule(
+    pattern = ["git", "add"],
+    decision = "allow",
+    justification = "Allow staging in this personal repo",
+    match = [
+        "git add .",
+        "git add src/main.ts",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "commit"],
+    decision = "allow",
+    justification = "Allow local commits in this personal repo",
+    match = [
+        "git commit -m chore: save progress",
+        "git commit --amend --no-edit",
+    ],
+)
