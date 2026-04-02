@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { afterEach } from 'vitest';
 
 class ResizeObserverStub {
   observe(_target?: Element): void {}
@@ -54,4 +55,12 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
       },
     };
   },
+});
+
+afterEach(() => {
+  return import('../features/workspace/terminal-session-registry').then(
+    ({ disposeAllTerminalSessions }) => {
+      disposeAllTerminalSessions();
+    },
+  );
 });

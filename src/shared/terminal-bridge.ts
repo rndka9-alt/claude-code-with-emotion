@@ -7,7 +7,10 @@ export interface TerminalBootstrapRequest {
   rows: number;
 }
 
-export interface TerminalBootstrapResponse {}
+export interface TerminalBootstrapResponse {
+  outputSnapshot: string;
+  outputVersion: number;
+}
 
 export interface TerminalInputRequest {
   sessionId: string;
@@ -27,6 +30,7 @@ export interface TerminalCloseRequest {
 export interface TerminalOutputEvent {
   sessionId: string;
   data: string;
+  outputVersion: number;
 }
 
 export interface TerminalExitEvent {

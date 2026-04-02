@@ -166,6 +166,9 @@ describe('TerminalSessionManager', () => {
   it('bootstraps a runtime and auto-launches the requested command', () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputEvents: string[] = [];
+    const outputRootDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'claude-terminal-session-output-'),
+    );
     const manager = new TerminalSessionManager(
       ({ cols, rows, cwd, env, shell, shellArgs }) => {
         const dataListeners = new Set<(data: string) => void>();
@@ -226,55 +229,81 @@ describe('TerminalSessionManager', () => {
           },
         };
       },
-      (sessionId, data) => {
-        outputEvents.push(`${sessionId}:${data}`);
+      (sessionId, event) => {
+        outputEvents.push(`${sessionId}:${event.outputVersion}:${event.data}`);
       },
       () => {},
       '/tmp/helper-bin',
       '/tmp/trace.log',
       '/tmp/visual-assets.json',
+      outputRootDir,
     );
+    try {
+      const response = manager.bootstrapSession(
+        createBootstrapRequest(),
+        '/tmp/status.json',
+        '/tmp/visual-overlay.json',
+      );
 
-    const response = manager.bootstrapSession(
-      createBootstrapRequest(),
-      '/tmp/status.json',
-      '/tmp/visual-overlay.json',
-    );
+      expect(createdRuntimes).toHaveLength(1);
+      expect(createdRuntimes[0]?.writes).toEqual(['claude\r']);
+      expect(response).toEqual({
+        outputSnapshot: '',
+        outputVersion: 0,
+      });
+      expect(
+        createdRuntimes[0]?.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE,
+      ).toContain('visual-mcp.json');
 
-    expect(createdRuntimes).toHaveLength(1);
-    expect(createdRuntimes[0]?.writes).toEqual(['claude\r']);
-    expect(response).toEqual({});
-    expect(
-      createdRuntimes[0]?.env.CLAUDE_WITH_EMOTION_MCP_CONFIG_FILE,
-    ).toContain('visual-mcp.json');
+      const inputRequest: TerminalInputRequest = {
+        sessionId: 'session-1',
+        data: 'ping\r',
+      };
 
-    const inputRequest: TerminalInputRequest = {
-      sessionId: 'session-1',
-      data: 'ping\r',
-    };
+      manager.sendInput(inputRequest);
 
-    manager.sendInput(inputRequest);
+      expect(outputEvents).toContain('session-1:1:pong');
+      expect(
+        manager.bootstrapSession(
+          createBootstrapRequest(),
+          '/tmp/status.json',
+          '/tmp/visual-overlay.json',
+        ),
+      ).toEqual({
+        outputSnapshot: 'pong',
+        outputVersion: 1,
+      });
 
-    expect(outputEvents).toContain('session-1:pong');
+      const resizeRequest: TerminalResizeRequest = {
+        sessionId: 'session-1',
+        cols: 140,
+        rows: 40,
+      };
 
-    const resizeRequest: TerminalResizeRequest = {
-      sessionId: 'session-1',
-      cols: 140,
-      rows: 40,
-    };
+      manager.resizeSession(resizeRequest);
 
-    manager.resizeSession(resizeRequest);
+      expect(createdRuntimes[0]?.cols).toBe(140);
+      expect(createdRuntimes[0]?.rows).toBe(40);
 
-    expect(createdRuntimes[0]?.cols).toBe(140);
-    expect(createdRuntimes[0]?.rows).toBe(40);
+      manager.dispose();
 
-    manager.dispose();
-
-    expect(createdRuntimes[0]?.killed).toBe(true);
+      expect(createdRuntimes[0]?.killed).toBe(true);
+      expect(
+        fs.readFileSync(
+          path.join(outputRootDir, 'session-1.log'),
+          'utf8',
+        ),
+      ).toBe('pong');
+    } finally {
+      fs.rmSync(outputRootDir, { recursive: true, force: true });
+    }
   });
 
   it('closes a specific session runtime when asked explicitly', () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
+    const outputRootDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'claude-terminal-session-output-'),
+    );
     const manager = new TerminalSessionManager(
       ({ cols, rows, cwd, env, shell, shellArgs }) => {
         const dataListeners = new Set<(data: string) => void>();
@@ -329,15 +358,19 @@ describe('TerminalSessionManager', () => {
       '/tmp/helper-bin',
       '/tmp/trace.log',
       '/tmp/visual-assets.json',
+      outputRootDir,
     );
+    try {
+      manager.bootstrapSession(
+        createBootstrapRequest(),
+        '/tmp/status.json',
+        '/tmp/visual-overlay.json',
+      );
+      manager.closeSession({ sessionId: 'session-1' });
 
-    manager.bootstrapSession(
-      createBootstrapRequest(),
-      '/tmp/status.json',
-      '/tmp/visual-overlay.json',
-    );
-    manager.closeSession({ sessionId: 'session-1' });
-
-    expect(createdRuntimes[0]?.killed).toBe(true);
+      expect(createdRuntimes[0]?.killed).toBe(true);
+    } finally {
+      fs.rmSync(outputRootDir, { recursive: true, force: true });
+    }
   });
 });

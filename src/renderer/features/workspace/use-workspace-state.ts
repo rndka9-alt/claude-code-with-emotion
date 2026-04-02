@@ -1,5 +1,6 @@
 import { useReducer } from 'react';
 import { createInitialWorkspaceState, workspaceReducer } from './model';
+import { useTerminalSessionPruner } from './use-terminal-session-pruner';
 import { useWorkspaceKeyboardShortcuts } from './use-workspace-keyboard-shortcuts';
 import { useWorkspaceTerminalExitSubscription } from './use-workspace-terminal-exit-subscription';
 
@@ -25,6 +26,7 @@ export function useWorkspaceState(): WorkspaceViewModel {
   );
   useWorkspaceTerminalExitSubscription(dispatch);
   useWorkspaceKeyboardShortcuts(state, dispatch);
+  useTerminalSessionPruner(state.tabs);
 
   return {
     state,

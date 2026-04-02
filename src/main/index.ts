@@ -165,6 +165,10 @@ function registerTerminalBridge(
     app.getPath('userData'),
     'visual-assets',
   );
+  const terminalOutputRootDir = path.join(
+    app.getPath('userData'),
+    'terminal-output',
+  );
   const sessionStatusStores = new Map<string, AssistantStatusStore>();
   const sessionStatusFileBridges = new Map<string, AssistantStatusFileBridge>();
   const sessionOverlayFileBridges = new Map<string, AssistantVisualOverlayFileBridge>();
@@ -226,10 +230,11 @@ function registerTerminalBridge(
     sessionStatusStores.delete(sessionId);
   };
   const terminalSessionManager = createTerminalSessionManager(
-    (sessionId, data) => {
+    (sessionId, event) => {
       mainWindow.webContents.send(TERMINAL_CHANNELS.output, {
         sessionId,
-        data,
+        data: event.data,
+        outputVersion: event.outputVersion,
       });
     },
     (sessionId, event) => {
@@ -246,6 +251,7 @@ function registerTerminalBridge(
     assistantStatusHelperBinDir,
     assistantStatusTraceFilePath,
     visualAssetCatalogFilePath,
+    terminalOutputRootDir,
   );
   const visualAssetStore = new VisualAssetStore(
     visualAssetCatalogFilePath,

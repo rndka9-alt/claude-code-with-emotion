@@ -5,6 +5,7 @@ import { spawn } from 'node-pty';
 import type { IPty } from 'node-pty';
 import { ensureClaudeHooksSettingsFile } from './claude-hooks-settings';
 import { ensureClaudeVisualMcpConfigFile } from './claude-mcp-config';
+import { TerminalOutputStore } from './terminal-output-store';
 import type {
   TerminalBootstrapRequest,
   TerminalBootstrapResponse,
@@ -28,6 +29,7 @@ interface TerminalSessionRuntime {
 }
 
 interface TerminalSessionRecord {
+  outputStore: TerminalOutputStore;
   runtime: TerminalSessionRuntime;
   disposables: TerminalDisposable[];
 }
@@ -42,7 +44,10 @@ interface RuntimeFactoryOptions {
 }
 
 type RuntimeFactory = (options: RuntimeFactoryOptions) => TerminalSessionRuntime;
-type OutputListener = (sessionId: string, data: string) => void;
+type OutputListener = (
+  sessionId: string,
+  event: { data: string; outputVersion: number },
+) => void;
 type ExitListener = (
   sessionId: string,
   event: { exitCode: number; signal: number },
@@ -269,6 +274,7 @@ export class TerminalSessionManager {
     private readonly helperBinDir: string,
     private readonly traceFilePath: string,
     private readonly visualAssetCatalogFilePath: string,
+    private readonly outputRootDir: string,
   ) {}
 
   bootstrapSession(
@@ -283,7 +289,12 @@ export class TerminalSessionManager {
 
       existingSession.runtime.resize(size.cols, size.rows);
 
-      return {};
+      const snapshot = existingSession.outputStore.getSnapshot();
+
+      return {
+        outputSnapshot: snapshot.output,
+        outputVersion: snapshot.version,
+      };
     }
 
     const shell = resolveShell(process.env);
@@ -316,15 +327,28 @@ export class TerminalSessionManager {
       shell,
       shellArgs: launchConfig.shellArgs,
     });
+    const outputStore = new TerminalOutputStore(
+      path.join(this.outputRootDir, `${request.sessionId}.log`),
+    );
+
+    outputStore.reset();
 
     const dataSubscription = runtime.onData((data) => {
-      this.emitOutput(request.sessionId, data);
+      const outputVersion = outputStore.append(data);
+
+      this.emitOutput(request.sessionId, {
+        data,
+        outputVersion,
+      });
     });
     const exitSubscription = runtime.onExit((event) => {
-      this.emitOutput(
-        request.sessionId,
-        `\r\n[session exited: code ${event.exitCode}, signal ${event.signal ?? 0}]\r\n`,
-      );
+      const exitMessage = `\r\n[session exited: code ${event.exitCode}, signal ${event.signal ?? 0}]\r\n`;
+      const outputVersion = outputStore.append(exitMessage);
+
+      this.emitOutput(request.sessionId, {
+        data: exitMessage,
+        outputVersion,
+      });
       this.emitExit(request.sessionId, {
         exitCode: event.exitCode,
         signal: event.signal ?? 0,
@@ -333,6 +357,7 @@ export class TerminalSessionManager {
     });
 
     this.sessions.set(request.sessionId, {
+      outputStore,
       runtime,
       disposables: [dataSubscription, exitSubscription],
     });
@@ -343,7 +368,12 @@ export class TerminalSessionManager {
       runtime.write(initialCommandInput);
     }
 
-    return {};
+    const snapshot = outputStore.getSnapshot();
+
+    return {
+      outputSnapshot: snapshot.output,
+      outputVersion: snapshot.version,
+    };
   }
 
   sendInput(request: TerminalInputRequest): void {
@@ -387,6 +417,7 @@ export class TerminalSessionManager {
     }
 
     this.sessions.delete(sessionId);
+    session.outputStore.dispose();
     session.runtime.kill();
   }
 }
@@ -397,6 +428,7 @@ export function createTerminalSessionManager(
   helperBinDir: string,
   traceFilePath: string,
   visualAssetCatalogFilePath: string,
+  outputRootDir: string,
 ): TerminalSessionManager {
   return new TerminalSessionManager(
     createNodePtyRuntime,
@@ -405,5 +437,6 @@ export function createTerminalSessionManager(
     helperBinDir,
     traceFilePath,
     visualAssetCatalogFilePath,
+    outputRootDir,
   );
 }

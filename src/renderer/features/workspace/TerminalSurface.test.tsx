@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
+import type { TerminalOutputEvent } from '../../../shared/terminal-bridge';
 import { TerminalSurface } from './TerminalSurface';
 
 const { MockTerminal, terminalInstances } = vi.hoisted(() => {
@@ -57,7 +58,10 @@ describe('TerminalSurface', () => {
       configurable: true,
       value: {
         terminals: {
-          bootstrapSession: vi.fn().mockResolvedValue({}),
+          bootstrapSession: vi.fn().mockResolvedValue({
+            outputSnapshot: '',
+            outputVersion: 0,
+          }),
           sendInput: vi.fn().mockResolvedValue(undefined),
           resizeSession: vi.fn().mockResolvedValue(undefined),
           closeSession: vi.fn().mockResolvedValue(undefined),
@@ -101,5 +105,143 @@ describe('TerminalSurface', () => {
     );
 
     expect(terminal?.focus).toHaveBeenCalledTimes(2);
+  });
+
+  it('focuses the terminal again when the viewport is clicked', () => {
+    const session = {
+      id: 'session-1',
+      title: 'new session 1 · claude-code-with-emotion',
+      cwd: '/tmp',
+      command: '',
+      lifecycle: 'bootstrapping' as const,
+      createdAtMs: Date.now(),
+    };
+    const { container } = render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onTitleChange={vi.fn()}
+        session={session}
+      />,
+    );
+
+    const terminal = terminalInstances[0];
+    const viewport = container.querySelector('.terminal-surface__viewport');
+
+    expect(terminal).toBeDefined();
+    expect(viewport).not.toBeNull();
+
+    fireEvent.mouseDown(viewport!);
+
+    expect(terminal?.focus).toHaveBeenCalledTimes(2);
+  });
+
+  it('replays the saved output snapshot and ignores duplicate live chunks', async () => {
+    const outputListeners: Array<(event: TerminalOutputEvent) => void> = [];
+
+    Object.defineProperty(window, 'claudeApp', {
+      configurable: true,
+      value: {
+        terminals: {
+          bootstrapSession: vi.fn().mockResolvedValue({
+            outputSnapshot: 'saved output',
+            outputVersion: 1,
+          }),
+          sendInput: vi.fn().mockResolvedValue(undefined),
+          resizeSession: vi.fn().mockResolvedValue(undefined),
+          closeSession: vi.fn().mockResolvedValue(undefined),
+          onOutput: vi.fn((listener) => {
+            outputListeners.push(listener);
+            return () => {};
+          }),
+          onExit: vi.fn(() => () => {}),
+        },
+      },
+    });
+
+    render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onTitleChange={vi.fn()}
+        session={{
+          id: 'session-1',
+          title: 'new session 1 · claude-code-with-emotion',
+          cwd: '/tmp',
+          command: '',
+          lifecycle: 'bootstrapping',
+          createdAtMs: Date.now(),
+        }}
+      />,
+    );
+
+    const terminal = terminalInstances[0];
+
+    await waitFor(() => {
+      expect(terminal?.write).toHaveBeenCalledWith('saved output');
+    });
+
+    const emitOutput = outputListeners[0];
+
+    expect(emitOutput).toBeDefined();
+
+    if (emitOutput === undefined) {
+      throw new Error('Expected the terminal output listener to be registered');
+    }
+
+    emitOutput({
+      sessionId: 'session-1',
+      data: 'saved output',
+      outputVersion: 1,
+    });
+    emitOutput({
+      sessionId: 'session-1',
+      data: '\r\nnext line',
+      outputVersion: 2,
+    });
+
+    await waitFor(() => {
+      expect(terminal?.write).toHaveBeenCalledWith('\r\nnext line');
+    });
+
+    expect(
+      terminal?.write.mock.calls.filter(([value]) => value === 'saved output'),
+    ).toHaveLength(1);
+  });
+
+  it('reuses the same terminal instance across unmount and remount', () => {
+    const session = {
+      id: 'session-1',
+      title: 'new session 1 · claude-code-with-emotion',
+      cwd: '/tmp',
+      command: '',
+      lifecycle: 'bootstrapping' as const,
+      createdAtMs: Date.now(),
+    };
+    const firstRender = render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onTitleChange={vi.fn()}
+        session={session}
+      />,
+    );
+
+    expect(terminalInstances).toHaveLength(1);
+    expect(terminalInstances[0]?.open).toHaveBeenCalledTimes(1);
+
+    firstRender.unmount();
+
+    render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onTitleChange={vi.fn()}
+        session={session}
+      />,
+    );
+
+    expect(terminalInstances).toHaveLength(1);
+    expect(terminalInstances[0]?.open).toHaveBeenCalledTimes(1);
   });
 });
