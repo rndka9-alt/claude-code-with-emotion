@@ -1,6 +1,7 @@
 import {
   collectAvailableVisualOptions,
   resolveVisualAsset,
+  resolveVisualStateLine,
   type VisualAssetCatalog,
 } from './visual-assets';
 
@@ -32,6 +33,12 @@ function createCatalog(): VisualAssetCatalog {
         kind: 'image',
         label: 'Working Happy',
         path: '/tmp/working-happy.png',
+      },
+    ],
+    stateLines: [
+      {
+        state: 'working',
+        line: '작업 몰빵 중...!',
       },
     ],
     mappings: [
@@ -98,5 +105,11 @@ describe('visual asset resolver', () => {
 
     expect(availableOptions.states).toEqual(['working']);
     expect(availableOptions.emotions).toEqual(['happy']);
+  });
+
+  it('resolves a custom state line when one exists', () => {
+    expect(resolveVisualStateLine(createCatalog(), 'working')).toBe(
+      '작업 몰빵 중...!',
+    );
   });
 });

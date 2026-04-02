@@ -37,4 +37,20 @@ describe('formatStatusPanelLine', () => {
       }),
     ).toBe('질문 읽고 흐름 잡는 중이에요...!');
   });
+
+  it('uses a custom state line before the raw hook line', () => {
+    expect(
+      formatStatusPanelLine(baseSnapshot, {
+        version: 1,
+        assets: [],
+        mappings: [],
+        stateLines: [
+          {
+            state: 'thinking',
+            line: '상황 파악중...!',
+          },
+        ],
+      }),
+    ).toBe('상황 파악중...! (자료를 찾는 중)');
+  });
 });

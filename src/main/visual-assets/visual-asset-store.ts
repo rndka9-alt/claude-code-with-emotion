@@ -8,6 +8,7 @@ import {
   type VisualAssetCatalog,
   type VisualAssetMapping,
   type VisualAssetRecord,
+  type VisualStateLineMapping,
 } from '../../shared/visual-assets';
 import {
   isVisualEmotionPresetId,
@@ -72,6 +73,14 @@ function isVisualAssetMapping(value: unknown): value is VisualAssetMapping {
   return true;
 }
 
+function isVisualStateLineMapping(value: unknown): value is VisualStateLineMapping {
+  if (!isObjectRecord(value)) {
+    return false;
+  }
+
+  return typeof value.state === 'string' && typeof value.line === 'string';
+}
+
 function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
   const assets = candidate.assets.filter((asset) => {
     return (
@@ -94,11 +103,25 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
 
     return stateIsValid && emotionIsValid;
   });
+  const stateLines = candidate.stateLines
+    .filter((mapping) => {
+      return (
+        isVisualStatePresetId(mapping.state) &&
+        mapping.line.trim().length > 0
+      );
+    })
+    .map((mapping) => {
+      return {
+        state: mapping.state,
+        line: mapping.line.trim(),
+      };
+    });
 
   return {
     version: 1,
     assets,
     mappings,
+    stateLines,
   };
 }
 
@@ -124,6 +147,9 @@ function parseCatalogFromDisk(
       version: 1,
       assets: parsed.assets.filter(isVisualAssetRecord),
       mappings: parsed.mappings.filter(isVisualAssetMapping),
+      stateLines: Array.isArray(parsed.stateLines)
+        ? parsed.stateLines.filter(isVisualStateLineMapping)
+        : [],
     };
 
     return sanitizeCatalog(candidate);
@@ -238,7 +264,7 @@ export class VisualAssetStore {
     this.pruneUnusedImportedAssets(previousCatalog, sanitizedCatalog);
     this.emit();
     this.logEvent?.(
-      `saved visual asset catalog assets=${sanitizedCatalog.assets.length} mappings=${sanitizedCatalog.mappings.length}`,
+      `saved visual asset catalog assets=${sanitizedCatalog.assets.length} mappings=${sanitizedCatalog.mappings.length} stateLines=${sanitizedCatalog.stateLines.length}`,
     );
 
     return sanitizedCatalog;

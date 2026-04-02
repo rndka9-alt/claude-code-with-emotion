@@ -3,6 +3,7 @@ import {
   removeVisualAsset,
   setVisualAssetDefault,
   setVisualAssetEmotionMapping,
+  setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
   setVisualAssetStateMapping,
 } from './visual-asset-catalog-edits';
@@ -21,6 +22,7 @@ describe('visual asset catalog edits', () => {
           },
         ],
         mappings: [],
+        stateLines: [],
       },
       [
         {
@@ -61,6 +63,7 @@ describe('visual asset catalog edits', () => {
           },
         ],
         mappings: [],
+        stateLines: [],
       },
       'asset-b',
       true,
@@ -97,6 +100,7 @@ describe('visual asset catalog edits', () => {
           },
         ],
         mappings: [],
+        stateLines: [],
       },
       'asset-a',
       'working',
@@ -151,6 +155,7 @@ describe('visual asset catalog edits', () => {
             state: 'working',
           },
         ],
+        stateLines: [],
       },
       'asset-a',
     );
@@ -159,6 +164,7 @@ describe('visual asset catalog edits', () => {
       version: 1,
       assets: [],
       mappings: [],
+      stateLines: [],
     });
   });
 
@@ -175,6 +181,7 @@ describe('visual asset catalog edits', () => {
           },
         ],
         mappings: [],
+        stateLines: [],
       },
       'asset-a',
       'working',
@@ -197,5 +204,31 @@ describe('visual asset catalog edits', () => {
       },
     ]);
     expect(withoutPair.mappings).toEqual([]);
+  });
+
+  it('sets and clears state lines independently from asset mappings', () => {
+    const withLine = setVisualAssetStateLine(
+      {
+        version: 1,
+        assets: [],
+        mappings: [],
+        stateLines: [],
+      },
+      'thinking',
+      '읽는 중이에요...!',
+    );
+    const withoutLine = setVisualAssetStateLine(
+      withLine,
+      'thinking',
+      '   ',
+    );
+
+    expect(withLine.stateLines).toEqual([
+      {
+        state: 'thinking',
+        line: '읽는 중이에요...!',
+      },
+    ]);
+    expect(withoutLine.stateLines).toEqual([]);
   });
 });

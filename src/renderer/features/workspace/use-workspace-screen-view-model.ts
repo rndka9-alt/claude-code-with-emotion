@@ -5,6 +5,7 @@ import type {
   VisualStatePresetId,
 } from '../../../shared/visual-presets';
 import { getActiveTab, getVisibleTabs } from './model';
+import { formatStatusPanelLine } from './status-panel-line';
 import { resolveStatusPanelVisual } from './status-panel-visual';
 import { useAssistantStatusBridge } from './use-assistant-status-bridge';
 import { useVisualAssetCatalog } from './use-visual-asset-catalog';
@@ -14,6 +15,7 @@ import {
   removeVisualAsset,
   setVisualAssetDefault,
   setVisualAssetEmotionMapping,
+  setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
   setVisualAssetStateMapping,
 } from './visual-asset-catalog-edits';
@@ -35,6 +37,8 @@ export interface WorkspaceScreenViewModel {
   reorderTab: (tabId: string, destinationIndex: number) => void;
   resizePane: (index: number, deltaRatio: number) => void;
   setDefaultAsset: (assetId: string, isDefault: boolean) => void;
+  setStateLine: (statePreset: VisualStatePresetId, line: string) => void;
+  statusLine: string;
   statusVisual: ReturnType<typeof resolveStatusPanelVisual>;
   tabs: ReturnType<typeof useWorkspaceState>['state']['tabs'];
   toggleEmotion: (
@@ -97,6 +101,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     saveCatalog: saveVisualAssetCatalog,
   } = useVisualAssetCatalog();
   const statusVisual = resolveStatusPanelVisual(
+    assistantSnapshot,
+    visualAssetCatalog,
+  );
+  const statusLine = formatStatusPanelLine(
     assistantSnapshot,
     visualAssetCatalog,
   );
@@ -164,6 +172,12 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         setVisualAssetDefault(visualAssetCatalog, assetId, isDefault),
       );
     },
+    setStateLine: (statePreset, line) => {
+      void persistVisualAssetCatalog(
+        setVisualAssetStateLine(visualAssetCatalog, statePreset, line),
+      );
+    },
+    statusLine,
     statusVisual,
     tabs: state.tabs,
     toggleEmotion: (assetId, emotion, isEnabled) => {

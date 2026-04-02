@@ -186,3 +186,26 @@ export function setVisualAssetStateEmotionMapping(
     mappings: nextMappings,
   };
 }
+
+export function setVisualAssetStateLine(
+  catalog: VisualAssetCatalog,
+  state: VisualStatePresetId,
+  line: string,
+): VisualAssetCatalog {
+  const trimmedLine = line.trim();
+
+  return {
+    ...catalog,
+    stateLines: [
+      ...catalog.stateLines.filter((mapping) => mapping.state !== state),
+      ...(trimmedLine.length > 0
+        ? [
+            {
+              state,
+              line: trimmedLine,
+            },
+          ]
+        : []),
+    ],
+  };
+}

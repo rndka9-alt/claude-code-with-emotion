@@ -19,9 +19,15 @@ export interface VisualAssetMapping {
   state?: VisualStatePresetId;
 }
 
+export interface VisualStateLineMapping {
+  line: string;
+  state: VisualStatePresetId;
+}
+
 export interface VisualAssetCatalog {
   assets: ReadonlyArray<VisualAssetRecord>;
   mappings: ReadonlyArray<VisualAssetMapping>;
+  stateLines: ReadonlyArray<VisualStateLineMapping>;
   version: 1;
 }
 
@@ -46,6 +52,7 @@ export function createEmptyVisualAssetCatalog(): VisualAssetCatalog {
     version: 1,
     assets: [],
     mappings: [],
+    stateLines: [],
   };
 }
 
@@ -160,4 +167,17 @@ export function resolveVisualAsset(
     mapping: null,
     match: 'default',
   };
+}
+
+export function resolveVisualStateLine(
+  catalog: VisualAssetCatalog,
+  state: VisualStatePresetId,
+): string | null {
+  const mapping = catalog.stateLines.find((candidate) => candidate.state === state);
+
+  if (mapping === undefined) {
+    return null;
+  }
+
+  return mapping.line;
 }

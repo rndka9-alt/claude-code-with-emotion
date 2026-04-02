@@ -22,6 +22,8 @@ export function App(): ReactElement {
     reorderTab,
     resizePane,
     setDefaultAsset,
+    setStateLine,
+    statusLine,
     statusVisual,
     terminalFocusRequestKey,
     tabs,
@@ -70,6 +72,7 @@ export function App(): ReactElement {
           assistantStatus={assistantSnapshot}
           onLaunchClaude={handleLaunchClaude}
           onOpenAssetManager={openAssetManager}
+          statusLine={statusLine}
           statusVisual={statusVisual}
         />
       </main>
@@ -81,6 +84,7 @@ export function App(): ReactElement {
           onPickFiles={pickVisualAssets}
           onRemoveAsset={removeAsset}
           onSetDefaultAsset={setDefaultAsset}
+          onSetStateLine={setStateLine}
           onToggleEmotion={toggleEmotion}
           onToggleState={toggleState}
           onToggleStateEmotion={toggleStateEmotion}

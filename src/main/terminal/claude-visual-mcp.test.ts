@@ -192,6 +192,7 @@ describe('claude-visual-mcp', () => {
             emotion: 'sad',
           },
         ],
+        stateLines: [],
       }),
       'utf8',
     );
@@ -271,6 +272,7 @@ describe('claude-visual-mcp', () => {
             emotion: 'happy',
           },
         ],
+        stateLines: [],
       }),
       'utf8',
     );
@@ -330,6 +332,7 @@ describe('claude-visual-mcp', () => {
         version: 1,
         assets: [],
         mappings: [],
+        stateLines: [],
       }),
       'utf8',
     );

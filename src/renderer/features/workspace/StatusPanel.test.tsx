@@ -39,6 +39,7 @@ describe('StatusPanel', () => {
         assistantStatus={assistantStatus}
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        statusLine="(자료를 찾는 중)"
         statusVisual={statusVisual}
       />,
     );
@@ -55,6 +56,7 @@ describe('StatusPanel', () => {
         assistantStatus={assistantStatus}
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        statusLine="(자료를 찾는 중)"
         statusVisual={null}
       />,
     );
@@ -72,6 +74,7 @@ describe('StatusPanel', () => {
         }}
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        statusLine="문제를 좀 더 파볼게요! (자료를 찾는 중)"
         statusVisual={null}
       />,
     );
@@ -90,6 +93,7 @@ describe('StatusPanel', () => {
         }}
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        statusLine="(자료를 찾는 중)"
         statusVisual={null}
       />,
     );

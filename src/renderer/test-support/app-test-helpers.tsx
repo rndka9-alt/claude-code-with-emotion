@@ -28,7 +28,12 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): void {
           states: [],
           emotions: [],
         }),
-        getCatalog: vi.fn().mockResolvedValue({ version: 1, assets: [], mappings: [] }),
+        getCatalog: vi.fn().mockResolvedValue({
+          version: 1,
+          assets: [],
+          mappings: [],
+          stateLines: [],
+        }),
         onCatalog: vi.fn(() => () => {}),
         pickFiles: vi.fn().mockResolvedValue([]),
         saveCatalog: vi.fn(),

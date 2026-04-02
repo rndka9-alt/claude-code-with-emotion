@@ -2,12 +2,12 @@ import type { ReactElement } from 'react';
 import { Images } from 'lucide-react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
 import type { StatusPanelVisual } from './status-panel-visual';
-import { formatStatusPanelLine } from './status-panel-line';
 
 interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
   onOpenAssetManager: () => void;
   onLaunchClaude: () => void;
+  statusLine: string;
   statusVisual: StatusPanelVisual | null;
 }
 
@@ -15,9 +15,9 @@ export function StatusPanel({
   assistantStatus,
   onOpenAssetManager,
   onLaunchClaude,
+  statusLine,
   statusVisual,
 }: StatusPanelProps): ReactElement {
-  const visibleLine = formatStatusPanelLine(assistantStatus);
   const avatarClassName = [
     'status-panel__avatar',
     `status-panel__avatar--${assistantStatus.state}`,
@@ -62,7 +62,7 @@ export function StatusPanel({
       </div>
 
       <div className="status-panel__content">
-        <p className="status-panel__line">{visibleLine}</p>
+        <p className="status-panel__line">{statusLine}</p>
       </div>
     </aside>
   );
