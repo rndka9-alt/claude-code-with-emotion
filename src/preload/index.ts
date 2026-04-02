@@ -157,9 +157,14 @@ function emitUnhandledRendererDiagnostic(
 }
 
 window.addEventListener('error', (event: ErrorEvent) => {
+  const locationSuffix =
+    typeof event.filename === 'string' && event.filename.length > 0
+      ? ` @ ${event.filename}:${event.lineno}:${event.colno}`
+      : '';
+
   emitUnhandledRendererDiagnostic(
     'window-error',
-    event.message,
+    `${event.message}${locationSuffix}`,
     event.error instanceof Error ? event.error.stack : undefined,
   );
 });

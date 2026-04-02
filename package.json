@@ -6,7 +6,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently -k -n renderer,main,electron -c cyan,green,magenta \"pnpm dev:renderer\" \"pnpm dev:main\" \"pnpm dev:electron\"",
-    "dev:renderer": "vite build --watch",
+    "dev:renderer": "vite build --watch --mode development",
     "dev:main": "tsc -p tsconfig.node.json --watch --preserveWatchOutput",
     "dev:electron": "wait-on file:dist/renderer/index.html file:dist/main/index.js file:dist/preload/index.js && electron .",
     "build": "pnpm build:renderer && pnpm build:main",
