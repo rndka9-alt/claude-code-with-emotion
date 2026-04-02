@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { SessionTab } from './model';
 import { useTabDragReorder } from './use-tab-drag-reorder';
@@ -23,6 +23,8 @@ export function TabBar({
   onRenameTab,
   onReorderTab,
 }: TabBarProps): ReactElement {
+  const createButtonClassName =
+    'ml-0.5 inline-flex h-[26px] w-[26px] flex-none items-center justify-center self-center border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-tab-create-foreground)] transition-colors duration-150 hover:border-[var(--color-border-create-hover)] hover:bg-[var(--color-surface-create-hover)] hover:text-[var(--color-text-highlight)]';
   const {
     draftTitle,
     editInputRef,
@@ -43,9 +45,9 @@ export function TabBar({
   } = useTabDragReorder(tabs, onReorderTab);
 
   return (
-    <header className="tab-bar">
+    <header className="px-2 pt-1">
       <div
-        className="tab-strip"
+        className="flex items-end gap-0.5 overflow-x-auto pb-0 data-[dragging=true]:cursor-grabbing"
         aria-label="Terminal sessions"
         data-dragging={draggingTabId !== null}
         ref={stripRef}
@@ -56,14 +58,34 @@ export function TabBar({
           const isEditing = tab.id === editingTabId;
           const isDragging = tab.id === draggingTabId;
           const isDropIndicatorTarget = tab.id === dropIndicatorTabId;
-          const dropIndicatorClassName =
-            isDropIndicatorTarget && dropIndicatorSide !== null
-              ? ` tab-chip--drop-${dropIndicatorSide}`
-              : '';
+          const tabToneStyle = {
+            '--tab-background': isActive
+              ? 'var(--color-tab-background-active)'
+              : 'var(--color-tab-background)',
+            '--tab-border': isActive
+              ? 'var(--color-tab-border-active)'
+              : 'var(--color-tab-border)',
+            '--tab-foreground': isActive
+              ? 'var(--color-tab-foreground-active)'
+              : 'var(--color-tab-foreground)',
+          } as CSSProperties;
+          const tabChipClassName = [
+            'group relative flex max-w-60 min-w-40 flex-none items-stretch transition-[opacity,box-shadow] duration-150',
+            'before:pointer-events-none before:absolute before:top-[5px] before:bottom-px before:w-0.5 before:bg-[var(--gradient-tab-indicator)] before:opacity-0 before:shadow-[var(--shadow-tab-indicator)] before:transition-opacity before:duration-150',
+            isDragging ? 'z-[2] opacity-[0.86] shadow-[var(--shadow-tab-drag)]' : '',
+            isDropIndicatorTarget && dropIndicatorSide === 'before'
+              ? 'before:left-[-2px] before:opacity-100'
+              : '',
+            isDropIndicatorTarget && dropIndicatorSide === 'after'
+              ? 'before:right-[-2px] before:opacity-100'
+              : '',
+          ]
+            .filter((className) => className.length > 0)
+            .join(' ');
 
           return (
             <div
-              className={`tab-chip${isActive ? ' tab-chip--active' : ''}${isDragging ? ' tab-chip--dragging' : ''}${dropIndicatorClassName}`}
+              className={tabChipClassName}
               key={tab.id}
               onPointerDown={(event) => {
                 handlePointerDown(event, tab.id);
@@ -76,8 +98,9 @@ export function TabBar({
               <button
                 aria-controls={`panel-${tab.id}`}
                 aria-selected={isActive}
-                className={`tab-button${isActive ? ' tab-button--active' : ''}`}
+                className="relative flex w-full min-w-0 flex-1 cursor-grab select-none border border-b-0 border-[var(--tab-border)] bg-[var(--tab-background)] px-[14px] py-1.5 text-left text-[var(--tab-foreground)]"
                 id={`tab-${tab.id}`}
+                style={tabToneStyle}
                 title={tab.title}
                 onClick={() => {
                   if (isEditing || shouldSuppressClick(tab.id)) {
@@ -98,7 +121,7 @@ export function TabBar({
                 {isEditing ? (
                   <input
                     aria-label={`${tab.title} title editor`}
-                    className="tab-title-editor"
+                    className="m-0 w-full border-none bg-transparent p-0 text-inherit outline-none"
                     onBlur={() => {
                       finishRenaming(tab.id);
                     }}
@@ -124,20 +147,23 @@ export function TabBar({
                     value={draftTitle}
                   />
                 ) : (
-                  <span className="tab-button__label">{tab.title}</span>
+                  <span className="block overflow-hidden text-ellipsis whitespace-nowrap leading-[1.2]">
+                    {tab.title}
+                  </span>
                 )}
               </button>
 
               <button
                 aria-label={`Close ${tab.title}`}
-                className="tab-close-button"
+                className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] text-[var(--color-tab-close-foreground)] opacity-0 shadow-[-10px_0_10px_var(--tab-background)] transition-[opacity,background-color,color,box-shadow] duration-150 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-highlight)] hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
                 onClick={(event) => {
                   event.stopPropagation();
                   onCloseTab(tab.id);
                 }}
+                style={tabToneStyle}
                 type="button"
               >
-                <X aria-hidden="true" className="tab-close-button__icon" strokeWidth={2.25} />
+                <X aria-hidden="true" className="h-[11px] w-[11px]" strokeWidth={2.25} />
               </button>
             </div>
           );
@@ -145,12 +171,12 @@ export function TabBar({
 
         <button
           aria-label="New Session"
-          className="tab-create-button"
+          className={createButtonClassName}
           onClick={onCreateTab}
           title="New Session"
           type="button"
         >
-          <Plus aria-hidden="true" className="tab-create-button__icon" strokeWidth={2.4} />
+          <Plus aria-hidden="true" className="h-3 w-3" strokeWidth={2.4} />
         </button>
       </div>
     </header>

@@ -78,8 +78,11 @@ export function TerminalSurface({
   }, [focusRequestKey, isActive, session.id]);
 
   return (
-    <div className="terminal-surface">
-      <div className="terminal-surface__viewport" ref={hostRef} />
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+      <div
+        className="terminal-surface__viewport m-0 flex h-full min-h-0 min-w-0 flex-1 items-stretch overflow-hidden border-0 bg-[var(--color-surface-terminal)]"
+        ref={hostRef}
+      />
     </div>
   );
 }

@@ -37,7 +37,7 @@ export function App(): ReactElement {
   const panelId = visibleTabs[0] !== undefined ? `panel-${visibleTabs[0].id}` : 'panel-stack';
 
   return (
-    <div className="app-shell">
+    <div className="flex h-full min-h-full flex-col overflow-hidden bg-[var(--color-app-bg)]">
       <TabBar
         activeTabId={activeTabId}
         onActivateTab={activateTab}
@@ -50,10 +50,10 @@ export function App(): ReactElement {
         tabs={tabs}
       />
 
-      <main className="workspace">
+      <main className="flex min-h-0 flex-1 flex-col gap-2 px-2 pt-1 pb-2">
         <section
           aria-label="Active terminal workspace"
-          className="workspace__terminal-area"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden border border-[var(--color-border-subtle)] bg-[var(--color-surface-terminal)] pt-1"
           id={panelId}
           role="tabpanel"
         >

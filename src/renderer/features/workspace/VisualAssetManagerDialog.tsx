@@ -36,6 +36,27 @@ interface VisualAssetManagerDialogProps {
 
 type VisualAssetManagerTabId = 'assets' | 'messages';
 
+const managerIconClassName = 'h-3.5 w-3.5';
+const managerActionButtonClassName =
+  'inline-flex items-center justify-center gap-2 border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] px-2.5 py-2 text-[var(--color-text-strong)] transition-colors duration-150 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-highlight)]';
+const managerIconButtonClassName =
+  'inline-flex h-[34px] w-[34px] items-center justify-center border border-[var(--color-border-muted)] bg-[var(--color-surface-elevated)] text-[var(--color-text-strong)] transition-colors duration-150 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-highlight)]';
+const managerSectionCopyClassName =
+  'mt-1 text-xs text-[var(--color-text-subtle)]';
+const managerChipClassName =
+  'inline-flex items-center gap-2 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-2.5 py-1.5 text-[var(--color-text-secondary)]';
+const managerInputClassName =
+  'w-full border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-3 py-2.5 text-[var(--color-text-tooltip)] outline-none transition-colors duration-150 focus:border-[var(--color-border-strong)]';
+
+function getManagerTabClassName(isActive: boolean): string {
+  return [
+    'border px-[14px] py-[9px] transition-colors duration-150',
+    isActive
+      ? 'border-[var(--color-border-strong)] bg-[var(--color-surface-elevated-active)] text-[var(--color-text-primary)]'
+      : 'border-[var(--color-border-soft)] bg-[var(--color-surface-elevated-muted)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-highlight)]',
+  ].join(' ');
+}
+
 function assetHasStateMapping(
   catalog: VisualAssetCatalog,
   assetId: string,
@@ -203,56 +224,56 @@ export function VisualAssetManagerDialog({
   return (
     <div
       aria-label="Visual asset manager overlay"
-      className="visual-asset-manager"
+      className="fixed inset-0 flex items-center justify-center bg-[var(--color-surface-overlay)] p-6"
       role="presentation"
     >
       <div
         aria-label="Visual asset manager"
         aria-modal="true"
-        className="visual-asset-manager__dialog"
+        className="flex max-h-[min(720px,100%)] w-[min(1080px,100%)] flex-col border border-[var(--color-border-muted)] bg-[var(--color-surface-dialog)] shadow-[var(--shadow-dialog)]"
         role="dialog"
       >
-        <header className="visual-asset-manager__header">
+        <header className="flex items-start justify-between gap-5 border-b border-[var(--color-border-soft)] px-5 py-[18px]">
           <div>
-            <h2 className="visual-asset-manager__title">Visual Assets</h2>
-            <p className="visual-asset-manager__copy">
+            <h2 className="m-0">Visual Assets</h2>
+            <p className={managerSectionCopyClassName}>
               상태 preset이 기본 축이에요. 감정 preset은 선택적으로 얹혀요.
             </p>
           </div>
 
-          <div className="visual-asset-manager__actions">
+          <div className="flex items-center gap-2.5">
             {activeTab === 'assets' ? (
               <button
-                className="visual-asset-manager__add-button"
+                className={managerActionButtonClassName}
                 onClick={onPickFiles}
                 type="button"
               >
-                <ImagePlus aria-hidden="true" className="visual-asset-manager__icon" />
+                <ImagePlus aria-hidden="true" className={managerIconClassName} />
                 Add Images
               </button>
             ) : null}
 
             <button
               aria-label="Close visual asset manager"
-              className="visual-asset-manager__close-button"
+              className={managerIconButtonClassName}
               onClick={onClose}
               type="button"
             >
-              <X aria-hidden="true" className="visual-asset-manager__icon" />
+              <X aria-hidden="true" className={managerIconClassName} />
             </button>
           </div>
         </header>
 
-        <div className="visual-asset-manager__body">
+        <div className="overflow-auto px-5 pt-[18px] pb-5">
           <div
             aria-label="Visual asset manager sections"
-            className="visual-asset-manager__tabs"
+            className="mb-[18px] flex gap-2"
             role="tablist"
           >
             <button
               aria-controls="visual-assets-panel"
               aria-selected={activeTab === 'assets'}
-              className="visual-asset-manager__tab"
+              className={getManagerTabClassName(activeTab === 'assets')}
               id="visual-assets-tab"
               onClick={() => {
                 setActiveTab('assets');
@@ -265,7 +286,7 @@ export function VisualAssetManagerDialog({
             <button
               aria-controls="situation-messages-panel"
               aria-selected={activeTab === 'messages'}
-              className="visual-asset-manager__tab"
+              className={getManagerTabClassName(activeTab === 'messages')}
               id="situation-messages-tab"
               onClick={() => {
                 setActiveTab('messages');
@@ -279,47 +300,48 @@ export function VisualAssetManagerDialog({
 
           <section
             aria-labelledby="visual-assets-tab"
-            className="visual-asset-manager__panel"
             hidden={activeTab !== 'assets'}
             id="visual-assets-panel"
             role="tabpanel"
           >
             {catalog.assets.length === 0 ? (
-              <div className="visual-asset-manager__empty">
+              <div className="mt-4 border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface-empty)] p-7 text-[var(--color-text-faint)]">
                 아직 등록된 이미지가 읍어요...! 먼저 파일 몇 장 골라서 붙여보죠.
               </div>
             ) : (
-              <ul className="visual-asset-manager__asset-list">
+              <ul className="m-0 flex list-none flex-col gap-4 p-0">
                 {catalog.assets.map((asset) => {
                   const stateMappingIdPrefix = `state-${asset.id}`;
                   const emotionMappingIdPrefix = `emotion-${asset.id}`;
                   const pairMappingIdPrefix = `pair-${asset.id}`;
 
                   return (
-                    <li className="visual-asset-manager__asset" key={asset.id}>
-                      <div className="visual-asset-manager__asset-preview">
+                    <li
+                      className="grid gap-4 border border-[var(--color-border-soft)] bg-[var(--color-surface-chip)] p-4 min-[901px]:grid-cols-[140px_minmax(0,1fr)]"
+                      key={asset.id}
+                    >
+                      <div className="aspect-square w-[140px] overflow-hidden bg-[var(--color-surface-preview)]">
                         <img
                           alt={asset.label}
-                          className="visual-asset-manager__asset-image"
+                          className="block h-full w-full object-cover"
                           src={createStatusPanelAssetUrl(asset.path)}
                         />
                       </div>
 
-                      <div className="visual-asset-manager__asset-meta">
-                        <div className="visual-asset-manager__asset-heading">
+                      <div className="flex min-w-0 flex-col gap-[14px]">
+                        <div className="flex items-start justify-between gap-2.5">
                           <div>
-                            <h3 className="visual-asset-manager__asset-label">
-                              {asset.label}
-                            </h3>
-                            <p className="visual-asset-manager__asset-path">
+                            <h3 className="m-0">{asset.label}</h3>
+                            <p className={managerSectionCopyClassName}>
                               {asset.path}
                             </p>
                           </div>
 
-                          <div className="visual-asset-manager__asset-buttons">
-                            <label className="visual-asset-manager__toggle">
+                          <div className="flex items-center gap-2.5">
+                            <label className={managerChipClassName}>
                               <input
                                 checked={asset.isDefault === true}
+                                className="accent-[var(--color-terminal-blue)]"
                                 onChange={(event: ChangeEvent<HTMLInputElement>) => {
                                   onSetDefaultAsset(
                                     asset.id,
@@ -333,7 +355,7 @@ export function VisualAssetManagerDialog({
 
                             <button
                               aria-label={`Remove ${asset.label}`}
-                              className="visual-asset-manager__remove-button"
+                              className={managerIconButtonClassName}
                               onClick={() => {
                                 onRemoveAsset(asset.id);
                               }}
@@ -341,23 +363,23 @@ export function VisualAssetManagerDialog({
                             >
                               <Trash2
                                 aria-hidden="true"
-                                className="visual-asset-manager__icon"
+                                className={managerIconClassName}
                               />
                             </button>
                           </div>
                         </div>
 
-                        <div className="visual-asset-manager__mapping-group">
-                          <h4 className="visual-asset-manager__mapping-title">
+                        <div className="flex flex-col gap-2">
+                          <h4 className="m-0">
                             State Presets
                           </h4>
-                          <div className="visual-asset-manager__chips">
+                          <div className="flex flex-wrap gap-2">
                             {STATE_PRESETS.map((preset) => {
                               const inputId = `${stateMappingIdPrefix}-${preset.id}`;
 
                               return (
                                 <label
-                                  className="visual-asset-manager__chip"
+                                  className={managerChipClassName}
                                   htmlFor={inputId}
                                   key={preset.id}
                                   title={preset.description}
@@ -368,6 +390,7 @@ export function VisualAssetManagerDialog({
                                       asset.id,
                                       preset.id,
                                     )}
+                                    className="accent-[var(--color-terminal-blue)]"
                                     id={inputId}
                                     onChange={(
                                       event: ChangeEvent<HTMLInputElement>,
@@ -387,11 +410,11 @@ export function VisualAssetManagerDialog({
                           </div>
                         </div>
 
-                        <div className="visual-asset-manager__mapping-group">
-                          <h4 className="visual-asset-manager__mapping-title">
+                        <div className="flex flex-col gap-2">
+                          <h4 className="m-0">
                             Emotion Presets
                           </h4>
-                          <div className="visual-asset-manager__chips">
+                          <div className="flex flex-wrap gap-2">
                             {EMOTION_PRESETS.map((preset) => {
                               if (preset.id === 'neutral') {
                                 return null;
@@ -401,7 +424,7 @@ export function VisualAssetManagerDialog({
 
                               return (
                                 <label
-                                  className="visual-asset-manager__chip"
+                                  className={managerChipClassName}
                                   htmlFor={inputId}
                                   key={preset.id}
                                   title={preset.description}
@@ -412,6 +435,7 @@ export function VisualAssetManagerDialog({
                                       asset.id,
                                       preset.id,
                                     )}
+                                    className="accent-[var(--color-terminal-blue)]"
                                     id={inputId}
                                     onChange={(
                                       event: ChangeEvent<HTMLInputElement>,
@@ -431,14 +455,14 @@ export function VisualAssetManagerDialog({
                           </div>
                         </div>
 
-                        <div className="visual-asset-manager__mapping-group">
-                          <h4 className="visual-asset-manager__mapping-title">
+                        <div className="flex flex-col gap-2">
+                          <h4 className="m-0">
                             Exact State + Emotion
                           </h4>
-                          <p className="visual-asset-manager__mapping-copy">
+                          <p className={managerSectionCopyClassName}>
                             이건 state-only, emotion-only보다 먼저 잡혀요. 진짜 전용 표정 카드예요...!
                           </p>
-                          <div className="visual-asset-manager__pair-grid">
+                          <div className="flex flex-col gap-2.5">
                             {EMOTION_PRESETS.map((emotionPreset) => {
                               if (emotionPreset.id === 'neutral') {
                                 return null;
@@ -446,20 +470,20 @@ export function VisualAssetManagerDialog({
 
                               return (
                                 <div
-                                  className="visual-asset-manager__pair-row"
+                                  className="grid items-start gap-2.5 min-[901px]:grid-cols-[92px_minmax(0,1fr)]"
                                   key={emotionPreset.id}
                                 >
-                                  <div className="visual-asset-manager__pair-label">
+                                  <div className="pt-1.5 text-xs text-[var(--color-text-soft)]">
                                     {emotionPreset.label}
                                   </div>
 
-                                  <div className="visual-asset-manager__chips">
+                                  <div className="flex flex-wrap gap-2">
                                     {STATE_PRESETS.map((statePreset) => {
                                       const inputId = `${pairMappingIdPrefix}-${statePreset.id}-${emotionPreset.id}`;
 
                                       return (
                                         <label
-                                          className="visual-asset-manager__chip visual-asset-manager__chip--pair"
+                                          className={`${managerChipClassName} text-xs`}
                                           htmlFor={inputId}
                                           key={`${statePreset.id}-${emotionPreset.id}`}
                                           title={`${statePreset.label} + ${emotionPreset.label}`}
@@ -471,6 +495,7 @@ export function VisualAssetManagerDialog({
                                               statePreset.id,
                                               emotionPreset.id,
                                             )}
+                                            className="accent-[var(--color-terminal-blue)]"
                                             id={inputId}
                                             onChange={(
                                               event: ChangeEvent<HTMLInputElement>,
@@ -504,47 +529,46 @@ export function VisualAssetManagerDialog({
 
           <section
             aria-labelledby="situation-messages-tab"
-            className="visual-asset-manager__panel"
             hidden={activeTab !== 'messages'}
             id="situation-messages-panel"
             role="tabpanel"
           >
-            <section className="visual-asset-manager__mapping-group">
-              <h3 className="visual-asset-manager__mapping-title">
+            <section className="flex flex-col gap-2">
+              <h3 className="m-0">
                 Situation Messages
               </h3>
-              <p className="visual-asset-manager__mapping-copy">
+              <p className={managerSectionCopyClassName}>
                 상태별 기본 한 줄을 덮어써요. Claude가 직접 띄운 overlay 문구는 여전히 먼저 보여요.
               </p>
-              <div className="visual-asset-manager__message-grid">
+              <div className="grid gap-3 min-[901px]:grid-cols-2">
                 {STATE_PRESETS.map((preset) => {
                   const inputId = `state-line-${preset.id}`;
 
                   return (
                     <div
-                      className="visual-asset-manager__message-field"
+                      className="flex flex-col gap-1.5"
                       key={preset.id}
                     >
-                      <div className="visual-asset-manager__message-heading">
+                      <div className="flex items-center gap-1.5">
                         <label
-                          className="visual-asset-manager__message-label"
+                          className="text-xs font-semibold text-[var(--color-text-secondary)]"
                           htmlFor={inputId}
                         >
                           {preset.label}
                         </label>
-                        <span className="visual-asset-manager__tooltip">
+                        <span className="group relative inline-flex items-center">
                           <button
                             aria-label={`${preset.label} 상태 설명 보기`}
-                            className="visual-asset-manager__tooltip-button"
+                            className="inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent text-[var(--color-text-accent)]"
                             type="button"
                           >
                             <CircleHelp
                               aria-hidden="true"
-                              className="visual-asset-manager__icon"
+                              className={managerIconClassName}
                             />
                           </button>
                           <span
-                            className="visual-asset-manager__tooltip-bubble"
+                            className="pointer-events-none absolute top-full left-1/2 z-[1] mt-2 block w-[220px] -translate-x-1/2 -translate-y-1 border border-[var(--color-tab-border)] bg-[var(--color-surface-tooltip)] px-3 py-2.5 text-xs leading-[1.45] text-[var(--color-text-tooltip)] opacity-0 shadow-[var(--shadow-tooltip)] transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
                             role="tooltip"
                           >
                             {getSituationMessageDescription(preset.id)}
@@ -552,7 +576,7 @@ export function VisualAssetManagerDialog({
                         </span>
                       </div>
                       <input
-                        className="visual-asset-manager__message-input"
+                        className={managerInputClassName}
                         id={inputId}
                         onBlur={() => {
                           onSetStateLine(preset.id, stateLineDrafts[preset.id]);

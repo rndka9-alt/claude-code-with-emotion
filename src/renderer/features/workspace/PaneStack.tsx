@@ -60,7 +60,7 @@ export function PaneStack({
   return (
     <div
       aria-label="Terminal pane stack"
-      className="pane-stack"
+      className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       ref={containerRef}
     >
       {tabs.map((tab, index) => {
@@ -71,13 +71,17 @@ export function PaneStack({
             : undefined;
 
         return (
-          <div className="pane-stack__slot" key={tab.id} style={paneStyle}>
+          <div
+            className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+            key={tab.id}
+            style={paneStyle}
+          >
             <article
               aria-label={tab.title}
-              className="terminal-pane terminal-pane--active"
+              className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-terminal)]"
               data-active="true"
             >
-              <div className="terminal-pane__body">
+              <div className="flex h-full min-h-0 flex-1 overflow-hidden">
                 <TerminalSurface
                   focusRequestKey={terminalFocusRequestKey}
                   isActive={true}
@@ -90,7 +94,7 @@ export function PaneStack({
             {index < tabs.length - 1 ? (
               <div
                 aria-label={`Resize ${tab.title}`}
-                className="pane-resizer"
+                className="basis-[10px] cursor-row-resize bg-[var(--color-border-ghost)]"
                 onPointerDown={(event) => {
                   dragStateRef.current = { index, lastY: event.clientY };
                 }}

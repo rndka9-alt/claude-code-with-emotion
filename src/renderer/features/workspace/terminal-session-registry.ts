@@ -1,6 +1,7 @@
 import { Terminal } from '@xterm/xterm';
 import type { TerminalOutputEvent } from '../../../shared/terminal-bridge';
 import { DEFAULT_TERMINAL_HISTORY_LINES } from '../../../shared/terminal-history';
+import { APP_THEME_FALLBACKS } from '../../../shared/theme';
 import type { SessionTab } from './model';
 import { handleTerminalShortcut } from './terminal-keyboard';
 
@@ -12,6 +13,14 @@ interface TerminalSize {
 interface ScheduledTask {
   cancel: () => void;
 }
+
+const terminalThemeFallbacks = {
+  background: APP_THEME_FALLBACKS.terminalBackground,
+  foreground: APP_THEME_FALLBACKS.terminalForeground,
+  brightBlue: APP_THEME_FALLBACKS.terminalBrightBlue,
+  blue: APP_THEME_FALLBACKS.terminalBlue,
+  green: APP_THEME_FALLBACKS.terminalGreen,
+} as const;
 
 export interface TerminalSessionController {
   attach: (
@@ -180,6 +189,38 @@ function getParkingLot(): HTMLDivElement {
   return terminalParkingLot;
 }
 
+function readThemeVariable(name: string, fallback: string): string {
+  const root = document.documentElement;
+  const value = window.getComputedStyle(root).getPropertyValue(name).trim();
+
+  return value.length > 0 ? value : fallback;
+}
+
+function createTerminalTheme() {
+  return {
+    background: readThemeVariable(
+      '--color-surface-terminal-theme',
+      terminalThemeFallbacks.background,
+    ),
+    foreground: readThemeVariable(
+      '--color-terminal-foreground',
+      terminalThemeFallbacks.foreground,
+    ),
+    brightBlue: readThemeVariable(
+      '--color-terminal-bright-blue',
+      terminalThemeFallbacks.brightBlue,
+    ),
+    blue: readThemeVariable(
+      '--color-terminal-blue',
+      terminalThemeFallbacks.blue,
+    ),
+    green: readThemeVariable(
+      '--color-terminal-green',
+      terminalThemeFallbacks.green,
+    ),
+  };
+}
+
 function createTerminalSessionController(
   session: SessionTab,
 ): TerminalSessionController {
@@ -192,13 +233,7 @@ function createTerminalSessionController(
     fontSize: 13,
     lineHeight: 1.3,
     scrollback: DEFAULT_TERMINAL_HISTORY_LINES,
-    theme: {
-      background: '#0b1019',
-      foreground: '#f4f7ff',
-      brightBlue: '#92bcff',
-      blue: '#6a8aff',
-      green: '#8fe4b6',
-    },
+    theme: createTerminalTheme(),
   });
   const container = createTerminalContainer();
   const bufferedOutputEvents: TerminalOutputEvent[] = [];

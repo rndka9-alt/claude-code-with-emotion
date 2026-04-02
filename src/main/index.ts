@@ -43,6 +43,7 @@ import {
   VISUAL_ASSET_CHANNELS,
 } from '../shared/visual-assets-bridge';
 import type { VisualAssetCatalog } from '../shared/visual-assets';
+import { APP_THEME_FALLBACKS } from '../shared/theme';
 
 const WINDOW_SIZE = {
   width: 920,
@@ -74,7 +75,7 @@ function createMainWindow(): BrowserWindow {
     minWidth: WINDOW_SIZE.minWidth,
     minHeight: WINDOW_SIZE.minHeight,
     show: false,
-    backgroundColor: '#101218',
+    backgroundColor: APP_THEME_FALLBACKS.windowBackground,
     title: 'Claude Code With Emotion',
     webPreferences: {
       preload: preloadPath,
