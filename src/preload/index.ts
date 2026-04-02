@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { ClaudeAppApi } from '../shared/electron-api';
 import {
+  APP_THEME_CHANNELS,
+} from '../shared/app-theme-bridge';
+import type { AppThemeSelection } from '../shared/theme';
+import {
   ASSISTANT_STATUS_CHANNELS,
   type AssistantStatusSnapshotEvent,
   type AssistantStatusSnapshot,
@@ -23,6 +27,28 @@ import type { VisualAssetCatalog } from '../shared/visual-assets';
 const claudeAppApi: ClaudeAppApi = {
   appVersion: process.versions.electron,
   workspaceCwd: process.cwd(),
+  appTheme: {
+    getSelection: () => {
+      return ipcRenderer.invoke(APP_THEME_CHANNELS.getSelection);
+    },
+    onSelection: (listener) => {
+      const subscription = (
+        _event: IpcRendererEvent,
+        payload: AppThemeSelection,
+      ) => {
+        listener(payload);
+      };
+
+      ipcRenderer.on(APP_THEME_CHANNELS.selection, subscription);
+
+      return () => {
+        ipcRenderer.removeListener(APP_THEME_CHANNELS.selection, subscription);
+      };
+    },
+    saveSelection: (selection) => {
+      return ipcRenderer.invoke(APP_THEME_CHANNELS.saveSelection, selection);
+    },
+  },
   assistantStatus: {
     getSnapshot: (request) => {
       return ipcRenderer.invoke(ASSISTANT_STATUS_CHANNELS.getSnapshot, request);

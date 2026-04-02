@@ -20,6 +20,9 @@ import { ensureNodePtySpawnHelpersExecutable } from './terminal/node-pty-runtime
 import { createTerminalSessionManager } from './terminal/session-manager';
 import { VisualAssetStore } from './visual-assets/visual-asset-store';
 import {
+  APP_THEME_CHANNELS,
+} from '../shared/app-theme-bridge';
+import {
   ASSISTANT_STATUS_CHANNELS,
   createDefaultAssistantStatusSnapshot,
   type AssistantStatusSnapshot,
@@ -43,7 +46,11 @@ import {
   VISUAL_ASSET_CHANNELS,
 } from '../shared/visual-assets-bridge';
 import type { VisualAssetCatalog } from '../shared/visual-assets';
-import { APP_THEME_FALLBACKS } from '../shared/theme';
+import {
+  getAppThemeDefinition,
+  type AppThemeSelection,
+} from '../shared/theme';
+import { ThemeStore } from './theme/theme-store';
 
 const WINDOW_SIZE = {
   width: 920,
@@ -67,15 +74,16 @@ function getRendererEntry():
   };
 }
 
-function createMainWindow(): BrowserWindow {
+function createMainWindow(themeSelection: AppThemeSelection): BrowserWindow {
   const preloadPath = path.join(__dirname, '../preload/index.js');
+  const themeDefinition = getAppThemeDefinition(themeSelection.themeId);
   const mainWindow = new BrowserWindow({
     width: WINDOW_SIZE.width,
     height: WINDOW_SIZE.height,
     minWidth: WINDOW_SIZE.minWidth,
     minHeight: WINDOW_SIZE.minHeight,
     show: false,
-    backgroundColor: APP_THEME_FALLBACKS.windowBackground,
+    backgroundColor: themeDefinition.windowBackground,
     title: 'Claude Code With Emotion',
     webPreferences: {
       preload: preloadPath,
@@ -155,6 +163,7 @@ function attachWindowDiagnostics(
 function registerTerminalBridge(
   mainWindow: BrowserWindow,
   runtimeLog: RuntimeLog,
+  themeStore: ThemeStore,
 ): void {
   const assistantStatusTraceFilePath = runtimeLog.filePath;
   const assistantStatusHelperBinDir = path.join(app.getAppPath(), 'bin');
@@ -162,6 +171,7 @@ function registerTerminalBridge(
     app.getPath('userData'),
     'visual-assets.json',
   );
+  const appThemeFilePath = path.join(app.getPath('userData'), 'app-theme.json');
   const visualAssetLibraryDirPath = path.join(
     app.getPath('userData'),
     'visual-assets',
@@ -273,6 +283,15 @@ function registerTerminalBridge(
     'visual-assets',
     `watching catalog file ${visualAssetCatalogFilePath}`,
   );
+  runtimeLog.write('app-theme', `watching theme file ${appThemeFilePath}`);
+
+  const unsubscribeTheme = themeStore.subscribe((selection) => {
+    const nextTheme = getAppThemeDefinition(selection.themeId);
+
+    runtimeLog.write('app-theme', `snapshot theme=${selection.themeId}`);
+    mainWindow.setBackgroundColor(nextTheme.windowBackground);
+    mainWindow.webContents.send(APP_THEME_CHANNELS.selection, selection);
+  });
 
   ipcMain.handle(
     ASSISTANT_STATUS_CHANNELS.getSnapshot,
@@ -293,6 +312,15 @@ function registerTerminalBridge(
   ipcMain.handle(VISUAL_ASSET_CHANNELS.printAvailableOptions, () => {
     return visualAssetStore.getAvailableOptions();
   });
+  ipcMain.handle(APP_THEME_CHANNELS.getSelection, () => {
+    return themeStore.getSelection();
+  });
+  ipcMain.handle(
+    APP_THEME_CHANNELS.saveSelection,
+    (_event, selection: AppThemeSelection) => {
+      return themeStore.replaceSelection(selection);
+    },
+  );
   ipcMain.handle(VISUAL_ASSET_CHANNELS.pickFiles, async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       buttonLabel: 'Choose Images',
@@ -392,6 +420,7 @@ function registerTerminalBridge(
   ipcMain.on(DIAGNOSTICS_CHANNELS.rendererEvent, rendererDiagnosticListener);
 
   mainWindow.on('closed', () => {
+    unsubscribeTheme();
     unsubscribeVisualAssets();
     for (const sessionId of [...sessionStatusStores.keys()]) {
       disposeSessionStatusBridges(sessionId);
@@ -408,6 +437,8 @@ function registerTerminalBridge(
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.pickFiles);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.printAvailableOptions);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.saveCatalog);
+    ipcMain.removeHandler(APP_THEME_CHANNELS.getSelection);
+    ipcMain.removeHandler(APP_THEME_CHANNELS.saveSelection);
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);
@@ -461,18 +492,24 @@ void app.whenReady().then(() => {
     );
   }
 
+  const themeStore = new ThemeStore(
+    path.join(app.getPath('userData'), 'app-theme.json'),
+    (message) => {
+      runtimeLog.write('app-theme', message);
+    },
+  );
   installApplicationMenu();
-  const mainWindow = createMainWindow();
+  const mainWindow = createMainWindow(themeStore.getSelection());
 
   attachWindowDiagnostics(mainWindow, runtimeLog);
-  registerTerminalBridge(mainWindow, runtimeLog);
+  registerTerminalBridge(mainWindow, runtimeLog, themeStore);
 
   app.on('activate', () => {
     if (!hasOpenWindows()) {
-      const nextMainWindow = createMainWindow();
+      const nextMainWindow = createMainWindow(themeStore.getSelection());
 
       attachWindowDiagnostics(nextMainWindow, runtimeLog);
-      registerTerminalBridge(nextMainWindow, runtimeLog);
+      registerTerminalBridge(nextMainWindow, runtimeLog, themeStore);
     }
   });
 });

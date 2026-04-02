@@ -20,7 +20,7 @@ const terminalThemeFallbacks = {
   brightBlue: APP_THEME_FALLBACKS.terminalBrightBlue,
   blue: APP_THEME_FALLBACKS.terminalBlue,
   green: APP_THEME_FALLBACKS.terminalGreen,
-} as const;
+};
 
 export interface TerminalSessionController {
   attach: (
@@ -30,6 +30,7 @@ export interface TerminalSessionController {
   detach: () => void;
   focus: () => void;
   requestFit: (reason: string) => void;
+  updateTheme: () => void;
   updateTitleChangeHandler: (
     onTitleChange: (tabId: string, title: string) => void,
   ) => void;
@@ -248,6 +249,9 @@ function createTerminalSessionController(
   const focusTerminal = (): void => {
     terminal.focus();
   };
+  const syncTheme = (): void => {
+    terminal.options.theme = createTerminalTheme();
+  };
   const removeOutputListener =
     bridge?.onOutput((event) => {
       if (event.sessionId !== session.id) {
@@ -436,6 +440,9 @@ function createTerminalSessionController(
       terminal.focus();
     },
     requestFit,
+    updateTheme() {
+      syncTheme();
+    },
     updateTitleChangeHandler(onTitleChange) {
       titleChangeHandler = onTitleChange;
     },
@@ -506,4 +513,10 @@ export function disposeAllTerminalSessions(): void {
 
   terminalParkingLot?.remove();
   terminalParkingLot = null;
+}
+
+export function syncAllTerminalThemes(): void {
+  for (const controller of terminalSessionControllers.values()) {
+    controller.updateTheme();
+  }
 }

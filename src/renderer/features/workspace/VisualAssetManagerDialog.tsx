@@ -103,7 +103,19 @@ function assetHasStateEmotionMapping(
 function createStateLineDrafts(
   catalog: VisualAssetCatalog,
 ): Record<VisualStatePresetId, string> {
-  const drafts = {} as Record<VisualStatePresetId, string>;
+  const drafts: Record<VisualStatePresetId, string> = {
+    disconnected: '',
+    idle: '',
+    thinking: '',
+    working: '',
+    responding: '',
+    waiting: '',
+    permission_wait: '',
+    interrupted: '',
+    completed: '',
+    error: '',
+    tool_failed: '',
+  };
 
   for (const preset of STATE_PRESETS) {
     drafts[preset.id] =

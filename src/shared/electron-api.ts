@@ -1,3 +1,4 @@
+import type { AppThemeBridge } from './app-theme-bridge';
 import type { AssistantStatusBridge } from './assistant-status';
 import type { RuntimeDiagnosticPayload } from './diagnostics';
 import type { TerminalBridge } from './terminal-bridge';
@@ -12,6 +13,7 @@ export interface DiagnosticsBridge {
 export interface ClaudeAppApi {
   readonly appVersion: string;
   readonly workspaceCwd: string;
+  readonly appTheme: AppThemeBridge;
   readonly assistantStatus: AssistantStatusBridge;
   readonly diagnostics: DiagnosticsBridge;
   readonly terminals: TerminalBridge;

@@ -1,11 +1,28 @@
 import { createDefaultAssistantStatusSnapshot } from '../../shared/assistant-status';
+import {
+  createDefaultAppThemeSelection,
+  type AppThemeSelection,
+} from '../../shared/theme';
 
-export function installDisconnectedClaudeApp(sendInput = vi.fn()): void {
+export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
+  saveThemeSelection: ReturnType<typeof vi.fn>;
+} {
+  const saveThemeSelection = vi.fn(
+    async (selection: AppThemeSelection) => selection,
+  );
+
   Object.defineProperty(window, 'claudeApp', {
     configurable: true,
     value: {
       appVersion: 'test',
       workspaceCwd: '/tmp/claude-code-with-emotion',
+      appTheme: {
+        getSelection: vi
+          .fn()
+          .mockResolvedValue(createDefaultAppThemeSelection()),
+        onSelection: vi.fn(() => () => {}),
+        saveSelection: saveThemeSelection,
+      },
       assistantStatus: {
         getSnapshot: vi
           .fn()
@@ -41,4 +58,8 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): void {
       },
     },
   });
+
+  return {
+    saveThemeSelection,
+  };
 }

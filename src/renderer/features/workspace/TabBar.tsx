@@ -14,6 +14,12 @@ interface TabBarProps {
   onReorderTab: (tabId: string, destinationIndex: number) => void;
 }
 
+type TabToneStyle = CSSProperties & {
+  '--tab-background': string;
+  '--tab-border': string;
+  '--tab-foreground': string;
+};
+
 export function TabBar({
   activeTabId,
   tabs,
@@ -58,7 +64,7 @@ export function TabBar({
           const isEditing = tab.id === editingTabId;
           const isDragging = tab.id === draggingTabId;
           const isDropIndicatorTarget = tab.id === dropIndicatorTabId;
-          const tabToneStyle = {
+          const tabToneStyle: TabToneStyle = {
             '--tab-background': isActive
               ? 'var(--color-tab-background-active)'
               : 'var(--color-tab-background)',
@@ -68,7 +74,7 @@ export function TabBar({
             '--tab-foreground': isActive
               ? 'var(--color-tab-foreground-active)'
               : 'var(--color-tab-foreground)',
-          } as CSSProperties;
+          };
           const tabChipClassName = [
             'group relative flex max-w-60 min-w-40 flex-none items-stretch transition-[opacity,box-shadow] duration-150',
             'before:pointer-events-none before:absolute before:top-[5px] before:bottom-px before:w-0.5 before:bg-[var(--gradient-tab-indicator)] before:opacity-0 before:shadow-[var(--shadow-tab-indicator)] before:transition-opacity before:duration-150',

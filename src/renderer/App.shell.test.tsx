@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { App } from './App';
 
 describe('App shell', () => {
@@ -47,6 +47,25 @@ describe('App shell', () => {
     expect(sendInput).toHaveBeenCalledWith({
       sessionId: 'session-1',
       data: '\u0015claude\r',
+    });
+  });
+
+  it('persists the selected app theme preset', async () => {
+    const { installDisconnectedClaudeApp } = await import(
+      './test-support/app-test-helpers'
+    );
+    const { saveThemeSelection } = installDisconnectedClaudeApp();
+
+    render(<App />);
+
+    fireEvent.change(await screen.findByRole('combobox', { name: 'App theme' }), {
+      target: { value: 'gruvbox-light' },
+    });
+
+    await waitFor(() => {
+      expect(saveThemeSelection).toHaveBeenCalledWith({
+        themeId: 'gruvbox-light',
+      });
     });
   });
 });

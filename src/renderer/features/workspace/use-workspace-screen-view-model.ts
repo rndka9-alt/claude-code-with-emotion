@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
+import type { AppThemeId, AppThemeOption } from '../../../shared/theme';
 import type {
   VisualEmotionPresetId,
   VisualStatePresetId,
@@ -8,6 +9,7 @@ import { getActiveTab, getVisibleTabs } from './model';
 import { formatStatusPanelLine } from './status-panel-line';
 import { resolveStatusPanelVisual } from './status-panel-visual';
 import { useAssistantStatusBridge } from './use-assistant-status-bridge';
+import { useAppTheme } from './use-app-theme';
 import { useVisualAssetCatalog } from './use-visual-asset-catalog';
 import { useWorkspaceState } from './use-workspace-state';
 import {
@@ -23,9 +25,11 @@ import {
 export interface WorkspaceScreenViewModel {
   activateTab: (tabId: string) => void;
   activeTabId: string;
+  availableThemes: AppThemeOption[];
   assistantSnapshot: AssistantStatusSnapshot;
   closeAssetManager: () => void;
   closeTab: (tabId: string) => void;
+  currentThemeId: AppThemeId;
   createTab: () => void;
   handleLaunchClaude: () => void;
   isVisualAssetManagerOpen: boolean;
@@ -36,6 +40,7 @@ export interface WorkspaceScreenViewModel {
   removeAsset: (assetId: string) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
   resizePane: (index: number, deltaRatio: number) => void;
+  setThemeId: (themeId: AppThemeId) => void;
   setDefaultAsset: (assetId: string, isDefault: boolean) => void;
   setStateLine: (statePreset: VisualStatePresetId, line: string) => void;
   statusLine: string;
@@ -76,6 +81,11 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     resizePane,
     updateTabTitle,
   } = useWorkspaceState();
+  const {
+    currentThemeId,
+    setThemeId,
+    themeOptions,
+  } = useAppTheme();
   const [isVisualAssetManagerOpen, setIsVisualAssetManagerOpen] = useState(false);
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
   const activeTab = getActiveTab(state);
@@ -136,11 +146,13 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   return {
     activateTab,
     activeTabId: state.activeTabId,
+    availableThemes: themeOptions,
     assistantSnapshot,
     closeAssetManager: () => {
       setIsVisualAssetManagerOpen(false);
     },
     closeTab,
+    currentThemeId,
     createTab,
     handleLaunchClaude,
     isVisualAssetManagerOpen,
@@ -167,6 +179,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     },
     reorderTab,
     resizePane,
+    setThemeId,
     setDefaultAsset: (assetId, isDefault) => {
       void persistVisualAssetCatalog(
         setVisualAssetDefault(visualAssetCatalog, assetId, isDefault),

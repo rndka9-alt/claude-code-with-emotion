@@ -9,9 +9,11 @@ export function App(): ReactElement {
   const {
     activateTab,
     activeTabId,
+    availableThemes,
     assistantSnapshot,
     closeAssetManager,
     closeTab,
+    currentThemeId,
     createTab,
     handleLaunchClaude,
     isVisualAssetManagerOpen,
@@ -21,6 +23,7 @@ export function App(): ReactElement {
     removeAsset,
     reorderTab,
     resizePane,
+    setThemeId,
     setDefaultAsset,
     setStateLine,
     statusLine,
@@ -70,8 +73,11 @@ export function App(): ReactElement {
 
         <StatusPanel
           assistantStatus={assistantSnapshot}
+          currentThemeId={currentThemeId}
+          availableThemes={availableThemes}
           onLaunchClaude={handleLaunchClaude}
           onOpenAssetManager={openAssetManager}
+          onSelectTheme={setThemeId}
           statusLine={statusLine}
           statusVisual={statusVisual}
         />

@@ -1,12 +1,20 @@
 import type { CSSProperties, ReactElement } from 'react';
 import { Images } from 'lucide-react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
+import {
+  isAppThemeId,
+  type AppThemeId,
+  type AppThemeOption,
+} from '../../../shared/theme';
 import type { StatusPanelVisual } from './status-panel-visual';
 
 interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
+  availableThemes: AppThemeOption[];
+  currentThemeId: AppThemeId;
   onOpenAssetManager: () => void;
   onLaunchClaude: () => void;
+  onSelectTheme: (themeId: AppThemeId) => void;
   statusLine: string;
   statusVisual: StatusPanelVisual | null;
 }
@@ -33,19 +41,26 @@ const orbClassNameByIntensity: Record<AssistantStatusSnapshot['intensity'], stri
   high: 'scale-[1.06] shadow-[var(--shadow-avatar-orb-strong)]',
 };
 
+type AvatarStyle = CSSProperties & {
+  '--avatar-surface': string;
+};
+
 export function StatusPanel({
   assistantStatus,
+  availableThemes,
+  currentThemeId,
   onOpenAssetManager,
   onLaunchClaude,
+  onSelectTheme,
   statusLine,
   statusVisual,
 }: StatusPanelProps): ReactElement {
-  const avatarStyle = {
+  const avatarStyle: AvatarStyle = {
     '--avatar-surface':
       statusVisual === null
         ? `var(${avatarBackgroundVariableByState[assistantStatus.state]})`
         : 'var(--color-avatar-image)',
-  } as CSSProperties;
+  };
   const orbClassName = [
     'status-panel__avatar-orb h-16 w-16 bg-[var(--color-avatar-orb)] shadow-[var(--shadow-avatar-orb)] transition-[transform,opacity,box-shadow] duration-150 max-[900px]:h-[52px] max-[900px]:w-[52px]',
     orbClassNameByIntensity[assistantStatus.intensity],
@@ -91,10 +106,33 @@ export function StatusPanel({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-col justify-center">
+      <div className="flex min-w-0 flex-col justify-center gap-3">
         <p className="m-0 text-[1.08rem] text-[var(--color-text-highlight)]">
           {statusLine}
         </p>
+        <label className="flex items-center gap-2 text-xs text-[var(--color-text-subtle)]">
+          <span className="shrink-0 uppercase tracking-[0.08em]">Theme</span>
+          <select
+            aria-label="App theme"
+            className="min-w-0 flex-1 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-2.5 py-1.5 text-sm text-[var(--color-text-primary)] outline-none transition-colors duration-150 focus:border-[var(--color-border-strong)]"
+            onChange={(event) => {
+              const nextThemeId = event.currentTarget.value;
+
+              if (isAppThemeId(nextThemeId)) {
+                onSelectTheme(nextThemeId);
+              }
+            }}
+            value={currentThemeId}
+          >
+            {availableThemes.map((themeOption) => {
+              return (
+                <option key={themeOption.id} value={themeOption.id}>
+                  {themeOption.label}
+                </option>
+              );
+            })}
+          </select>
+        </label>
       </div>
     </aside>
   );

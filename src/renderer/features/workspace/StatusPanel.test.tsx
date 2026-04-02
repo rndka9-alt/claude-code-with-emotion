@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
+import { APP_THEME_OPTIONS } from '../../../shared/theme';
 import { StatusPanel } from './StatusPanel';
 import type { StatusPanelVisual } from './status-panel-visual';
 
@@ -37,8 +38,11 @@ describe('StatusPanel', () => {
     render(
       <StatusPanel
         assistantStatus={assistantStatus}
+        availableThemes={APP_THEME_OPTIONS}
+        currentThemeId="current-dark"
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        onSelectTheme={() => {}}
         statusLine="(자료를 찾는 중)"
         statusVisual={statusVisual}
       />,
@@ -54,8 +58,11 @@ describe('StatusPanel', () => {
     const { container } = render(
       <StatusPanel
         assistantStatus={assistantStatus}
+        availableThemes={APP_THEME_OPTIONS}
+        currentThemeId="current-dark"
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        onSelectTheme={() => {}}
         statusLine="(자료를 찾는 중)"
         statusVisual={null}
       />,
@@ -72,8 +79,11 @@ describe('StatusPanel', () => {
           overlayLine: '문제를 좀 더 파볼게요!',
           line: '문제를 좀 더 파볼게요!',
         }}
+        availableThemes={APP_THEME_OPTIONS}
+        currentThemeId="current-dark"
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        onSelectTheme={() => {}}
         statusLine="문제를 좀 더 파볼게요! (자료를 찾는 중)"
         statusVisual={null}
       />,
@@ -91,8 +101,11 @@ describe('StatusPanel', () => {
           ...assistantStatus,
           state: 'disconnected',
         }}
+        availableThemes={APP_THEME_OPTIONS}
+        currentThemeId="current-dark"
         onLaunchClaude={() => {}}
         onOpenAssetManager={() => {}}
+        onSelectTheme={() => {}}
         statusLine="(자료를 찾는 중)"
         statusVisual={null}
       />,
@@ -103,5 +116,24 @@ describe('StatusPanel', () => {
         name: '실행하기',
       }),
     ).toBeInTheDocument();
+  });
+
+  it('renders the theme preset selector', () => {
+    render(
+      <StatusPanel
+        assistantStatus={assistantStatus}
+        availableThemes={APP_THEME_OPTIONS}
+        currentThemeId="gruvbox-dark"
+        onLaunchClaude={() => {}}
+        onOpenAssetManager={() => {}}
+        onSelectTheme={() => {}}
+        statusLine="(자료를 찾는 중)"
+        statusVisual={null}
+      />,
+    );
+
+    expect(screen.getByRole('combobox', { name: 'App theme' })).toHaveValue(
+      'gruvbox-dark',
+    );
   });
 });
