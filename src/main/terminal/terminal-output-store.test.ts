@@ -30,20 +30,20 @@ describe('TerminalOutputStore', () => {
     }
   });
 
-  it('trims the stored output to the configured max length', () => {
+  it('trims the stored output to the configured max line count', () => {
     const tempDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'claude-terminal-output-store-'),
     );
     const filePath = path.join(tempDir, 'session-1.log');
-    const store = new TerminalOutputStore(filePath, 5);
+    const store = new TerminalOutputStore(filePath, 2);
 
     try {
       store.reset();
-      store.append('hello');
-      store.append(' world');
+      store.append('line 1\nline');
+      store.append(' 2\nline 3\nline 4');
 
       expect(store.getSnapshot()).toEqual({
-        output: 'world',
+        output: 'line 2\nline 3\nline 4',
         version: 2,
       });
     } finally {

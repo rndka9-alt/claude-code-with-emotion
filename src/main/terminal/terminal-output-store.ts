@@ -1,37 +1,28 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { DEFAULT_TERMINAL_HISTORY_LINES } from '../../shared/terminal-history';
 
 export interface TerminalOutputSnapshot {
   output: string;
   version: number;
 }
 
-const DEFAULT_MAX_OUTPUT_CHARS = 200_000;
 const OUTPUT_FLUSH_DELAY_MS = 30;
 
-function trimOutputToMaxChars(
-  output: string,
-  maxChars: number,
-): string {
-  if (output.length <= maxChars) {
-    return output;
-  }
-
-  return output.slice(output.length - maxChars);
-}
-
 export class TerminalOutputStore {
-  private output = '';
+  private completedLines: string[] = [];
+  private pendingOutput = '';
   private version = 0;
   private flushTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly filePath: string,
-    private readonly maxOutputChars: number = DEFAULT_MAX_OUTPUT_CHARS,
+    private readonly maxOutputLines: number = DEFAULT_TERMINAL_HISTORY_LINES,
   ) {}
 
   reset(): void {
-    this.output = '';
+    this.completedLines = [];
+    this.pendingOutput = '';
     this.version = 0;
     this.flushSync();
   }
@@ -41,10 +32,22 @@ export class TerminalOutputStore {
       return this.version;
     }
 
-    this.output = trimOutputToMaxChars(
-      `${this.output}${data}`,
-      this.maxOutputChars,
-    );
+    const nextOutput = `${this.pendingOutput}${data}`;
+    let nextLineStartIndex = 0;
+    let newlineIndex = nextOutput.indexOf('\n');
+
+    while (newlineIndex !== -1) {
+      this.completedLines.push(nextOutput.slice(nextLineStartIndex, newlineIndex + 1));
+      nextLineStartIndex = newlineIndex + 1;
+      newlineIndex = nextOutput.indexOf('\n', nextLineStartIndex);
+    }
+
+    this.pendingOutput = nextOutput.slice(nextLineStartIndex);
+
+    if (this.maxOutputLines >= 0 && this.completedLines.length > this.maxOutputLines) {
+      this.completedLines.splice(0, this.completedLines.length - this.maxOutputLines);
+    }
+
     this.version += 1;
     this.scheduleFlush();
 
@@ -53,7 +56,7 @@ export class TerminalOutputStore {
 
   getSnapshot(): TerminalOutputSnapshot {
     return {
-      output: this.output,
+      output: `${this.completedLines.join('')}${this.pendingOutput}`,
       version: this.version,
     };
   }
@@ -80,6 +83,6 @@ export class TerminalOutputStore {
 
   private flushSync(): void {
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-    fs.writeFileSync(this.filePath, this.output, 'utf8');
+    fs.writeFileSync(this.filePath, this.getSnapshot().output, 'utf8');
   }
 }

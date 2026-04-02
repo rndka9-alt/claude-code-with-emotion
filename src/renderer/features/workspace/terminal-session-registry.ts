@@ -1,5 +1,6 @@
 import { Terminal } from '@xterm/xterm';
 import type { TerminalOutputEvent } from '../../../shared/terminal-bridge';
+import { DEFAULT_TERMINAL_HISTORY_LINES } from '../../../shared/terminal-history';
 import type { SessionTab } from './model';
 import { handleTerminalShortcut } from './terminal-keyboard';
 
@@ -190,6 +191,7 @@ function createTerminalSessionController(
     fontFamily: '"SF Mono", "Menlo", monospace',
     fontSize: 13,
     lineHeight: 1.3,
+    scrollback: DEFAULT_TERMINAL_HISTORY_LINES,
     theme: {
       background: '#0b1019',
       foreground: '#f4f7ff',

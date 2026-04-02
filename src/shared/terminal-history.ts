@@ -1,0 +1,1 @@
+export const DEFAULT_TERMINAL_HISTORY_LINES = 3_000;
