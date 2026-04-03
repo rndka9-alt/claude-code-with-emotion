@@ -378,6 +378,21 @@ function registerTerminalBridge(
   ipcMain.handle(VISUAL_ASSET_CHANNELS.printAvailableOptions, () => {
     return visualAssetStore.getAvailableOptions();
   });
+  ipcMain.handle(
+    VISUAL_ASSET_CHANNELS.importFiles,
+    (_event, filePaths: ReadonlyArray<string>) => {
+      const nextFilePaths = filePaths.filter((filePath) => {
+        return typeof filePath === 'string' && filePath.length > 0;
+      });
+
+      runtimeLog.write(
+        'visual-assets',
+        `import requested files=${nextFilePaths.length}`,
+      );
+
+      return visualAssetStore.importFiles(nextFilePaths);
+    },
+  );
   ipcMain.handle(APP_THEME_CHANNELS.getSelection, () => {
     return themeStore.getSelection();
   });

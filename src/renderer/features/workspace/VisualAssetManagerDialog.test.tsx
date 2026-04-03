@@ -20,6 +20,7 @@ describe('VisualAssetManagerDialog', () => {
         mcpSetupError={null}
         mcpSetupInstalled={false}
         onClose={() => {}}
+        onDropFiles={() => {}}
         onInstallVisualMcp={() => {}}
         onPickFiles={() => {}}
         onRemoveAsset={() => {}}
@@ -47,6 +48,8 @@ describe('VisualAssetManagerDialog', () => {
     expect(
       screen.getByRole('button', { name: 'Add Images' }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText('Image drop zone')).toBeInTheDocument();
+    expect(screen.getByText('working__happy.png')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: '상태 텍스트' }));
 
@@ -59,5 +62,52 @@ describe('VisualAssetManagerDialog', () => {
     expect(
       screen.getByRole('button', { name: 'Disconnected 상태 설명 보기' }),
     ).toBeInTheDocument();
+  });
+
+  it('imports dropped image paths from the asset drop zone', () => {
+    const onDropFiles = vi.fn();
+    const droppedFile = new File(['image'], 'working__happy.png', {
+      type: 'image/png',
+    });
+
+    Object.defineProperty(droppedFile, 'path', {
+      value: '/tmp/working__happy.png',
+    });
+
+    render(
+      <VisualAssetManagerDialog
+        availableThemes={[{ id: 'current-dark', label: 'Current Dark' }]}
+        catalog={{
+          version: 1,
+          assets: [],
+          mappings: [],
+          stateLines: [],
+        }}
+        currentThemeId="current-dark"
+        isInstallingVisualMcp={false}
+        mcpSetupError={null}
+        mcpSetupInstalled={false}
+        onClose={() => {}}
+        onDropFiles={onDropFiles}
+        onInstallVisualMcp={() => {}}
+        onPickFiles={() => {}}
+        onRemoveAsset={() => {}}
+        onSelectTheme={() => {}}
+        onSetDefaultAsset={() => {}}
+        onSetStateLine={() => {}}
+        onToggleEmotion={() => {}}
+        onToggleState={() => {}}
+        onToggleStateEmotion={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: '감정 에셋' }));
+    fireEvent.drop(screen.getByLabelText('Image drop zone'), {
+      dataTransfer: {
+        files: [droppedFile],
+      },
+    });
+
+    expect(onDropFiles).toHaveBeenCalledWith(['/tmp/working__happy.png']);
   });
 });

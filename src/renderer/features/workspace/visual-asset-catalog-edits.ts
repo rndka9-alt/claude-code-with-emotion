@@ -4,13 +4,130 @@ import {
   type VisualAssetRecord,
 } from '../../../shared/visual-assets';
 import {
+  EMOTION_PRESETS,
+  STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
 } from '../../../shared/visual-presets';
 import type { VisualAssetPickerFile } from '../../../shared/visual-assets-bridge';
 
+interface AutoVisualAssetAssignment {
+  emotion?: VisualEmotionPresetId;
+  isDefault: boolean;
+  state?: VisualStatePresetId;
+}
+
+const visualAssetFilenameExtensionPattern = /\.[^.]+$/;
+
 function createVisualAssetId(): string {
   return `visual-asset-${crypto.randomUUID()}`;
+}
+
+function normalizeVisualAssetFilenameToken(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[_\-\s]+/g, ' ')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function createPresetAliasMap<TPresetId extends string>(
+  entries: ReadonlyArray<{
+    id: TPresetId;
+    label: string;
+  }>,
+): Map<string, TPresetId> {
+  const aliasMap = new Map<string, TPresetId>();
+
+  for (const entry of entries) {
+    aliasMap.set(normalizeVisualAssetFilenameToken(entry.id), entry.id);
+    aliasMap.set(normalizeVisualAssetFilenameToken(entry.label), entry.id);
+  }
+
+  return aliasMap;
+}
+
+const stateFilenameAliasMap = createPresetAliasMap(
+  STATE_PRESETS.map((preset) => {
+    return {
+      id: preset.id,
+      label: preset.label,
+    };
+  }),
+);
+
+const emotionFilenameAliasMap = createPresetAliasMap(
+  EMOTION_PRESETS.filter((preset) => preset.id !== 'neutral').map((preset) => {
+    return {
+      id: preset.id,
+      label: preset.label,
+    };
+  }),
+);
+
+function parseVisualAssetFilenameAssignment(
+  label: string,
+): AutoVisualAssetAssignment | null {
+  const segments = label
+    .replace(visualAssetFilenameExtensionPattern, '')
+    .split(/__+/)
+    .map((segment) => normalizeVisualAssetFilenameToken(segment))
+    .filter((segment) => segment.length > 0);
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  const states = new Set<VisualStatePresetId>();
+  const emotions = new Set<VisualEmotionPresetId>();
+  let isDefault = false;
+
+  for (const segment of segments) {
+    if (segment === 'default') {
+      isDefault = true;
+      continue;
+    }
+
+    const matchedState = stateFilenameAliasMap.get(segment);
+
+    if (matchedState !== undefined) {
+      states.add(matchedState);
+      continue;
+    }
+
+    const matchedEmotion = emotionFilenameAliasMap.get(segment);
+
+    if (matchedEmotion !== undefined) {
+      emotions.add(matchedEmotion);
+    }
+  }
+
+  if (states.size > 1 || emotions.size > 1) {
+    return isDefault ? { isDefault } : null;
+  }
+
+  const [state] = states;
+  const [emotion] = emotions;
+
+  if (!isDefault && state === undefined && emotion === undefined) {
+    return null;
+  }
+
+  const assignment: AutoVisualAssetAssignment = {
+    isDefault,
+  };
+
+  if (state !== undefined) {
+    assignment.state = state;
+  }
+
+  if (emotion !== undefined) {
+    assignment.emotion = emotion;
+  }
+
+  return assignment;
 }
 
 function hasStateOnlyMapping(
@@ -50,31 +167,122 @@ function hasStateAndEmotionMapping(
   );
 }
 
+function removeMatchingStateOnlyMappings(
+  mappings: ReadonlyArray<VisualAssetMapping>,
+  state: VisualStatePresetId,
+): VisualAssetMapping[] {
+  return mappings.filter((mapping) => {
+    return !(mapping.state === state && mapping.emotion === undefined);
+  });
+}
+
+function removeMatchingEmotionOnlyMappings(
+  mappings: ReadonlyArray<VisualAssetMapping>,
+  emotion: VisualEmotionPresetId,
+): VisualAssetMapping[] {
+  return mappings.filter((mapping) => {
+    return !(mapping.state === undefined && mapping.emotion === emotion);
+  });
+}
+
+function removeMatchingStateEmotionMappings(
+  mappings: ReadonlyArray<VisualAssetMapping>,
+  state: VisualStatePresetId,
+  emotion: VisualEmotionPresetId,
+): VisualAssetMapping[] {
+  return mappings.filter((mapping) => {
+    return !(mapping.state === state && mapping.emotion === emotion);
+  });
+}
+
 export function mergePickedVisualAssets(
   catalog: VisualAssetCatalog,
   files: ReadonlyArray<VisualAssetPickerFile>,
   createId: () => string = createVisualAssetId,
 ): VisualAssetCatalog {
   const knownPaths = new Set(catalog.assets.map((asset) => asset.path));
-  const nextAssets: VisualAssetRecord[] = [...catalog.assets];
+  let nextAssets: VisualAssetRecord[] = [...catalog.assets];
+  let nextMappings: VisualAssetMapping[] = [...catalog.mappings];
 
   for (const file of files) {
     if (knownPaths.has(file.path)) {
       continue;
     }
 
-    nextAssets.push({
-      id: createId(),
-      kind: 'image',
-      label: file.label,
-      path: file.path,
-    });
+    const nextAssetId = createId();
+    const filenameAssignment = parseVisualAssetFilenameAssignment(file.label);
+
+    nextAssets = [
+      ...nextAssets,
+      {
+        id: nextAssetId,
+        kind: 'image',
+        label: file.label,
+        path: file.path,
+      },
+    ];
+
+    if (filenameAssignment?.isDefault === true) {
+      nextAssets = nextAssets.map((asset) => {
+        if (asset.id === nextAssetId) {
+          return {
+            ...asset,
+            isDefault: true,
+          };
+        }
+
+        if (asset.isDefault === true) {
+          return {
+            ...asset,
+            isDefault: false,
+          };
+        }
+
+        return asset;
+      });
+    }
+
+    if (
+      filenameAssignment?.state !== undefined &&
+      filenameAssignment.emotion !== undefined
+    ) {
+      nextMappings = removeMatchingStateEmotionMappings(
+        nextMappings,
+        filenameAssignment.state,
+        filenameAssignment.emotion,
+      );
+      nextMappings.push({
+        assetId: nextAssetId,
+        emotion: filenameAssignment.emotion,
+        state: filenameAssignment.state,
+      });
+    } else if (filenameAssignment?.state !== undefined) {
+      nextMappings = removeMatchingStateOnlyMappings(
+        nextMappings,
+        filenameAssignment.state,
+      );
+      nextMappings.push({
+        assetId: nextAssetId,
+        state: filenameAssignment.state,
+      });
+    } else if (filenameAssignment?.emotion !== undefined) {
+      nextMappings = removeMatchingEmotionOnlyMappings(
+        nextMappings,
+        filenameAssignment.emotion,
+      );
+      nextMappings.push({
+        assetId: nextAssetId,
+        emotion: filenameAssignment.emotion,
+      });
+    }
+
     knownPaths.add(file.path);
   }
 
   return {
     ...catalog,
     assets: nextAssets,
+    mappings: nextMappings,
   };
 }
 

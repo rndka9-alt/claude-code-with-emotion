@@ -7,6 +7,9 @@ import type { VisualAssetPickerFile } from '../../../shared/visual-assets-bridge
 
 export interface VisualAssetCatalogViewModel {
   catalog: VisualAssetCatalog;
+  importFiles: (
+    filePaths: ReadonlyArray<string>,
+  ) => Promise<VisualAssetPickerFile[]>;
   pickFiles: () => Promise<VisualAssetPickerFile[]>;
   saveCatalog: (catalog: VisualAssetCatalog) => Promise<VisualAssetCatalog>;
 }
@@ -42,6 +45,13 @@ export function useVisualAssetCatalog(): VisualAssetCatalogViewModel {
 
   return {
     catalog,
+    importFiles: async (filePaths) => {
+      if (bridge === undefined || filePaths.length === 0) {
+        return [];
+      }
+
+      return bridge.importFiles(filePaths);
+    },
     pickFiles: async () => {
       if (bridge === undefined) {
         return [];

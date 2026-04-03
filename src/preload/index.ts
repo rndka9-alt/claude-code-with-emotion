@@ -153,6 +153,9 @@ const claudeAppApi: ClaudeAppApi = {
     getCatalog: () => {
       return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.getCatalog);
     },
+    importFiles: (filePaths) => {
+      return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.importFiles, filePaths);
+    },
     onCatalog: (listener) => {
       const subscription = (
         _event: IpcRendererEvent,

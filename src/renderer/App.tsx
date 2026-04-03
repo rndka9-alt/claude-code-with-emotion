@@ -18,6 +18,7 @@ export function App(): ReactElement {
     currentThemeId,
     createTab,
     dismissMcpSetupPrompt,
+    dropVisualAssets,
     handleLaunchClaude,
     isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
@@ -136,6 +137,7 @@ export function App(): ReactElement {
           mcpSetupError={mcpSetupError}
           mcpSetupInstalled={mcpSetupStatus?.installed ?? true}
           onClose={closeSettingsDialog}
+          onDropFiles={dropVisualAssets}
           onInstallVisualMcp={installVisualMcp}
           onPickFiles={pickVisualAssets}
           onRemoveAsset={removeAsset}

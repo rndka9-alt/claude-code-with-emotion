@@ -43,6 +43,164 @@ describe('visual asset catalog edits', () => {
     ]);
   });
 
+  it('auto-maps imported assets from filename rules and updates conflicting slots', () => {
+    const catalog = mergePickedVisualAssets(
+      {
+        version: 1,
+        assets: [
+          {
+            id: 'asset-default-old',
+            isDefault: true,
+            kind: 'image',
+            label: 'Default',
+            path: '/tmp/default-old.png',
+          },
+          {
+            id: 'asset-working-old',
+            kind: 'image',
+            label: 'Working Old',
+            path: '/tmp/working-old.png',
+          },
+        ],
+        mappings: [
+          {
+            assetId: 'asset-working-old',
+            state: 'working',
+          },
+        ],
+        stateLines: [],
+      },
+      [
+        {
+          label: 'working.png',
+          path: '/tmp/working.png',
+        },
+        {
+          label: 'happy.png',
+          path: '/tmp/happy.png',
+        },
+        {
+          label: 'working__happy.png',
+          path: '/tmp/working__happy.png',
+        },
+        {
+          label: 'default__fallback.png',
+          path: '/tmp/default__fallback.png',
+        },
+      ],
+      (() => {
+        const ids = [
+          'asset-working-new',
+          'asset-happy-new',
+          'asset-working-happy-new',
+          'asset-default-new',
+        ];
+
+        return () => {
+          const nextId = ids.shift();
+
+          if (nextId === undefined) {
+            throw new Error('Expected another visual asset id');
+          }
+
+          return nextId;
+        };
+      })(),
+    );
+
+    expect(catalog.assets).toEqual([
+      {
+        id: 'asset-default-old',
+        isDefault: false,
+        kind: 'image',
+        label: 'Default',
+        path: '/tmp/default-old.png',
+      },
+      {
+        id: 'asset-working-old',
+        kind: 'image',
+        label: 'Working Old',
+        path: '/tmp/working-old.png',
+      },
+      {
+        id: 'asset-working-new',
+        kind: 'image',
+        label: 'working.png',
+        path: '/tmp/working.png',
+      },
+      {
+        id: 'asset-happy-new',
+        kind: 'image',
+        label: 'happy.png',
+        path: '/tmp/happy.png',
+      },
+      {
+        id: 'asset-working-happy-new',
+        kind: 'image',
+        label: 'working__happy.png',
+        path: '/tmp/working__happy.png',
+      },
+      {
+        id: 'asset-default-new',
+        isDefault: true,
+        kind: 'image',
+        label: 'default__fallback.png',
+        path: '/tmp/default__fallback.png',
+      },
+    ]);
+    expect(catalog.mappings).toEqual([
+      {
+        assetId: 'asset-working-new',
+        state: 'working',
+      },
+      {
+        assetId: 'asset-happy-new',
+        emotion: 'happy',
+      },
+      {
+        assetId: 'asset-working-happy-new',
+        state: 'working',
+        emotion: 'happy',
+      },
+    ]);
+  });
+
+  it('ignores ambiguous filename matches', () => {
+    const catalog = mergePickedVisualAssets(
+      {
+        version: 1,
+        assets: [],
+        mappings: [],
+        stateLines: [],
+      },
+      [
+        {
+          label: 'working__idle.png',
+          path: '/tmp/working__idle.png',
+        },
+        {
+          label: 'happy__sad.png',
+          path: '/tmp/happy__sad.png',
+        },
+      ],
+      (() => {
+        const ids = ['asset-a', 'asset-b'];
+
+        return () => {
+          const nextId = ids.shift();
+
+          if (nextId === undefined) {
+            throw new Error('Expected another visual asset id');
+          }
+
+          return nextId;
+        };
+      })(),
+    );
+
+    expect(catalog.mappings).toEqual([]);
+  });
+
   it('keeps only one default asset at a time', () => {
     const catalog = setVisualAssetDefault(
       {

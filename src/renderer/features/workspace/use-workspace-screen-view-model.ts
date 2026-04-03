@@ -6,6 +6,7 @@ import type {
   VisualEmotionPresetId,
   VisualStatePresetId,
 } from '../../../shared/visual-presets';
+import type { VisualAssetPickerFile } from '../../../shared/visual-assets-bridge';
 import { getActiveTab, getVisibleTabs } from './model';
 import { formatStatusPanelLine } from './status-panel-line';
 import { resolveStatusPanelVisual } from './status-panel-visual';
@@ -84,6 +85,7 @@ export interface WorkspaceScreenViewModel {
   currentThemeId: AppThemeId;
   createTab: () => void;
   dismissMcpSetupPrompt: () => void;
+  dropVisualAssets: (filePaths: ReadonlyArray<string>) => void;
   handleLaunchClaude: () => void;
   isMcpSetupPromptDismissed: boolean;
   isInstallingVisualMcp: boolean;
@@ -173,6 +175,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   );
   const {
     catalog: visualAssetCatalog,
+    importFiles: importVisualAssetFiles,
     pickFiles: pickVisualAssetFiles,
     saveCatalog: saveVisualAssetCatalog,
   } = useVisualAssetCatalog();
@@ -245,6 +248,20 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     await saveVisualAssetCatalog(nextCatalog);
   };
 
+  const importVisualAssets = (
+    filesPromise: Promise<ReadonlyArray<VisualAssetPickerFile>>,
+  ): void => {
+    void filesPromise.then((importedFiles) => {
+      if (importedFiles.length === 0) {
+        return;
+      }
+
+      void persistVisualAssetCatalog(
+        mergePickedVisualAssets(visualAssetCatalog, importedFiles),
+      );
+    });
+  };
+
   const handleLaunchClaude = (): void => {
     if (activeTab === null) {
       return;
@@ -302,6 +319,9 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       setIsMcpSetupPromptDismissed(true);
       persistMcpSetupPromptDismissedPreference(true);
     },
+    dropVisualAssets: (filePaths) => {
+      importVisualAssets(importVisualAssetFiles(filePaths));
+    },
     handleLaunchClaude,
     isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
@@ -315,15 +335,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     paneSizes: state.paneSizes,
     terminalFocusRequestKey,
     pickVisualAssets: () => {
-      void pickVisualAssetFiles().then((pickedFiles) => {
-        if (pickedFiles.length === 0) {
-          return;
-        }
-
-        void persistVisualAssetCatalog(
-          mergePickedVisualAssets(visualAssetCatalog, pickedFiles),
-        );
-      });
+      importVisualAssets(pickVisualAssetFiles());
     },
     removeAsset: (assetId) => {
       void persistVisualAssetCatalog(

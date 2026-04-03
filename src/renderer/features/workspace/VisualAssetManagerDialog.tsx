@@ -1,4 +1,10 @@
-import { useEffect, useState, type ChangeEvent, type ReactElement } from 'react';
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+  type ReactElement,
+} from 'react';
 import { CircleHelp, ImagePlus, Wrench, Trash2, X } from 'lucide-react';
 import type { VisualAssetCatalog } from '../../../shared/visual-assets';
 import {
@@ -24,6 +30,7 @@ interface VisualAssetManagerDialogProps {
   mcpSetupError: string | null;
   mcpSetupInstalled: boolean;
   onClose: () => void;
+  onDropFiles: (filePaths: ReadonlyArray<string>) => void;
   onInstallVisualMcp: () => void;
   onPickFiles: () => void;
   onRemoveAsset: (assetId: string) => void;
@@ -49,6 +56,9 @@ interface VisualAssetManagerDialogProps {
 }
 
 type VisualAssetManagerTabId = 'general' | 'theme' | 'assets' | 'messages';
+type DroppedVisualAssetFile = File & {
+  path?: string;
+};
 
 const managerIconClassName = 'h-3.5 w-3.5';
 const managerActionButtonClassName =
@@ -61,6 +71,23 @@ const managerChipClassName =
   'inline-flex items-center gap-2 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-2.5 py-1.5 text-[var(--color-text-secondary)]';
 const managerInputClassName =
   'w-full border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-3 py-2.5 text-[var(--color-text-tooltip)] outline-none transition-colors duration-150 focus:border-[var(--color-border-strong)]';
+const visualAssetDropPathPattern = /\.(png|jpe?g|gif|webp)$/i;
+
+function getDroppedVisualAssetPaths(files: FileList | null): string[] {
+  return Array.from(files ?? []).flatMap((file) => {
+    const candidatePath = (file as DroppedVisualAssetFile).path;
+
+    if (
+      typeof candidatePath !== 'string' ||
+      candidatePath.length === 0 ||
+      !visualAssetDropPathPattern.test(candidatePath)
+    ) {
+      return [];
+    }
+
+    return [candidatePath];
+  });
+}
 
 function getManagerTabClassName(isActive: boolean): string {
   return [
@@ -195,6 +222,7 @@ export function VisualAssetManagerDialog({
   mcpSetupError,
   mcpSetupInstalled,
   onClose,
+  onDropFiles,
   onInstallVisualMcp,
   onPickFiles,
   onRemoveAsset,
@@ -206,6 +234,7 @@ export function VisualAssetManagerDialog({
   onToggleStateEmotion,
 }: VisualAssetManagerDialogProps): ReactElement {
   const [activeTab, setActiveTab] = useState<VisualAssetManagerTabId>('general');
+  const [isAssetDropActive, setIsAssetDropActive] = useState(false);
   const [stateLineDrafts, setStateLineDrafts] = useState<
     Record<VisualStatePresetId, string>
   >(() => createStateLineDrafts(catalog));
@@ -213,6 +242,27 @@ export function VisualAssetManagerDialog({
   useEffect(() => {
     setStateLineDrafts(createStateLineDrafts(catalog));
   }, [catalog]);
+
+  const handleAssetDragLeave = (event: DragEvent<HTMLDivElement>): void => {
+    const nextTarget = event.relatedTarget;
+
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+
+    setIsAssetDropActive(false);
+  };
+
+  const handleAssetDrop = (event: DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    setIsAssetDropActive(false);
+
+    const filePaths = getDroppedVisualAssetPaths(event.dataTransfer.files);
+
+    if (filePaths.length > 0) {
+      onDropFiles(filePaths);
+    }
+  };
 
   return (
     <div
@@ -419,6 +469,33 @@ export function VisualAssetManagerDialog({
               <h3 className="m-0">Emotion Asset Mapping</h3>
               <p className={managerSectionCopyClassName}>
                 상태 preset이 기본 축이고, 감정 preset은 선택적으로 얹혀요.
+              </p>
+            </div>
+            <div
+              aria-label="Image drop zone"
+              className={[
+                'mb-4 border border-dashed px-4 py-3 transition-colors duration-150',
+                isAssetDropActive
+                  ? 'border-[var(--color-border-strong)] bg-[var(--color-surface-elevated-active)]'
+                  : 'border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)]',
+              ].join(' ')}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setIsAssetDropActive(true);
+              }}
+              onDragLeave={handleAssetDragLeave}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsAssetDropActive(true);
+              }}
+              onDrop={handleAssetDrop}
+            >
+              <p className="m-0 text-sm text-[var(--color-text-secondary)]">
+                이미지를 여기로 여러 장 드래그해서 바로 가져올 수 있어요.
+              </p>
+              <p className={managerSectionCopyClassName}>
+                자동 매칭 규칙: <code>working.png</code>, <code>happy.png</code>,{' '}
+                <code>working__happy.png</code>, <code>default__fallback.png</code>
               </p>
             </div>
             {catalog.assets.length === 0 ? (
