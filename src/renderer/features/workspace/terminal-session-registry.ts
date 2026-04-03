@@ -3,7 +3,6 @@ import type { TerminalOutputEvent } from '../../../shared/terminal-bridge';
 import { DEFAULT_TERMINAL_HISTORY_LINES } from '../../../shared/terminal-history';
 import { APP_THEME_FALLBACKS } from '../../../shared/theme';
 import type { SessionTab } from './model';
-import { handleTerminalShortcut } from './terminal-keyboard';
 
 interface TerminalSize {
   cols: number;
@@ -265,17 +264,6 @@ function createTerminalSessionController(
 
       applyOutputEvent(event);
     }) ?? (() => {});
-
-  terminal.attachCustomKeyEventHandler((event) =>
-    handleTerminalShortcut(event, (data) => {
-      if (bridge !== undefined) {
-        void bridge.sendInput({ sessionId: session.id, data });
-        return;
-      }
-
-      terminal.write('\r\n');
-    }),
-  );
 
   const inputSubscription = terminal.onData((data) => {
     if (bridge !== undefined) {

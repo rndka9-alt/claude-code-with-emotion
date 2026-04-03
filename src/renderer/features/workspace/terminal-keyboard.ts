@@ -1,5 +1,3 @@
-export const MULTILINE_TERMINAL_INPUT = '\x0a';
-
 export interface TerminalShortcutKeyEvent {
   altKey: boolean;
   ctrlKey: boolean;
@@ -11,19 +9,6 @@ export interface TerminalShortcutKeyEvent {
 }
 
 export type SessionNavigationDirection = 'previous' | 'next';
-
-export function shouldUseMultilineShortcut(
-  event: TerminalShortcutKeyEvent,
-): boolean {
-  return (
-    (event.type === undefined || event.type === 'keydown') &&
-    event.repeat !== true &&
-    event.key === 'Enter' &&
-    (event.shiftKey || event.altKey) &&
-    !event.ctrlKey &&
-    !event.metaKey
-  );
-}
 
 export function shouldCreateSessionShortcut(
   event: TerminalShortcutKeyEvent,
@@ -76,16 +61,4 @@ export function getSessionNavigationDirection(
   }
 
   return null;
-}
-
-export function handleTerminalShortcut(
-  event: TerminalShortcutKeyEvent,
-  sendData: (data: string) => void,
-): boolean {
-  if (!shouldUseMultilineShortcut(event)) {
-    return true;
-  }
-
-  sendData(MULTILINE_TERMINAL_INPUT);
-  return false;
 }
