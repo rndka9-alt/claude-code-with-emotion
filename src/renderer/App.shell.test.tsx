@@ -33,6 +33,40 @@ describe('App shell', () => {
     expect(screen.queryAllByRole('separator')).toHaveLength(0);
   });
 
+  it('collapses and re-expands the assistant status panel from its handle', () => {
+    render(<App />);
+
+    const handle = screen.getByRole('button', {
+      name: 'Collapse assistant status panel',
+    });
+    const statusPanel = document.getElementById('assistant-status-panel');
+
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+    expect(statusPanel).not.toHaveAttribute('hidden');
+
+    fireEvent.click(handle);
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Expand assistant status panel',
+      }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(statusPanel).toHaveAttribute('hidden');
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Expand assistant status panel',
+      }),
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Collapse assistant status panel',
+      }),
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(statusPanel).not.toHaveAttribute('hidden');
+  });
+
   it('runs claude in the active tab when disconnected launch button is clicked', async () => {
     const sendInput = vi.fn().mockResolvedValue(undefined);
     const { installDisconnectedClaudeApp } = await import(
