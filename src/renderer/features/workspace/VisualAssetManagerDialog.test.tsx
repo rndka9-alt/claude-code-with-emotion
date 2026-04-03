@@ -110,4 +110,40 @@ describe('VisualAssetManagerDialog', () => {
 
     expect(onDropFiles).toHaveBeenCalledWith(['/tmp/working__happy.png']);
   });
+
+  it('closes when Escape is pressed or the dim overlay is clicked', () => {
+    const onClose = vi.fn();
+
+    render(
+      <VisualAssetManagerDialog
+        availableThemes={[{ id: 'current-dark', label: 'Current Dark' }]}
+        catalog={{
+          version: 1,
+          assets: [],
+          mappings: [],
+          stateLines: [],
+        }}
+        currentThemeId="current-dark"
+        isInstallingVisualMcp={false}
+        mcpSetupError={null}
+        mcpSetupInstalled={false}
+        onClose={onClose}
+        onDropFiles={() => {}}
+        onInstallVisualMcp={() => {}}
+        onPickFiles={() => {}}
+        onRemoveAsset={() => {}}
+        onSelectTheme={() => {}}
+        onSetDefaultAsset={() => {}}
+        onSetStateLine={() => {}}
+        onToggleEmotion={() => {}}
+        onToggleState={() => {}}
+        onToggleStateEmotion={() => {}}
+      />,
+    );
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.mouseDown(screen.getByLabelText('Settings overlay'));
+
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
 });

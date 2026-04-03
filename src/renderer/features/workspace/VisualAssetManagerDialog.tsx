@@ -243,6 +243,20 @@ export function VisualAssetManagerDialog({
     setStateLineDrafts(createStateLineDrafts(catalog));
   }, [catalog]);
 
+  useEffect(() => {
+    const handleWindowKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleWindowKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleWindowKeyDown);
+    };
+  }, [onClose]);
+
   const handleAssetDragLeave = (event: DragEvent<HTMLDivElement>): void => {
     const nextTarget = event.relatedTarget;
 
@@ -267,7 +281,12 @@ export function VisualAssetManagerDialog({
   return (
     <div
       aria-label="Settings overlay"
-      className="fixed inset-0 flex items-center justify-center bg-[var(--color-surface-overlay)] p-6"
+      className="fixed inset-0 z-20 flex items-center justify-center bg-[var(--color-surface-overlay)] p-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
       role="presentation"
     >
       <div
