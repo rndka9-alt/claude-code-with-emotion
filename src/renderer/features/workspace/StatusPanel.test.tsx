@@ -86,9 +86,16 @@ describe('StatusPanel', () => {
       />,
     );
 
-    expect(
-      screen.getByText('문제를 좀 더 파볼게요! (자료를 찾는 중)'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('문제를 좀 더 파볼게요!')).toBeInTheDocument();
+
+    const suffix = screen.getByText((_content, element) => {
+      return (
+        element?.tagName === 'SPAN' &&
+        element.classList.contains('opacity-40') &&
+        element.textContent === ' (자료를 찾는 중)'
+      );
+    });
+    expect(suffix).toBeInTheDocument();
   });
 
   it('shows a launch button while disconnected', () => {

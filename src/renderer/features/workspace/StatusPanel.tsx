@@ -71,6 +71,20 @@ export function StatusPanel({
     orbClassNameByIntensity[assistantStatus.intensity],
   ].join(' ');
   const visibleLine = statusLine.length > 0 ? statusLine : assistantStatus.line;
+
+  // MCP 한마디(overlayLine)가 활성화된 경우 활동 라벨을 별도 span으로 분리해 투명도 적용
+  const hasOverlayLine =
+    typeof assistantStatus.overlayLine === 'string' &&
+    assistantStatus.overlayLine.trim().length > 0;
+  const overlayMainText = hasOverlayLine
+    ? assistantStatus.overlayLine!.trim()
+    : null;
+  const overlayActivitySuffix =
+    hasOverlayLine &&
+    typeof assistantStatus.activityLabel === 'string' &&
+    assistantStatus.activityLabel.trim().length > 0
+      ? assistantStatus.activityLabel.trim()
+      : null;
   const avatarClassName = [
     'group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]',
     isDisconnected
@@ -109,7 +123,7 @@ export function StatusPanel({
   return (
     <aside
       aria-label="Assistant status panel"
-      className="relative grid min-h-32 max-h-32 flex-none grid-cols-[112px_minmax(0,1fr)] items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28 max-[900px]:max-h-28 max-[900px]:grid-cols-[88px_minmax(0,1fr)]"
+      className="relative grid min-h-32 flex-none grid-cols-[112px_minmax(0,1fr)] items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28 max-[900px]:grid-cols-[88px_minmax(0,1fr)]"
     >
       <button
         aria-label="Open settings"
@@ -140,7 +154,19 @@ export function StatusPanel({
 
       <div className="flex min-w-0 flex-col justify-center gap-3">
         <p className="m-0 text-[1.08rem] text-[var(--color-text-highlight)]">
-          {visibleLine}
+          {overlayMainText !== null ? (
+            <>
+              {overlayMainText}
+              {overlayActivitySuffix !== null && (
+                <span className="opacity-40">
+                  {' '}
+                  ({overlayActivitySuffix})
+                </span>
+              )}
+            </>
+          ) : (
+            visibleLine
+          )}
         </p>
         {!mcpSetupInstalled ? (
           isMcpSetupPromptDismissed ? (
