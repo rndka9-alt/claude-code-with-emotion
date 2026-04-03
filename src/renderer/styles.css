@@ -129,9 +129,14 @@ button {
 
 .terminal-surface__viewport .xterm,
 .terminal-surface__viewport .xterm-viewport,
-.terminal-surface__viewport .xterm-screen,
-.terminal-surface__viewport .xterm-scroll-area {
+.terminal-surface__viewport .xterm-screen {
   width: 100% !important;
   height: 100% !important;
+  background: var(--color-surface-terminal-theme) !important;
+}
+
+/* Let xterm manage scrollback height itself; forcing 100% breaks scrolling after resizes. */
+.terminal-surface__viewport .xterm-scroll-area {
+  width: 100% !important;
   background: var(--color-surface-terminal-theme) !important;
 }
