@@ -53,7 +53,7 @@ export function TabBar({
   return (
     <header className="px-2 pt-1">
       <div
-        className="flex items-end gap-0.5 overflow-x-auto pb-0 data-[dragging=true]:cursor-grabbing"
+        className="scrollbar-hide flex items-end gap-0.5 overflow-x-auto pb-0 data-[dragging=true]:cursor-grabbing"
         aria-label="Terminal sessions"
         data-dragging={draggingTabId !== null}
         ref={stripRef}
