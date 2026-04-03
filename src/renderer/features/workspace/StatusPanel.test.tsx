@@ -110,6 +110,26 @@ describe('StatusPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('launches claude when the disconnected portrait is clicked', () => {
+    const onLaunchClaude = vi.fn();
+
+    render(
+      <StatusPanel
+        assistantStatus={{
+          ...assistantStatus,
+          state: 'disconnected',
+        }}
+        {...defaultProps}
+        onLaunchClaude={onLaunchClaude}
+        statusVisual={null}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '실행하기' }));
+
+    expect(onLaunchClaude).toHaveBeenCalledTimes(1);
+  });
+
   it('opens settings from the panel toolbar button', () => {
     const onOpenSettings = vi.fn();
 
