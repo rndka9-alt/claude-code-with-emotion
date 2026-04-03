@@ -124,7 +124,7 @@ export function StatusPanel({
         </p>
         {!mcpSetupInstalled ? (
           <div className="flex flex-col items-start gap-2">
-            <p className="m-0 text-[0.88rem] leading-5 text-[color:rgba(226,233,255,0.78)]">
+            <p className="m-0 text-[0.88rem] leading-5 text-[var(--color-text-secondary)]">
               Visual MCP를 쓰려면 Claude user-scope MCP 서버를 한 번 설치해야
               합니다.
             </p>

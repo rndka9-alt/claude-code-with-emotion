@@ -120,6 +120,11 @@ button {
 .terminal-surface__viewport > .terminal {
   flex: 1;
   height: 100%;
+  background: var(--color-surface-terminal-theme);
+}
+
+.terminal-surface__viewport .xterm {
+  background: var(--color-surface-terminal-theme);
 }
 
 .terminal-surface__viewport .xterm,
@@ -128,4 +133,5 @@ button {
 .terminal-surface__viewport .xterm-scroll-area {
   width: 100% !important;
   height: 100% !important;
+  background: var(--color-surface-terminal-theme) !important;
 }
