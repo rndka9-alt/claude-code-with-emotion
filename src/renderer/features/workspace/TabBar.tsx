@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement } from 'react';
+import { type CSSProperties, type ReactElement, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
 import type { SessionTab } from './model';
 import { useTabDragReorder } from './use-tab-drag-reorder';
@@ -49,6 +49,21 @@ export function TabBar({
     shouldSuppressClick,
     stripRef,
   } = useTabDragReorder(tabs, onReorderTab);
+
+  useEffect(() => {
+    const tab = document.getElementById(`tab-${activeTabId}`);
+    const strip = stripRef.current;
+    if (!tab || !strip) return;
+
+    const tabRect = tab.getBoundingClientRect();
+    const stripRect = strip.getBoundingClientRect();
+
+    if (tabRect.right > stripRect.right) {
+      strip.scrollTo({ left: strip.scrollLeft + tabRect.right - stripRect.right, behavior: 'smooth' });
+    } else if (tabRect.left < stripRect.left) {
+      strip.scrollTo({ left: strip.scrollLeft - (stripRect.left - tabRect.left), behavior: 'smooth' });
+    }
+  }, [activeTabId]);
 
   return (
     <header className="px-2 pt-1">

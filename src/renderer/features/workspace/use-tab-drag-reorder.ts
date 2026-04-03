@@ -95,7 +95,18 @@ export function useTabDragReorder(
 
   tabsRef.current = tabs;
 
+  const tabCountRef = useRef(tabs.length);
+
   useLayoutEffect(() => {
+    const prevCount = tabCountRef.current;
+    tabCountRef.current = tabs.length;
+
+    // 탭 추가/삭제 시에는 FLIP 애니메이션 불필요 — 순서 변경일 때만 실행
+    if (prevCount !== tabs.length) {
+      previousPositionsRef.current = new Map();
+      return;
+    }
+
     previousPositionsRef.current = animateReorderedTabs(
       tabs,
       tabElementsRef.current,
