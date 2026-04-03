@@ -26,6 +26,7 @@ export type VisualEmotionPresetId =
 
 export interface VisualStatePreset {
   category: 'state';
+  defaultLine: string;
   description: string;
   id: VisualStatePresetId;
   label: string;
@@ -53,6 +54,7 @@ export interface VisualSelection {
 export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   {
     category: 'state',
+    defaultLine: 'Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!',
     description: 'No Claude session is attached to the workspace yet.',
     id: 'disconnected',
     label: 'Disconnected',
@@ -60,6 +62,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '잠깐 숨 고르는 중이에요...!',
     description: 'Claude is connected but not doing anything visible right now.',
     id: 'idle',
     label: 'Idle',
@@ -67,6 +70,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '질문 읽고 흐름 잡는 중이에요...!',
     description: 'Claude is reading the prompt or planning the next move.',
     id: 'thinking',
     label: 'Thinking',
@@ -74,6 +78,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '손 움직이는 중이에요. 파일이랑 로그를 뒤져보는 중...!',
     description: 'Claude is actively using tools or making a concrete change.',
     id: 'working',
     label: 'Working',
@@ -81,6 +86,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '답변 정리해서 보내는 중이에요...!',
     description: 'Claude is composing or streaming a response back to the user.',
     id: 'responding',
     label: 'Responding',
@@ -88,6 +94,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '다음 입력이나 신호를 기다리는 중이에요.',
     description: 'Claude is paused and waiting for the next user action.',
     id: 'waiting',
     label: 'Waiting',
@@ -95,6 +102,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '권한 허용이 필요해서 여기서 잠깐 멈췃어요.',
     description: 'Claude is blocked on a permission prompt before tool work can continue.',
     id: 'permission_wait',
     label: 'Permission Wait',
@@ -102,6 +110,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '작업이 중간에 멈췃어요. 흐름 다시 잡아볼게요.',
     description: 'Claude work stopped because the user interrupted the current turn.',
     id: 'interrupted',
     label: 'Interrupted',
@@ -109,6 +118,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '작업 마무리 완료예요...!',
     description: 'A task or turn finished successfully and is now settling back down.',
     id: 'completed',
     label: 'Completed',
@@ -116,6 +126,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '오류가 나서 상태를 점검하는 중이에요.',
     description: 'Claude hit a terminal or hook-level error condition.',
     id: 'error',
     label: 'Error',
@@ -123,6 +134,7 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: 'state',
+    defaultLine: '툴이 한번 삐끗햇어요. 원인 다시 볼게요.',
     description: 'A tool attempt failed even though the broader session is still alive.',
     id: 'tool_failed',
     label: 'Tool Failed',
@@ -163,6 +175,13 @@ export function isVisualStatePresetId(value: string): boolean {
 
 export function isVisualEmotionPresetId(value: string): boolean {
   return EMOTION_PRESETS.some((preset) => preset.id === value);
+}
+
+export function getDefaultVisualStateLine(state: VisualStatePresetId): string {
+  return (
+    STATE_PRESETS.find((preset) => preset.id === state)?.defaultLine ??
+    '오류가 나서 상태를 점검하는 중이에요.'
+  );
 }
 
 /*

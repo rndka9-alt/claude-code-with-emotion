@@ -14,8 +14,10 @@ const baseSnapshot: AssistantStatusSnapshot = {
 };
 
 describe('formatStatusPanelLine', () => {
-  it('renders the hook-driven activity label by itself when no overlay line exists', () => {
-    expect(formatStatusPanelLine(baseSnapshot)).toBe('(자료를 찾는 중)');
+  it('renders the shared default state line in parentheses when no overlay line exists', () => {
+    expect(formatStatusPanelLine(baseSnapshot)).toBe(
+      '(질문 읽고 흐름 잡는 중이에요...!)',
+    );
   });
 
   it('combines a custom overlay line with the current activity label', () => {

@@ -3,6 +3,7 @@ import { CircleHelp, ImagePlus, Wrench, Trash2, X } from 'lucide-react';
 import type { VisualAssetCatalog } from '../../../shared/visual-assets';
 import {
   EMOTION_PRESETS,
+  getDefaultVisualStateLine,
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
@@ -183,47 +184,7 @@ function getSituationMessageDescription(state: VisualStatePresetId): string {
 }
 
 function getSituationMessagePlaceholder(state: VisualStatePresetId): string {
-  if (state === 'disconnected') {
-    return 'Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!';
-  }
-
-  if (state === 'idle') {
-    return '잠깐 숨 고르는 중이에요...!';
-  }
-
-  if (state === 'thinking') {
-    return '질문 읽고 흐름 잡는 중이에요...!';
-  }
-
-  if (state === 'working') {
-    return '손 움직이는 중이에요. 파일이랑 로그를 뒤져보는 중...!';
-  }
-
-  if (state === 'responding') {
-    return '답변 정리해서 보내는 중이에요...!';
-  }
-
-  if (state === 'waiting') {
-    return '다음 입력이나 신호를 기다리는 중이에요.';
-  }
-
-  if (state === 'permission_wait') {
-    return '권한 허용이 필요해서 여기서 잠깐 멈췃어요.';
-  }
-
-  if (state === 'interrupted') {
-    return '작업이 중간에 멈췃어요. 흐름 다시 잡아볼게요.';
-  }
-
-  if (state === 'completed') {
-    return '작업 마무리 완료예요...!';
-  }
-
-  if (state === 'tool_failed') {
-    return '툴이 한번 삐끗햇어요. 원인 다시 볼게요.';
-  }
-
-  return '오류가 나서 상태를 점검하는 중이에요.';
+  return getDefaultVisualStateLine(state);
 }
 
 export function VisualAssetManagerDialog({

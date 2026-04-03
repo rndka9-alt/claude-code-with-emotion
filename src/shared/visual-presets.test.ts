@@ -1,6 +1,7 @@
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
+  getDefaultVisualStateLine,
   normalizeAssistantVisualSelection,
   normalizeAssistantSemanticState,
 } from './visual-presets';
@@ -12,6 +13,9 @@ describe('visual presets', () => {
       STATE_PRESETS.some((preset) => preset.id === 'permission_wait'),
     ).toBe(true);
     expect(EMOTION_PRESETS.some((preset) => preset.id === 'happy')).toBe(true);
+    expect(getDefaultVisualStateLine('thinking')).toBe(
+      '질문 읽고 흐름 잡는 중이에요...!',
+    );
   });
 
   it('normalizes working states without adding an emotion', () => {
