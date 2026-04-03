@@ -4,6 +4,7 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  shell,
   type IpcMainEvent,
 } from 'electron';
 import fs from 'node:fs';
@@ -36,6 +37,7 @@ import {
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
 } from '../shared/diagnostics';
+import { LINKS_CHANNELS } from '../shared/links-bridge';
 import { MCP_SETUP_CHANNELS } from '../shared/mcp-setup-bridge';
 import {
   TERMINAL_CHANNELS,
@@ -65,6 +67,17 @@ const WINDOW_SIZE = {
   minWidth: 640,
   minHeight: 520,
 };
+const EXTERNAL_BROWSER_PROTOCOLS = new Set(['http:', 'https:']);
+
+function isExternalBrowserUrl(url: string): boolean {
+  try {
+    const protocol = new URL(url).protocol;
+
+    return EXTERNAL_BROWSER_PROTOCOLS.has(protocol);
+  } catch {
+    return false;
+  }
+}
 
 function getRendererEntry():
   | { kind: 'url'; value: string }
@@ -110,6 +123,21 @@ function createMainWindow(themeSelection: AppThemeSelection): BrowserWindow {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+  });
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isExternalBrowserUrl(url)) {
+      void shell.openExternal(url);
+    }
+
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!isExternalBrowserUrl(url)) {
+      return;
+    }
+
+    event.preventDefault();
+    void shell.openExternal(url);
   });
 
   return mainWindow;
@@ -352,6 +380,13 @@ function registerTerminalBridge(
   });
   ipcMain.handle(APP_THEME_CHANNELS.getSelection, () => {
     return themeStore.getSelection();
+  });
+  ipcMain.handle(LINKS_CHANNELS.openExternal, (_event, url: string) => {
+    if (!isExternalBrowserUrl(url)) {
+      throw new Error(`Unsupported external URL: ${url}`);
+    }
+
+    return shell.openExternal(url);
   });
   ipcMain.handle(
     APP_THEME_CHANNELS.saveSelection,

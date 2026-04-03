@@ -178,6 +178,34 @@ function createTerminalContainer(): HTMLDivElement {
   return container;
 }
 
+function isExternalBrowserHref(href: string): boolean {
+  try {
+    const protocol = new URL(href).protocol;
+
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function handleTerminalExternalBrowserClick(
+  event: Pick<MouseEvent, 'defaultPrevented' | 'preventDefault' | 'target'>,
+  openExternal: ((url: string) => Promise<void>) | undefined,
+): void {
+  if (event.defaultPrevented || !(event.target instanceof Element)) {
+    return;
+  }
+
+  const anchor = event.target.closest('a[href]');
+
+  if (!(anchor instanceof HTMLAnchorElement) || !isExternalBrowserHref(anchor.href)) {
+    return;
+  }
+
+  event.preventDefault();
+  void openExternal?.(anchor.href);
+}
+
 const terminalSessionControllers = new Map<string, TerminalSessionController>();
 let terminalParkingLot: HTMLDivElement | null = null;
 
@@ -224,6 +252,7 @@ function createTerminalTheme() {
 function createTerminalSessionController(
   session: SessionTab,
 ): TerminalSessionController {
+  const linksBridge = window.claudeApp?.links;
   const bridge = window.claudeApp?.terminals;
   const terminal = new Terminal({
     allowTransparency: true,
@@ -247,6 +276,9 @@ function createTerminalSessionController(
 
   const focusTerminal = (): void => {
     terminal.focus();
+  };
+  const handleTerminalLinkClick = (event: MouseEvent): void => {
+    handleTerminalExternalBrowserClick(event, linksBridge?.openExternal);
   };
   const syncTheme = (): void => {
     terminal.options.theme = createTerminalTheme();
@@ -403,6 +435,7 @@ function createTerminalSessionController(
       }
 
       host = nextHost;
+      host.addEventListener('click', handleTerminalLinkClick, true);
       host.addEventListener('mousedown', focusTerminal);
       host.addEventListener('touchstart', focusTerminal, { passive: true });
       requestFit('attach');
@@ -419,6 +452,7 @@ function createTerminalSessionController(
         return;
       }
 
+      host.removeEventListener('click', handleTerminalLinkClick, true);
       host.removeEventListener('mousedown', focusTerminal);
       host.removeEventListener('touchstart', focusTerminal);
       getParkingLot().append(container);

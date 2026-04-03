@@ -14,6 +14,7 @@ import {
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
 } from '../shared/diagnostics';
+import { LINKS_CHANNELS } from '../shared/links-bridge';
 import { MCP_SETUP_CHANNELS } from '../shared/mcp-setup-bridge';
 import {
   TERMINAL_CHANNELS,
@@ -85,6 +86,11 @@ const claudeAppApi: ClaudeAppApi = {
       return () => {
         ipcRenderer.removeListener(DIAGNOSTICS_CHANNELS.runtimeEvent, subscription);
       };
+    },
+  },
+  links: {
+    openExternal: (url) => {
+      return ipcRenderer.invoke(LINKS_CHANNELS.openExternal, url);
     },
   },
   mcpSetup: {

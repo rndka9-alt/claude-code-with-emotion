@@ -32,6 +32,9 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
       diagnostics: {
         onRuntimeEvent: vi.fn(() => () => {}),
       },
+      links: {
+        openExternal: vi.fn().mockResolvedValue(undefined),
+      },
       mcpSetup: {
         getStatus: vi.fn().mockResolvedValue({
           installed: false,

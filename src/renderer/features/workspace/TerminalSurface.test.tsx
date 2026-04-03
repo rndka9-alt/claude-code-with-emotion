@@ -1,6 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import type { TerminalOutputEvent } from '../../../shared/terminal-bridge';
 import { TerminalSurface } from './TerminalSurface';
+import { handleTerminalExternalBrowserClick } from './terminal-session-registry';
 
 const { MockTerminal, terminalInstances } = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
@@ -51,12 +52,18 @@ vi.mock('@xterm/xterm', () => {
 });
 
 describe('TerminalSurface', () => {
+  let openExternal: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     terminalInstances.length = 0;
+    openExternal = vi.fn().mockResolvedValue(undefined);
 
     Object.defineProperty(window, 'claudeApp', {
       configurable: true,
       value: {
+        links: {
+          openExternal,
+        },
         terminals: {
           bootstrapSession: vi.fn().mockResolvedValue({
             outputSnapshot: '',
@@ -70,6 +77,46 @@ describe('TerminalSurface', () => {
         },
       },
     });
+  });
+
+  it('opens terminal browser links through the Electron links bridge', () => {
+    const anchor = document.createElement('a');
+    const preventDefault = vi.fn();
+
+    anchor.href = 'http://localhost:3000';
+    anchor.textContent = 'Local app';
+
+    handleTerminalExternalBrowserClick(
+      {
+        defaultPrevented: false,
+        preventDefault,
+        target: anchor,
+      },
+      openExternal,
+    );
+
+    expect(openExternal).toHaveBeenCalledWith('http://localhost:3000/');
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores non-browser terminal links for now', () => {
+    const anchor = document.createElement('a');
+    const preventDefault = vi.fn();
+
+    anchor.href = 'intent://open/example';
+    anchor.textContent = 'Intent app';
+
+    handleTerminalExternalBrowserClick(
+      {
+        defaultPrevented: false,
+        preventDefault,
+        target: anchor,
+      },
+      openExternal,
+    );
+
+    expect(openExternal).not.toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 
   it('refocuses the terminal when the focus request key changes', () => {
