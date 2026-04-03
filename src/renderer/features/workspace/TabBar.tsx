@@ -104,7 +104,7 @@ export function TabBar({
               <button
                 aria-controls={`panel-${tab.id}`}
                 aria-selected={isActive}
-                className="relative flex w-full min-w-0 flex-1 cursor-grab select-none border border-b-0 border-[var(--tab-border)] bg-[var(--tab-background)] px-[14px] py-1.5 text-left text-[var(--tab-foreground)]"
+                className="relative flex w-full min-w-0 flex-1 cursor-grab select-none border border-b-0 border-[var(--tab-border)] bg-[var(--tab-background)] px-[14px] py-1.5 text-left text-[0.88rem] text-[var(--tab-foreground)]"
                 id={`tab-${tab.id}`}
                 style={tabToneStyle}
                 title={tab.title}
