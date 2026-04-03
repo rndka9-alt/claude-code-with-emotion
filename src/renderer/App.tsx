@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Grip } from 'lucide-react';
 import { useState, type ReactElement } from 'react';
 import { PaneStack } from './features/workspace/PaneStack';
 import { StatusPanel } from './features/workspace/StatusPanel';
@@ -47,6 +47,12 @@ export function App(): ReactElement {
   const statusPanelToggleLabel = isStatusPanelCollapsed
     ? 'Expand assistant status panel'
     : 'Collapse assistant status panel';
+  const statusPanelHandleClassName = [
+    'absolute top-0 left-1/2 z-10 inline-flex h-6 w-12 -translate-x-1/2 -translate-y-px items-center justify-center border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] text-[var(--color-text-subtle)] transition-[background-color,border-color,color] duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-highlight)]',
+    isStatusPanelCollapsed
+      ? 'rounded-[10px] shadow-[0_10px_24px_rgba(0,0,0,0.24)]'
+      : 'rounded-t-[10px] border-b-0',
+  ].join(' ');
 
   return (
     <div className="flex h-full min-h-full flex-col overflow-hidden bg-[var(--color-app-bg)]">
@@ -81,22 +87,24 @@ export function App(): ReactElement {
         </section>
 
         <div className="relative flex flex-none flex-col pt-3">
+          {isStatusPanelCollapsed ? null : (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-3 right-0 left-0 border-t border-[var(--color-border-panel)]"
+            />
+          )}
+
           <button
             aria-controls="assistant-status-panel"
             aria-expanded={!isStatusPanelCollapsed}
             aria-label={statusPanelToggleLabel}
-            className="absolute top-0 left-1/2 z-10 inline-flex h-7 -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-3 text-[0.68rem] font-medium tracking-[0.16em] text-[var(--color-text-subtle)] uppercase shadow-[0_10px_24px_rgba(0,0,0,0.28)] transition-[background-color,border-color,color,transform] duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-highlight)]"
+            className={statusPanelHandleClassName}
             onClick={() => {
               setIsStatusPanelCollapsed((currentValue) => !currentValue);
             }}
             type="button"
           >
-            {isStatusPanelCollapsed ? (
-              <ChevronUp aria-hidden="true" className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
-            )}
-            <span>Status</span>
+            <Grip aria-hidden="true" className="h-3.5 w-3.5" />
           </button>
 
           <div hidden={isStatusPanelCollapsed} id="assistant-status-panel">
