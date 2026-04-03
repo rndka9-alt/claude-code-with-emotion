@@ -50,6 +50,30 @@ function persistMcpSetupPromptDismissedPreference(isDismissed: boolean): void {
   }
 }
 
+function shouldRestoreTerminalFocus(activeElement: Element | null): boolean {
+  if (
+    activeElement === null ||
+    activeElement === document.body ||
+    activeElement === document.documentElement
+  ) {
+    return true;
+  }
+
+  if (!(activeElement instanceof HTMLElement)) {
+    return true;
+  }
+
+  if (activeElement.closest('[role="dialog"]') !== null) {
+    return false;
+  }
+
+  if (activeElement.isContentEditable) {
+    return false;
+  }
+
+  return !['INPUT', 'SELECT', 'TEXTAREA'].includes(activeElement.tagName);
+}
+
 export interface WorkspaceScreenViewModel {
   activateTab: (tabId: string) => void;
   activeTabId: string;
@@ -172,6 +196,48 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       setMcpSetupStatus(status);
     });
   }, []);
+
+  useEffect(() => {
+    let pendingRestoreTimerId: number | null = null;
+
+    const requestTerminalFocusRestore = (): void => {
+      if (
+        activeTab === null ||
+        isSettingsDialogOpen ||
+        document.visibilityState === 'hidden' ||
+        !shouldRestoreTerminalFocus(document.activeElement)
+      ) {
+        return;
+      }
+
+      if (pendingRestoreTimerId !== null) {
+        window.clearTimeout(pendingRestoreTimerId);
+      }
+
+      pendingRestoreTimerId = window.setTimeout(() => {
+        pendingRestoreTimerId = null;
+
+        if (
+          document.visibilityState === 'hidden' ||
+          !shouldRestoreTerminalFocus(document.activeElement)
+        ) {
+          return;
+        }
+
+        setTerminalFocusRequestKey((current) => current + 1);
+      }, 0);
+    };
+
+    window.addEventListener('focus', requestTerminalFocusRestore);
+
+    return () => {
+      window.removeEventListener('focus', requestTerminalFocusRestore);
+
+      if (pendingRestoreTimerId !== null) {
+        window.clearTimeout(pendingRestoreTimerId);
+      }
+    };
+  }, [activeTab, isSettingsDialogOpen]);
 
   const persistVisualAssetCatalog = async (
     nextCatalog: Parameters<typeof saveVisualAssetCatalog>[0],
