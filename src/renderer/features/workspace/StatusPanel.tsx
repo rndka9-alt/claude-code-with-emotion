@@ -1,24 +1,18 @@
 import type { CSSProperties, ReactElement } from 'react';
-import { Images } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
-import {
-  isAppThemeId,
-  type AppThemeId,
-  type AppThemeOption,
-} from '../../../shared/theme';
 import type { StatusPanelVisual } from './status-panel-visual';
 
 interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
-  availableThemes: AppThemeOption[];
-  currentThemeId: AppThemeId;
   isInstallingVisualMcp: boolean;
+  isMcpSetupPromptDismissed: boolean;
   mcpSetupError: string | null;
   mcpSetupInstalled: boolean;
+  onDismissMcpSetupPrompt: () => void;
   onInstallVisualMcp: () => void;
-  onOpenAssetManager: () => void;
   onLaunchClaude: () => void;
-  onSelectTheme: (themeId: AppThemeId) => void;
+  onOpenSettings: () => void;
   statusLine: string;
   statusVisual: StatusPanelVisual | null;
 }
@@ -54,15 +48,14 @@ type AvatarStyle = CSSProperties & {
 
 export function StatusPanel({
   assistantStatus,
-  availableThemes,
-  currentThemeId,
   isInstallingVisualMcp,
+  isMcpSetupPromptDismissed,
   mcpSetupError,
   mcpSetupInstalled,
+  onDismissMcpSetupPrompt,
   onInstallVisualMcp,
-  onOpenAssetManager,
   onLaunchClaude,
-  onSelectTheme,
+  onOpenSettings,
   statusLine,
   statusVisual,
 }: StatusPanelProps): ReactElement {
@@ -81,22 +74,22 @@ export function StatusPanel({
   return (
     <aside
       aria-label="Assistant status panel"
-      className="grid min-h-32 max-h-32 flex-none grid-cols-[112px_minmax(0,1fr)] items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28 max-[900px]:max-h-28 max-[900px]:grid-cols-[88px_minmax(0,1fr)]"
+      className="relative grid min-h-32 max-h-32 flex-none grid-cols-[112px_minmax(0,1fr)] items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28 max-[900px]:max-h-28 max-[900px]:grid-cols-[88px_minmax(0,1fr)]"
     >
+      <button
+        aria-label="Open settings"
+        className="absolute top-3 right-3 inline-flex h-7 w-7 items-center justify-center border border-[var(--color-border-overlay)] bg-[var(--color-surface-frost)] text-[var(--color-text-overlay)] transition-[background-color,color,border-color] duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-frost-strong)] hover:text-[var(--color-text-inverse)]"
+        onClick={onOpenSettings}
+        title="Open settings"
+        type="button"
+      >
+        <Wrench aria-hidden="true" className="h-[14px] w-[14px]" />
+      </button>
+
       <div
         className="group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]"
         style={avatarStyle}
       >
-        <button
-          aria-label="Open visual asset manager"
-          className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center border border-[var(--color-border-overlay)] bg-[var(--color-surface-frost)] text-[var(--color-text-overlay)] opacity-0 transition-[opacity,background-color,color] duration-150 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-[var(--color-surface-frost-strong)] hover:text-[var(--color-text-inverse)]"
-          onClick={onOpenAssetManager}
-          title="Customize status visuals"
-          type="button"
-        >
-          <Images aria-hidden="true" className="h-[13px] w-[13px]" />
-        </button>
-
         {statusVisual === null ? (
           <div aria-hidden="true" className={orbClassName} />
         ) : (
@@ -123,49 +116,50 @@ export function StatusPanel({
           {visibleLine}
         </p>
         {!mcpSetupInstalled ? (
-          <div className="flex flex-col items-start gap-2">
-            <p className="m-0 text-[0.88rem] leading-5 text-[var(--color-text-secondary)]">
-              Visual MCP를 쓰려면 Claude user-scope MCP 서버를 한 번 설치해야
-              합니다.
-            </p>
-            <button
-              className="inline-flex h-[26px] items-center justify-center border border-[var(--color-border-launch)] bg-[var(--color-surface-launch)] px-2.5 text-xs font-semibold tracking-[0.01em] text-[var(--color-text-tooltip)] transition-colors duration-150 hover:bg-[var(--color-surface-launch-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isInstallingVisualMcp}
-              onClick={onInstallVisualMcp}
-              type="button"
+          isMcpSetupPromptDismissed ? (
+            <div
+              className="flex items-start gap-2 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-3 py-2.5 text-[0.84rem] leading-5 text-[var(--color-text-secondary)]"
+              role="status"
             >
-              {isInstallingVisualMcp ? '설치중...' : 'Visual MCP 설치'}
-            </button>
-            {mcpSetupError !== null ? (
-              <p className="m-0 text-[0.82rem] leading-5 text-[#ffb4b4]">
-                {mcpSetupError}
+              <Wrench
+                aria-hidden="true"
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-text-accent)]"
+              />
+              <p className="m-0">
+                Visual MCP 설치는 오른쪽 위 스패너 아이콘 설정에서 할 수 있어요.
               </p>
-            ) : null}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-start gap-2">
+              <p className="m-0 text-[0.88rem] leading-5 text-[var(--color-text-secondary)]">
+                Visual MCP를 쓰려면 Claude user-scope MCP 서버를 한 번 설치해야
+                합니다.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className="inline-flex h-[26px] items-center justify-center border border-[var(--color-border-launch)] bg-[var(--color-surface-launch)] px-2.5 text-xs font-semibold tracking-[0.01em] text-[var(--color-text-tooltip)] transition-colors duration-150 hover:bg-[var(--color-surface-launch-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isInstallingVisualMcp}
+                  onClick={onInstallVisualMcp}
+                  type="button"
+                >
+                  {isInstallingVisualMcp ? '설치중...' : 'Visual MCP 설치'}
+                </button>
+                <button
+                  className="inline-flex h-[26px] items-center justify-center border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-2.5 text-xs font-medium tracking-[0.01em] text-[var(--color-text-secondary)] transition-colors duration-150 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-highlight)]"
+                  onClick={onDismissMcpSetupPrompt}
+                  type="button"
+                >
+                  다시 묻지 않기
+                </button>
+              </div>
+              {mcpSetupError !== null ? (
+                <p className="m-0 text-[0.82rem] leading-5 text-[#ffb4b4]">
+                  {mcpSetupError}
+                </p>
+              ) : null}
+            </div>
+          )
         ) : null}
-        <label className="flex items-center gap-2 text-xs text-[var(--color-text-subtle)]">
-          <span className="shrink-0 uppercase tracking-[0.08em]">Theme</span>
-          <select
-            aria-label="App theme"
-            className="min-w-0 flex-1 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-2.5 py-1.5 text-sm text-[var(--color-text-primary)] outline-none transition-colors duration-150 focus:border-[var(--color-border-strong)]"
-            onChange={(event) => {
-              const nextThemeId = event.currentTarget.value;
-
-              if (isAppThemeId(nextThemeId)) {
-                onSelectTheme(nextThemeId);
-              }
-            }}
-            value={currentThemeId}
-          >
-            {availableThemes.map((themeOption) => {
-              return (
-                <option key={themeOption.id} value={themeOption.id}>
-                  {themeOption.label}
-                </option>
-              );
-            })}
-          </select>
-        </label>
       </div>
     </aside>
   );

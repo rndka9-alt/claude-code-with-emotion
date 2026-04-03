@@ -92,7 +92,9 @@ describe('App shell', () => {
 
     render(<App />);
 
-    fireEvent.change(await screen.findByRole('combobox', { name: 'App theme' }), {
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
+    fireEvent.click(screen.getByRole('tab', { name: '테마' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'App theme' }), {
       target: { value: 'gruvbox-light' },
     });
 

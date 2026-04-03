@@ -23,22 +23,51 @@ import {
   setVisualAssetStateMapping,
 } from './visual-asset-catalog-edits';
 
+const MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY =
+  'claude-code-with-emotion:mcp-setup-prompt-dismissed';
+
+function readMcpSetupPromptDismissedPreference(): boolean {
+  try {
+    return window.localStorage.getItem(MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function persistMcpSetupPromptDismissedPreference(isDismissed: boolean): void {
+  try {
+    if (isDismissed) {
+      window.localStorage.setItem(
+        MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY,
+        'true',
+      );
+      return;
+    }
+
+    window.localStorage.removeItem(MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures and keep the in-memory preference.
+  }
+}
+
 export interface WorkspaceScreenViewModel {
   activateTab: (tabId: string) => void;
   activeTabId: string;
   availableThemes: AppThemeOption[];
   assistantSnapshot: AssistantStatusSnapshot;
-  closeAssetManager: () => void;
+  closeSettingsDialog: () => void;
   closeTab: (tabId: string) => void;
   currentThemeId: AppThemeId;
   createTab: () => void;
+  dismissMcpSetupPrompt: () => void;
   handleLaunchClaude: () => void;
-  isVisualAssetManagerOpen: boolean;
+  isMcpSetupPromptDismissed: boolean;
   isInstallingVisualMcp: boolean;
+  isSettingsDialogOpen: boolean;
   mcpSetupError: string | null;
   mcpSetupStatus: VisualMcpSetupStatus | null;
-  openAssetManager: () => void;
   installVisualMcp: () => void;
+  openSettingsDialog: () => void;
   pickVisualAssets: () => void;
   paneSizes: number[];
   terminalFocusRequestKey: number;
@@ -91,7 +120,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     setThemeId,
     themeOptions,
   } = useAppTheme();
-  const [isVisualAssetManagerOpen, setIsVisualAssetManagerOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isMcpSetupPromptDismissed, setIsMcpSetupPromptDismissed] = useState(() => {
+    return readMcpSetupPromptDismissedPreference();
+  });
   const [isInstallingVisualMcp, setIsInstallingVisualMcp] = useState(false);
   const [mcpSetupError, setMcpSetupError] = useState<string | null>(null);
   const [mcpSetupStatus, setMcpSetupStatus] = useState<VisualMcpSetupStatus | null>(
@@ -194,20 +226,25 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     activeTabId: state.activeTabId,
     availableThemes: themeOptions,
     assistantSnapshot,
-    closeAssetManager: () => {
-      setIsVisualAssetManagerOpen(false);
+    closeSettingsDialog: () => {
+      setIsSettingsDialogOpen(false);
     },
     closeTab,
     currentThemeId,
     createTab,
+    dismissMcpSetupPrompt: () => {
+      setIsMcpSetupPromptDismissed(true);
+      persistMcpSetupPromptDismissedPreference(true);
+    },
     handleLaunchClaude,
-    isVisualAssetManagerOpen,
+    isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
+    isSettingsDialogOpen,
     installVisualMcp,
     mcpSetupError,
     mcpSetupStatus,
-    openAssetManager: () => {
-      setIsVisualAssetManagerOpen(true);
+    openSettingsDialog: () => {
+      setIsSettingsDialogOpen(true);
     },
     paneSizes: state.paneSizes,
     terminalFocusRequestKey,

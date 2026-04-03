@@ -13,17 +13,19 @@ export function App(): ReactElement {
     activeTabId,
     availableThemes,
     assistantSnapshot,
-    closeAssetManager,
+    closeSettingsDialog,
     closeTab,
     currentThemeId,
     createTab,
+    dismissMcpSetupPrompt,
     handleLaunchClaude,
-    isVisualAssetManagerOpen,
+    isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
+    isSettingsDialogOpen,
     installVisualMcp,
     mcpSetupError,
     mcpSetupStatus,
-    openAssetManager,
+    openSettingsDialog,
     paneSizes,
     pickVisualAssets,
     removeAsset,
@@ -110,15 +112,14 @@ export function App(): ReactElement {
           <div hidden={isStatusPanelCollapsed} id="assistant-status-panel">
             <StatusPanel
               assistantStatus={assistantSnapshot}
-              currentThemeId={currentThemeId}
-              availableThemes={availableThemes}
               isInstallingVisualMcp={isInstallingVisualMcp}
+              isMcpSetupPromptDismissed={isMcpSetupPromptDismissed}
               mcpSetupError={mcpSetupError}
               mcpSetupInstalled={mcpSetupStatus?.installed ?? true}
+              onDismissMcpSetupPrompt={dismissMcpSetupPrompt}
               onInstallVisualMcp={installVisualMcp}
               onLaunchClaude={handleLaunchClaude}
-              onOpenAssetManager={openAssetManager}
-              onSelectTheme={setThemeId}
+              onOpenSettings={openSettingsDialog}
               statusLine={statusLine}
               statusVisual={statusVisual}
             />
@@ -126,12 +127,19 @@ export function App(): ReactElement {
         </div>
       </main>
 
-      {isVisualAssetManagerOpen ? (
+      {isSettingsDialogOpen ? (
         <VisualAssetManagerDialog
+          availableThemes={availableThemes}
           catalog={visualAssetCatalog}
-          onClose={closeAssetManager}
+          currentThemeId={currentThemeId}
+          isInstallingVisualMcp={isInstallingVisualMcp}
+          mcpSetupError={mcpSetupError}
+          mcpSetupInstalled={mcpSetupStatus?.installed ?? true}
+          onClose={closeSettingsDialog}
+          onInstallVisualMcp={installVisualMcp}
           onPickFiles={pickVisualAssets}
           onRemoveAsset={removeAsset}
+          onSelectTheme={setThemeId}
           onSetDefaultAsset={setDefaultAsset}
           onSetStateLine={setStateLine}
           onToggleEmotion={toggleEmotion}

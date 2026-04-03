@@ -32,6 +32,20 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
       diagnostics: {
         onRuntimeEvent: vi.fn(() => () => {}),
       },
+      mcpSetup: {
+        getStatus: vi.fn().mockResolvedValue({
+          installed: false,
+          stateFilePath: '/tmp/assistant-visual-mcp.json',
+        }),
+        install: vi.fn().mockResolvedValue({
+          installed: true,
+          stateFilePath: '/tmp/assistant-visual-mcp.json',
+        }),
+        remove: vi.fn().mockResolvedValue({
+          installed: false,
+          stateFilePath: '/tmp/assistant-visual-mcp.json',
+        }),
+      },
       terminals: {
         bootstrapSession: vi.fn().mockResolvedValue({ initialOutput: '' }),
         sendInput,

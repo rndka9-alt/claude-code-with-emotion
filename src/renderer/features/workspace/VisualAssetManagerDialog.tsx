@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type ReactElement } from 'react';
-import { CircleHelp, ImagePlus, Trash2, X } from 'lucide-react';
+import { CircleHelp, ImagePlus, Wrench, Trash2, X } from 'lucide-react';
 import type { VisualAssetCatalog } from '../../../shared/visual-assets';
 import {
   EMOTION_PRESETS,
@@ -7,13 +7,26 @@ import {
   type VisualEmotionPresetId,
   type VisualStatePresetId,
 } from '../../../shared/visual-presets';
+import {
+  APP_THEME_PRESETS,
+  isAppThemeId,
+  type AppThemeId,
+  type AppThemeOption,
+} from '../../../shared/theme';
 import { createStatusPanelAssetUrl } from './status-panel-visual';
 
 interface VisualAssetManagerDialogProps {
+  availableThemes: AppThemeOption[];
   catalog: VisualAssetCatalog;
+  currentThemeId: AppThemeId;
+  isInstallingVisualMcp: boolean;
+  mcpSetupError: string | null;
+  mcpSetupInstalled: boolean;
   onClose: () => void;
+  onInstallVisualMcp: () => void;
   onPickFiles: () => void;
   onRemoveAsset: (assetId: string) => void;
+  onSelectTheme: (themeId: AppThemeId) => void;
   onSetDefaultAsset: (assetId: string, isDefault: boolean) => void;
   onSetStateLine: (state: VisualStatePresetId, line: string) => void;
   onToggleEmotion: (
@@ -34,7 +47,7 @@ interface VisualAssetManagerDialogProps {
   ) => void;
 }
 
-type VisualAssetManagerTabId = 'assets' | 'messages';
+type VisualAssetManagerTabId = 'general' | 'theme' | 'assets' | 'messages';
 
 const managerIconClassName = 'h-3.5 w-3.5';
 const managerActionButtonClassName =
@@ -214,17 +227,24 @@ function getSituationMessagePlaceholder(state: VisualStatePresetId): string {
 }
 
 export function VisualAssetManagerDialog({
+  availableThemes,
   catalog,
+  currentThemeId,
+  isInstallingVisualMcp,
+  mcpSetupError,
+  mcpSetupInstalled,
   onClose,
+  onInstallVisualMcp,
   onPickFiles,
   onRemoveAsset,
+  onSelectTheme,
   onSetDefaultAsset,
   onSetStateLine,
   onToggleEmotion,
   onToggleState,
   onToggleStateEmotion,
 }: VisualAssetManagerDialogProps): ReactElement {
-  const [activeTab, setActiveTab] = useState<VisualAssetManagerTabId>('assets');
+  const [activeTab, setActiveTab] = useState<VisualAssetManagerTabId>('general');
   const [stateLineDrafts, setStateLineDrafts] = useState<
     Record<VisualStatePresetId, string>
   >(() => createStateLineDrafts(catalog));
@@ -235,21 +255,21 @@ export function VisualAssetManagerDialog({
 
   return (
     <div
-      aria-label="Visual asset manager overlay"
+      aria-label="Settings overlay"
       className="fixed inset-0 flex items-center justify-center bg-[var(--color-surface-overlay)] p-6"
       role="presentation"
     >
       <div
-        aria-label="Visual asset manager"
+        aria-label="Settings"
         aria-modal="true"
         className="flex max-h-[min(720px,100%)] w-[min(1080px,100%)] flex-col border border-[var(--color-border-muted)] bg-[var(--color-surface-dialog)] shadow-[var(--shadow-dialog)]"
         role="dialog"
       >
         <header className="flex items-start justify-between gap-5 border-b border-[var(--color-border-soft)] px-5 py-[18px]">
           <div>
-            <h2 className="m-0">Visual Assets</h2>
+            <h2 className="m-0">Settings</h2>
             <p className={managerSectionCopyClassName}>
-              상태 preset이 기본 축이에요. 감정 preset은 선택적으로 얹혀요.
+              테마, Visual MCP, 감정 에셋, 상태 텍스트를 한 군데서 만져요.
             </p>
           </div>
 
@@ -266,7 +286,7 @@ export function VisualAssetManagerDialog({
             ) : null}
 
             <button
-              aria-label="Close visual asset manager"
+              aria-label="Close settings"
               className={managerIconButtonClassName}
               onClick={onClose}
               type="button"
@@ -278,10 +298,36 @@ export function VisualAssetManagerDialog({
 
         <div className="overflow-auto px-5 pt-[18px] pb-5">
           <div
-            aria-label="Visual asset manager sections"
+            aria-label="Settings sections"
             className="mb-[18px] flex gap-2"
             role="tablist"
           >
+            <button
+              aria-controls="general-settings-panel"
+              aria-selected={activeTab === 'general'}
+              className={getManagerTabClassName(activeTab === 'general')}
+              id="general-settings-tab"
+              onClick={() => {
+                setActiveTab('general');
+              }}
+              role="tab"
+              type="button"
+            >
+              일반
+            </button>
+            <button
+              aria-controls="theme-settings-panel"
+              aria-selected={activeTab === 'theme'}
+              className={getManagerTabClassName(activeTab === 'theme')}
+              id="theme-settings-tab"
+              onClick={() => {
+                setActiveTab('theme');
+              }}
+              role="tab"
+              type="button"
+            >
+              테마
+            </button>
             <button
               aria-controls="visual-assets-panel"
               aria-selected={activeTab === 'assets'}
@@ -293,7 +339,7 @@ export function VisualAssetManagerDialog({
               role="tab"
               type="button"
             >
-              이미지 에셋
+              감정 에셋
             </button>
             <button
               aria-controls="situation-messages-panel"
@@ -306,9 +352,101 @@ export function VisualAssetManagerDialog({
               role="tab"
               type="button"
             >
-              상태 메시지
+              상태 텍스트
             </button>
           </div>
+
+          <section
+            aria-labelledby="general-settings-tab"
+            hidden={activeTab !== 'general'}
+            id="general-settings-panel"
+            role="tabpanel"
+          >
+            <section className="flex flex-col gap-3">
+              <div>
+                <h3 className="m-0">Visual MCP</h3>
+                <p className={managerSectionCopyClassName}>
+                  상태 오버레이랑 에셋 연동을 쓰려면 user-scope MCP 서버 설치가 필요해요.
+                </p>
+              </div>
+
+              {mcpSetupInstalled ? (
+                <div className="border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                  Visual MCP가 이미 설치대어 잇어요. 이쪽은 평화롭네요...!
+                </div>
+              ) : (
+                <div className="flex flex-col items-start gap-3 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-4 py-4">
+                  <div className="flex items-start gap-2.5">
+                    <Wrench
+                      aria-hidden="true"
+                      className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-text-accent)]"
+                    />
+                    <p className="m-0 text-sm leading-6 text-[var(--color-text-secondary)]">
+                      아직 설치 안 된 상태예요. 여기서 바로 설치하면 상태창 비주얼
+                      연결이 살아나요.
+                    </p>
+                  </div>
+                  <button
+                    className="inline-flex h-[34px] items-center justify-center border border-[var(--color-border-launch)] bg-[var(--color-surface-launch)] px-3 text-sm font-semibold tracking-[0.01em] text-[var(--color-text-tooltip)] transition-colors duration-150 hover:bg-[var(--color-surface-launch-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isInstallingVisualMcp}
+                    onClick={onInstallVisualMcp}
+                    type="button"
+                  >
+                    {isInstallingVisualMcp ? '설치중...' : 'Visual MCP 설치'}
+                  </button>
+                  {mcpSetupError !== null ? (
+                    <p className="m-0 text-sm leading-6 text-[#ffb4b4]">
+                      {mcpSetupError}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </section>
+          </section>
+
+          <section
+            aria-labelledby="theme-settings-tab"
+            hidden={activeTab !== 'theme'}
+            id="theme-settings-panel"
+            role="tabpanel"
+          >
+            <section className="flex flex-col gap-3">
+              <div>
+                <h3 className="m-0">Theme Preset</h3>
+                <p className={managerSectionCopyClassName}>
+                  앱 프레임이랑 터미널 톤을 같이 바꿔요.
+                </p>
+              </div>
+
+              <label className="flex max-w-[340px] flex-col gap-2 text-sm text-[var(--color-text-secondary)]">
+                <span>테마 선택</span>
+                <select
+                  aria-label="App theme"
+                  className="min-w-0 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] outline-none transition-colors duration-150 focus:border-[var(--color-border-strong)]"
+                  onChange={(event) => {
+                    const nextThemeId = event.currentTarget.value;
+
+                    if (isAppThemeId(nextThemeId)) {
+                      onSelectTheme(nextThemeId);
+                    }
+                  }}
+                  value={currentThemeId}
+                >
+                  {availableThemes.map((themeOption) => {
+                    return (
+                      <option key={themeOption.id} value={themeOption.id}>
+                        {themeOption.label}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+
+              <div className="border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-4 py-3 text-sm leading-6 text-[var(--color-text-secondary)]">
+                {APP_THEME_PRESETS[currentThemeId].description}
+              </div>
+            </section>
+          </section>
 
           <section
             aria-labelledby="visual-assets-tab"
@@ -316,6 +454,12 @@ export function VisualAssetManagerDialog({
             id="visual-assets-panel"
             role="tabpanel"
           >
+            <div className="mb-4">
+              <h3 className="m-0">Emotion Asset Mapping</h3>
+              <p className={managerSectionCopyClassName}>
+                상태 preset이 기본 축이고, 감정 preset은 선택적으로 얹혀요.
+              </p>
+            </div>
             {catalog.assets.length === 0 ? (
               <div className="mt-4 border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface-empty)] p-7 text-[var(--color-text-faint)]">
                 아직 등록된 이미지가 읍어요...! 먼저 파일 몇 장 골라서 붙여보죠.
@@ -547,7 +691,7 @@ export function VisualAssetManagerDialog({
           >
             <section className="flex flex-col gap-2">
               <h3 className="m-0">
-                Situation Messages
+                Status Text
               </h3>
               <p className={managerSectionCopyClassName}>
                 상태별 기본 한 줄을 덮어써요. Claude가 직접 띄운 overlay 문구는 여전히 먼저 보여요.

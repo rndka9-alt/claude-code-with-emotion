@@ -2,18 +2,28 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { VisualAssetManagerDialog } from './VisualAssetManagerDialog';
 
 describe('VisualAssetManagerDialog', () => {
-  it('switches between asset and message tabs', () => {
+  it('switches between general, theme, asset, and message tabs', () => {
     render(
       <VisualAssetManagerDialog
+        availableThemes={[
+          { id: 'current-dark', label: 'Current Dark' },
+          { id: 'gruvbox-light', label: 'Gruvbox Light' },
+        ]}
         catalog={{
           version: 1,
           assets: [],
           mappings: [],
           stateLines: [],
         }}
+        currentThemeId="current-dark"
+        isInstallingVisualMcp={false}
+        mcpSetupError={null}
+        mcpSetupInstalled={false}
         onClose={() => {}}
+        onInstallVisualMcp={() => {}}
         onPickFiles={() => {}}
         onRemoveAsset={() => {}}
+        onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
@@ -23,10 +33,22 @@ describe('VisualAssetManagerDialog', () => {
     );
 
     expect(
+      screen.getByRole('button', { name: 'Visual MCP 설치' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: '테마' }));
+
+    expect(screen.getByRole('combobox', { name: 'App theme' })).toHaveValue(
+      'current-dark',
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: '감정 에셋' }));
+
+    expect(
       screen.getByRole('button', { name: 'Add Images' }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('tab', { name: '상태 메시지' }));
+    fireEvent.click(screen.getByRole('tab', { name: '상태 텍스트' }));
 
     expect(
       screen.queryByRole('button', { name: 'Add Images' }),

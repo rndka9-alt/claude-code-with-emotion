@@ -1,6 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
-import { APP_THEME_OPTIONS } from '../../../shared/theme';
 import { StatusPanel } from './StatusPanel';
 import type { StatusPanelVisual } from './status-panel-visual';
 
@@ -17,15 +16,14 @@ const assistantStatus: AssistantStatusSnapshot = {
 };
 
 const defaultProps = {
-  availableThemes: APP_THEME_OPTIONS,
-  currentThemeId: 'current-dark' as const,
   isInstallingVisualMcp: false,
+  isMcpSetupPromptDismissed: false,
   mcpSetupError: null,
   mcpSetupInstalled: true,
+  onDismissMcpSetupPrompt: () => {},
   onInstallVisualMcp: () => {},
   onLaunchClaude: () => {},
-  onOpenAssetManager: () => {},
-  onSelectTheme: () => {},
+  onOpenSettings: () => {},
   statusLine: '(자료를 찾는 중)',
 };
 
@@ -112,19 +110,21 @@ describe('StatusPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the theme preset selector', () => {
+  it('opens settings from the panel toolbar button', () => {
+    const onOpenSettings = vi.fn();
+
     render(
       <StatusPanel
         assistantStatus={assistantStatus}
         {...defaultProps}
-        currentThemeId="gruvbox-dark"
+        onOpenSettings={onOpenSettings}
         statusVisual={null}
       />,
     );
 
-    expect(screen.getByRole('combobox', { name: 'App theme' })).toHaveValue(
-      'gruvbox-dark',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
+
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
   it('shows a visual MCP install prompt when setup is missing', () => {
@@ -140,5 +140,26 @@ describe('StatusPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Visual MCP 설치' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '다시 묻지 않기' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a settings hint after the MCP prompt is dismissed', () => {
+    render(
+      <StatusPanel
+        assistantStatus={assistantStatus}
+        {...defaultProps}
+        isMcpSetupPromptDismissed={true}
+        mcpSetupInstalled={false}
+        statusVisual={null}
+      />,
+    );
+
+    expect(
+      screen.getByRole('status'),
+    ).toHaveTextContent(
+      'Visual MCP 설치는 오른쪽 위 스패너 아이콘 설정에서 할 수 있어요.',
+    );
   });
 });
