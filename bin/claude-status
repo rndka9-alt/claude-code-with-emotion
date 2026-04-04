@@ -132,7 +132,7 @@ function main() {
   const payload = parseArgs(process.argv.slice(2));
 
   if (typeof payload.state !== 'string' || typeof payload.line !== 'string') {
-    console.error('Usage: claude-status --state <state> [--emotion <neutral|happy|sad|surprised>] --line <line> [--task <task>] [--duration-ms <ms>] [--intensity <low|medium|high>] [--list-visual-options]');
+    console.error('Usage: claude-status --state <state> [--emotion <emotion>] --line <line> [--task <task>] [--duration-ms <ms>] [--intensity <low|medium|high>] [--list-visual-options]');
     process.exit(1);
   }
 

@@ -10,13 +10,16 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+const EMOTIONAL_STATES: ReadonlySet<string> = new Set<AssistantEmotionalState>([
+  'angry', 'annoyed', 'bored', 'confused', 'contemptuous',
+  'crying', 'curious', 'dumbfounded', 'embarrassed', 'excited',
+  'exhausted', 'happy', 'laughing', 'nervous', 'neutral',
+  'proud', 'sad', 'scared', 'serious', 'shy',
+  'smile', 'smirk', 'smug', 'surprised',
+]);
+
 function isEmotionalState(value: string): value is AssistantEmotionalState {
-  return (
-    value === 'neutral' ||
-    value === 'happy' ||
-    value === 'sad' ||
-    value === 'surprised'
-  );
+  return EMOTIONAL_STATES.has(value);
 }
 
 function parseAssistantVisualOverlayUpdate(

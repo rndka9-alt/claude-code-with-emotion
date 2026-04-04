@@ -11,9 +11,29 @@ export type AssistantSemanticState =
   | 'error';
 
 export type AssistantEmotionalState =
-  | 'neutral'
+  | 'angry'
+  | 'annoyed'
+  | 'bored'
+  | 'confused'
+  | 'contemptuous'
+  | 'crying'
+  | 'curious'
+  | 'dumbfounded'
+  | 'embarrassed'
+  | 'excited'
+  | 'exhausted'
   | 'happy'
+  | 'laughing'
+  | 'nervous'
+  | 'neutral'
+  | 'proud'
   | 'sad'
+  | 'scared'
+  | 'serious'
+  | 'shy'
+  | 'smile'
+  | 'smirk'
+  | 'smug'
   | 'surprised';
 
 export type AssistantStatusIntensity = 'low' | 'medium' | 'high';

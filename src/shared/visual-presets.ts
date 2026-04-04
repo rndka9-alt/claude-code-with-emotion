@@ -19,9 +19,29 @@ export type VisualStatePresetId =
   | 'tool_failed';
 
 export type VisualEmotionPresetId =
-  | 'neutral'
+  | 'angry'
+  | 'annoyed'
+  | 'bored'
+  | 'confused'
+  | 'contemptuous'
+  | 'crying'
+  | 'curious'
+  | 'dumbfounded'
+  | 'embarrassed'
+  | 'excited'
+  | 'exhausted'
   | 'happy'
+  | 'laughing'
+  | 'nervous'
+  | 'neutral'
+  | 'proud'
   | 'sad'
+  | 'scared'
+  | 'serious'
+  | 'shy'
+  | 'smile'
+  | 'smirk'
+  | 'smug'
   | 'surprised';
 
 export interface VisualStatePreset {
@@ -145,9 +165,69 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
 export const EMOTION_PRESETS: ReadonlyArray<VisualEmotionPreset> = [
   {
     category: 'emotion',
-    description: 'No extra emotional coloring is being applied.',
-    id: 'neutral',
-    label: 'Neutral',
+    description: 'Rage from repeated failures or serious problems.',
+    id: 'angry',
+    label: 'Angry',
+  },
+  {
+    category: 'emotion',
+    description: 'Mild irritation from minor interruptions or nuisances.',
+    id: 'annoyed',
+    label: 'Annoyed',
+  },
+  {
+    category: 'emotion',
+    description: 'Disengaged during repetitive or mundane work.',
+    id: 'bored',
+    label: 'Bored',
+  },
+  {
+    category: 'emotion',
+    description: 'Puzzled by unexpected results or unclear situations.',
+    id: 'confused',
+    label: 'Confused',
+  },
+  {
+    category: 'emotion',
+    description: 'Disdain toward terrible code or absurd situations.',
+    id: 'contemptuous',
+    label: 'Contemptuous',
+  },
+  {
+    category: 'emotion',
+    description: 'Overwhelmed to tears by cascading errors.',
+    id: 'crying',
+    label: 'Crying',
+  },
+  {
+    category: 'emotion',
+    description: 'Intrigued and digging into an interesting problem.',
+    id: 'curious',
+    label: 'Curious',
+  },
+  {
+    category: 'emotion',
+    description: 'Speechless from something utterly absurd.',
+    id: 'dumbfounded',
+    label: 'Dumbfounded',
+  },
+  {
+    category: 'emotion',
+    description: 'Flustered after making a mistake or being wrong.',
+    id: 'embarrassed',
+    label: 'Embarrassed',
+  },
+  {
+    category: 'emotion',
+    description: 'Thrilled about a fun task or major breakthrough.',
+    id: 'excited',
+    label: 'Excited',
+  },
+  {
+    category: 'emotion',
+    description: 'Drained after a long and complex task.',
+    id: 'exhausted',
+    label: 'Exhausted',
   },
   {
     category: 'emotion',
@@ -157,9 +237,69 @@ export const EMOTION_PRESETS: ReadonlyArray<VisualEmotionPreset> = [
   },
   {
     category: 'emotion',
+    description: 'Cracking up at something ridiculous or delightful.',
+    id: 'laughing',
+    label: 'Laughing',
+  },
+  {
+    category: 'emotion',
+    description: 'Tense before a risky operation like force push.',
+    id: 'nervous',
+    label: 'Nervous',
+  },
+  {
+    category: 'emotion',
+    description: 'No extra emotional coloring is being applied.',
+    id: 'neutral',
+    label: 'Neutral',
+  },
+  {
+    category: 'emotion',
+    description: 'Satisfied after solving a difficult problem well.',
+    id: 'proud',
+    label: 'Proud',
+  },
+  {
+    category: 'emotion',
     description: 'A blocked, regretful, or otherwise downbeat tone.',
     id: 'sad',
     label: 'Sad',
+  },
+  {
+    category: 'emotion',
+    description: 'Terrified by a fatal error or irreversible situation.',
+    id: 'scared',
+    label: 'Scared',
+  },
+  {
+    category: 'emotion',
+    description: 'Focused and no-nonsense during critical work.',
+    id: 'serious',
+    label: 'Serious',
+  },
+  {
+    category: 'emotion',
+    description: 'Bashful when complimented or in an awkward spot.',
+    id: 'shy',
+    label: 'Shy',
+  },
+  {
+    category: 'emotion',
+    description: 'A gentle, content expression of mild satisfaction.',
+    id: 'smile',
+    label: 'Smile',
+  },
+  {
+    category: 'emotion',
+    description: 'A sly grin hinting at something up the sleeve.',
+    id: 'smirk',
+    label: 'Smirk',
+  },
+  {
+    category: 'emotion',
+    description: 'Self-satisfied "told you so" swagger.',
+    id: 'smug',
+    label: 'Smug',
   },
   {
     category: 'emotion',

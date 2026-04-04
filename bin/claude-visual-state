@@ -74,7 +74,7 @@ async function main() {
     (payload.emotion === undefined && payload.line === undefined)
   ) {
     console.error(
-      'Usage: claude-visual-state --emotion <neutral|happy|sad|surprised> [--line <line>] [--clear-line]',
+      'Usage: claude-visual-state --emotion <emotion> [--line <line>] [--clear-line]',
     );
     process.exit(1);
   }
