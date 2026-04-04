@@ -117,7 +117,7 @@ export function StatusLinesSection({
             <div className="flex flex-col gap-1.5" key={preset.id}>
               <div className="flex items-center gap-1.5">
                 <label
-                  className="text-xs font-semibold text-[var(--color-text-secondary)]"
+                  className="text-xs font-semibold text-text-secondary"
                   htmlFor={inputId}
                 >
                   {preset.label}
@@ -125,7 +125,7 @@ export function StatusLinesSection({
                 <span className="group relative inline-flex items-center">
                   <button
                     aria-label={`${preset.label} 상태 설명 보기`}
-                    className="inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent text-[var(--color-text-accent)]"
+                    className="inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent text-text-accent"
                     type="button"
                   >
                     <CircleHelp
@@ -134,7 +134,7 @@ export function StatusLinesSection({
                     />
                   </button>
                   <span
-                    className="pointer-events-none absolute top-full left-1/2 z-[1] mt-2 block w-[220px] -translate-x-1/2 -translate-y-1 border border-[var(--color-tab-border)] bg-[var(--color-surface-tooltip)] px-3 py-2.5 text-xs leading-[1.45] text-[var(--color-text-tooltip)] opacity-0 shadow-[var(--shadow-tooltip)] transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                    className="pointer-events-none absolute top-full left-1/2 z-[1] mt-2 block w-[220px] -translate-x-1/2 -translate-y-1 border border-tab-border bg-surface-tooltip px-3 py-2.5 text-xs leading-[1.45] text-text-tooltip opacity-0 shadow-tooltip transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
                     role="tooltip"
                   >
                     {getSituationMessageDescription(preset.id)}

@@ -40,7 +40,7 @@ const orbClassNameByIntensity: Record<
 > = {
   low: 'opacity-75',
   medium: 'opacity-90',
-  high: 'scale-[1.06] shadow-[var(--shadow-avatar-orb-strong)]',
+  high: 'scale-[1.06] shadow-avatar-orb-strong',
 };
 
 type AvatarStyle = CSSProperties & {
@@ -87,7 +87,7 @@ export function StatusPanel({
       {statusVisual === null ? (
         <div
           aria-hidden="true"
-          className={`status-panel__avatar-orb h-16 w-16 bg-[var(--color-avatar-orb)] shadow-[var(--shadow-avatar-orb)] transition-[transform,opacity,box-shadow] duration-150 max-[900px]:h-[52px] max-[900px]:w-[52px] ${orbClassNameByIntensity[assistantStatus.intensity]}`}
+          className={`status-panel__avatar-orb h-16 w-16 bg-avatar-orb shadow-avatar-orb transition-[transform,opacity,box-shadow] duration-150 max-[900px]:h-[52px] max-[900px]:w-[52px] ${orbClassNameByIntensity[assistantStatus.intensity]}`}
         />
       ) : (
         <img
@@ -100,7 +100,7 @@ export function StatusPanel({
       {isDisconnected ? (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-2 left-1/2 inline-flex h-[26px] w-[26px] -translate-x-1/2 items-center justify-center border border-[var(--color-border-launch)] bg-[var(--color-surface-launch)] text-[var(--color-text-tooltip)] transition-colors duration-150 group-hover:bg-[var(--color-surface-launch)]"
+          className="pointer-events-none absolute bottom-2 left-1/2 inline-flex h-[26px] w-[26px] -translate-x-1/2 items-center justify-center border border-border-launch bg-surface-launch text-text-tooltip transition-colors duration-150 group-hover:bg-surface-launch"
         >
           <Play
             aria-hidden="true"
@@ -115,11 +115,11 @@ export function StatusPanel({
   return (
     <aside
       aria-label="Assistant status panel"
-      className="relative flex min-h-32 flex-none items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28"
+      className="relative flex min-h-32 flex-none items-center gap-[18px] border border-border-panel bg-surface-panel px-5 py-4 max-[900px]:min-h-28"
     >
       <button
         aria-label="Open settings"
-        className="absolute top-3 right-3 inline-flex h-7 w-7 items-center justify-center border border-[var(--color-border-overlay)] bg-[var(--color-surface-frost)] text-[var(--color-text-overlay)] transition-[background-color,color,border-color] duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-frost-strong)] hover:text-[var(--color-text-inverse)]"
+        className="absolute top-3 right-3 inline-flex h-7 w-7 items-center justify-center border border-border-overlay bg-surface-frost text-text-overlay transition-[background-color,color,border-color] duration-150 hover:border-border-strong hover:bg-surface-frost-strong hover:text-text-inverse"
         onClick={onOpenSettings}
         title="Open settings"
         type="button"
@@ -130,7 +130,7 @@ export function StatusPanel({
       {isDisconnected ? (
         <button
           aria-label="실행하기"
-          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px] cursor-pointer transition-[background-color,transform] duration-150 hover:bg-[var(--color-surface-launch-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-panel)]"
+          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px] cursor-pointer transition-[background-color,transform] duration-150 hover:bg-surface-launch-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong focus-visible:ring-offset-2 focus-visible:ring-offset-surface-panel"
           onClick={onLaunchClaude}
           style={avatarStyle}
           title="실행하기"
@@ -148,7 +148,7 @@ export function StatusPanel({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
-        <p className="m-0 whitespace-pre-line text-[1.08rem] text-[var(--color-text-highlight)]">
+        <p className="m-0 whitespace-pre-line text-[1.08rem] text-text-highlight">
           {overlayMainText !== null ? (
             <>
               {overlayMainText}

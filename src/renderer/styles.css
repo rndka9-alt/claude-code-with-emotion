@@ -1,12 +1,6 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark;
-  font-family: "SF Pro Display", "Segoe UI", sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  background: #11141a;
-  color: #f3f7ff;
+@theme {
   --color-app-bg: #11141a;
   --color-app-window: #101218;
   --color-text-primary: #f3f7ff;
@@ -58,15 +52,6 @@
   --color-tab-close-foreground: #d2dcf7;
   --color-tab-indicator-start: #d5e3ff;
   --color-tab-indicator-end: #8db1ff;
-  --gradient-tab-indicator: linear-gradient(
-    180deg,
-    var(--color-tab-indicator-start) 0%,
-    var(--color-tab-indicator-end) 100%
-  );
-  --shadow-tab-indicator: 0 0 0 1px rgba(141, 177, 255, 0.22);
-  --shadow-tab-drag: 0 10px 24px rgba(4, 8, 15, 0.34);
-  --shadow-dialog: 0 28px 80px rgba(0, 0, 0, 0.44);
-  --shadow-tooltip: 0 16px 36px rgba(0, 0, 0, 0.32);
   --color-avatar-working: #1a2233;
   --color-avatar-thinking: #202638;
   --color-avatar-responding: #18313a;
@@ -77,14 +62,32 @@
   --color-avatar-error: #4b1e1e;
   --color-avatar-image: #0b0f17;
   --color-avatar-orb: #6b8ff7;
-  --shadow-avatar-orb: 0 0 20px rgba(118, 159, 255, 0.32),
-    inset 0 -4px 10px rgba(45, 69, 196, 0.26);
-  --shadow-avatar-orb-strong: 0 0 24px rgba(118, 159, 255, 0.38),
-    inset 0 -4px 10px rgba(45, 69, 196, 0.28);
   --color-terminal-foreground: #f4f7ff;
   --color-terminal-blue: #6a8aff;
   --color-terminal-bright-blue: #92bcff;
   --color-terminal-green: #8fe4b6;
+  --shadow-tab-indicator: 0 0 0 1px rgba(141, 177, 255, 0.22);
+  --shadow-tab-drag: 0 10px 24px rgba(4, 8, 15, 0.34);
+  --shadow-dialog: 0 28px 80px rgba(0, 0, 0, 0.44);
+  --shadow-tooltip: 0 16px 36px rgba(0, 0, 0, 0.32);
+  --shadow-avatar-orb: 0 0 20px rgba(118, 159, 255, 0.32),
+    inset 0 -4px 10px rgba(45, 69, 196, 0.26);
+  --shadow-avatar-orb-strong: 0 0 24px rgba(118, 159, 255, 0.38),
+    inset 0 -4px 10px rgba(45, 69, 196, 0.28);
+}
+
+:root {
+  color-scheme: dark;
+  font-family: "SF Pro Display", "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background: #11141a;
+  color: #f3f7ff;
+  --gradient-tab-indicator: linear-gradient(
+    180deg,
+    var(--color-tab-indicator-start) 0%,
+    var(--color-tab-indicator-end) 100%
+  );
 }
 
 .scrollbar-hide {

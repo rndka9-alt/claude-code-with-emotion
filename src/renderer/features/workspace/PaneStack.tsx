@@ -78,7 +78,7 @@ export function PaneStack({
           >
             <article
               aria-label={tab.title}
-              className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface-terminal)]"
+              className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-surface-terminal"
               data-active="true"
             >
               <div className="flex h-full min-h-0 flex-1 overflow-hidden">
@@ -94,7 +94,7 @@ export function PaneStack({
             {index < tabs.length - 1 ? (
               <div
                 aria-label={`Resize ${tab.title}`}
-                className="basis-[10px] cursor-row-resize bg-[var(--color-border-ghost)]"
+                className="basis-[10px] cursor-row-resize bg-border-ghost"
                 onPointerDown={(event) => {
                   dragStateRef.current = { index, lastY: event.clientY };
                 }}

@@ -80,7 +80,7 @@ export function TerminalSurface({
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <div
-        className="terminal-surface__viewport m-0 flex h-full min-h-0 min-w-0 flex-1 items-stretch overflow-hidden border-0 bg-[var(--color-surface-terminal)]"
+        className="terminal-surface__viewport m-0 flex h-full min-h-0 min-w-0 flex-1 items-stretch overflow-hidden border-0 bg-surface-terminal"
         ref={hostRef}
       />
     </div>

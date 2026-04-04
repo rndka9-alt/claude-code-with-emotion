@@ -30,7 +30,7 @@ export function TabBar({
   onReorderTab,
 }: TabBarProps): ReactElement {
   const createButtonClassName =
-    'ml-0.5 inline-flex h-[26px] w-[26px] flex-none items-center justify-center self-center border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-tab-create-foreground)] transition-colors duration-150 hover:border-[var(--color-border-create-hover)] hover:bg-[var(--color-surface-create-hover)] hover:text-[var(--color-text-highlight)]';
+    'ml-0.5 inline-flex h-[26px] w-[26px] flex-none items-center justify-center self-center border border-border-subtle bg-transparent text-tab-create-foreground transition-colors duration-150 hover:border-border-create-hover hover:bg-surface-create-hover hover:text-text-highlight';
   const {
     draftTitle,
     editInputRef,
@@ -92,8 +92,8 @@ export function TabBar({
           };
           const tabChipClassName = [
             'group relative flex max-w-60 min-w-40 flex-none items-stretch transition-[opacity,box-shadow] duration-150',
-            'before:pointer-events-none before:absolute before:top-[5px] before:bottom-px before:w-0.5 before:bg-[var(--gradient-tab-indicator)] before:opacity-0 before:shadow-[var(--shadow-tab-indicator)] before:transition-opacity before:duration-150',
-            isDragging ? 'z-[2] opacity-[0.86] shadow-[var(--shadow-tab-drag)]' : '',
+            'before:pointer-events-none before:absolute before:top-[5px] before:bottom-px before:w-0.5 before:bg-[var(--gradient-tab-indicator)] before:opacity-0 before:shadow-tab-indicator before:transition-opacity before:duration-150',
+            isDragging ? 'z-[2] opacity-[0.86] shadow-tab-drag' : '',
             isDropIndicatorTarget && dropIndicatorSide === 'before'
               ? 'before:left-[-2px] before:opacity-100'
               : '',
@@ -176,7 +176,7 @@ export function TabBar({
 
               <button
                 aria-label={`Close ${tab.title}`}
-                className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] text-[var(--color-tab-close-foreground)] opacity-0 shadow-[-10px_0_10px_var(--tab-background)] transition-[opacity,background-color,color,box-shadow] duration-150 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-highlight)] hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
+                className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] text-tab-close-foreground opacity-0 shadow-[-10px_0_10px_var(--tab-background)] transition-[opacity,background-color,color,box-shadow] duration-150 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-surface-hover hover:text-text-highlight hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
                 onClick={(event) => {
                   event.stopPropagation();
                   onCloseTab(tab.id);

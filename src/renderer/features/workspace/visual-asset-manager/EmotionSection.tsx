@@ -141,8 +141,8 @@ export function EmotionSection({
         className={[
           'mb-4 border border-dashed px-4 py-3 transition-colors duration-150',
           isAssetDropActive
-            ? 'border-[var(--color-border-strong)] bg-[var(--color-surface-elevated-active)]'
-            : 'border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)]',
+            ? 'border-border-strong bg-surface-elevated-active'
+            : 'border-border-soft bg-surface-elevated',
         ].join(' ')}
         onDragEnter={(event) => {
           event.preventDefault();
@@ -155,7 +155,7 @@ export function EmotionSection({
         }}
         onDrop={handleAssetDrop}
       >
-        <p className="m-0 text-sm text-[var(--color-text-secondary)]">
+        <p className="m-0 text-sm text-text-secondary">
           이미지를 여기로 여러 장 드래그해서 바로 가져올 수 있어요.
         </p>
         <p className={managerSectionCopyClassName}>
@@ -164,7 +164,7 @@ export function EmotionSection({
         </p>
       </div>
       {catalog.assets.length === 0 ? (
-        <div className="mt-4 border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface-empty)] p-7 text-[var(--color-text-faint)]">
+        <div className="mt-4 border border-dashed border-border-muted bg-surface-empty p-7 text-text-faint">
           아직 등록된 이미지가 읍어요...! 먼저 파일 몇 장 골라서 붙여보죠.
         </div>
       ) : (
@@ -176,10 +176,10 @@ export function EmotionSection({
 
             return (
               <li
-                className="grid gap-4 border border-[var(--color-border-soft)] bg-[var(--color-surface-chip)] p-4 min-[901px]:grid-cols-[140px_minmax(0,1fr)]"
+                className="grid gap-4 border border-border-soft bg-surface-chip p-4 min-[901px]:grid-cols-[140px_minmax(0,1fr)]"
                 key={asset.id}
               >
-                <div className="aspect-square w-[140px] overflow-hidden bg-[var(--color-surface-preview)]">
+                <div className="aspect-square w-[140px] overflow-hidden bg-surface-preview">
                   <img
                     alt={asset.label}
                     className="block h-full w-full object-cover"
@@ -200,7 +200,7 @@ export function EmotionSection({
                       <label className={managerChipClassName}>
                         <input
                           checked={asset.isDefault === true}
-                          className="accent-[var(--color-terminal-blue)]"
+                          className="accent-terminal-blue"
                           onChange={(event: ChangeEvent<HTMLInputElement>) => {
                             onSetDefaultAsset(
                               asset.id,
@@ -247,7 +247,7 @@ export function EmotionSection({
                                 asset.id,
                                 preset.id,
                               )}
-                              className="accent-[var(--color-terminal-blue)]"
+                              className="accent-terminal-blue"
                               id={inputId}
                               onChange={(
                                 event: ChangeEvent<HTMLInputElement>,
@@ -290,7 +290,7 @@ export function EmotionSection({
                                 asset.id,
                                 preset.id,
                               )}
-                              className="accent-[var(--color-terminal-blue)]"
+                              className="accent-terminal-blue"
                               id={inputId}
                               onChange={(
                                 event: ChangeEvent<HTMLInputElement>,
@@ -326,7 +326,7 @@ export function EmotionSection({
                             className="grid items-start gap-2.5 min-[901px]:grid-cols-[92px_minmax(0,1fr)]"
                             key={emotionPreset.id}
                           >
-                            <div className="pt-1.5 text-xs text-[var(--color-text-soft)]">
+                            <div className="pt-1.5 text-xs text-text-soft">
                               {emotionPreset.label}
                             </div>
 
@@ -348,7 +348,7 @@ export function EmotionSection({
                                         statePreset.id,
                                         emotionPreset.id,
                                       )}
-                                      className="accent-[var(--color-terminal-blue)]"
+                                      className="accent-terminal-blue"
                                       id={inputId}
                                       onChange={(
                                         event: ChangeEvent<HTMLInputElement>,

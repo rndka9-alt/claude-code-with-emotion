@@ -19,12 +19,12 @@ export function McpSetupPrompt({
   if (isDismissed) {
     return (
       <div
-        className="flex items-start gap-2 border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-3 py-2.5 text-[0.84rem] leading-5 text-[var(--color-text-secondary)]"
+        className="flex items-start gap-2 border border-border-soft bg-surface-elevated px-3 py-2.5 text-[0.84rem] leading-5 text-text-secondary"
         role="status"
       >
         <Wrench
           aria-hidden="true"
-          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-text-accent)]"
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-accent"
         />
         <p className="m-0">
           Visual MCP 설치는 오른쪽 위 스패너 아이콘 설정에서 할 수 있어요.
@@ -35,13 +35,13 @@ export function McpSetupPrompt({
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <p className="m-0 text-[0.88rem] leading-5 text-[var(--color-text-secondary)]">
+      <p className="m-0 text-[0.88rem] leading-5 text-text-secondary">
         Visual MCP를 쓰려면 Claude user-scope MCP 서버를 한 번 설치해야
         합니다.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button
-          className="inline-flex h-[26px] items-center justify-center border border-[var(--color-border-launch)] bg-[var(--color-surface-launch)] px-2.5 text-xs font-semibold tracking-[0.01em] text-[var(--color-text-tooltip)] transition-colors duration-150 hover:bg-[var(--color-surface-launch-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-[26px] items-center justify-center border border-border-launch bg-surface-launch px-2.5 text-xs font-semibold tracking-[0.01em] text-text-tooltip transition-colors duration-150 hover:bg-surface-launch-hover disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isInstalling}
           onClick={onInstall}
           type="button"
@@ -49,7 +49,7 @@ export function McpSetupPrompt({
           {isInstalling ? '설치중...' : 'Visual MCP 설치'}
         </button>
         <button
-          className="inline-flex h-[26px] items-center justify-center border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-2.5 text-xs font-medium tracking-[0.01em] text-[var(--color-text-secondary)] transition-colors duration-150 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-highlight)]"
+          className="inline-flex h-[26px] items-center justify-center border border-border-soft bg-surface-elevated px-2.5 text-xs font-medium tracking-[0.01em] text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight"
           onClick={onDismiss}
           type="button"
         >

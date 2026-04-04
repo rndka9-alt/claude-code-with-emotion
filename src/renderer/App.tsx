@@ -51,14 +51,14 @@ export function App(): ReactElement {
     ? 'Expand assistant status panel'
     : 'Collapse assistant status panel';
   const statusPanelHandleClassName = [
-    'absolute top-0 left-1/2 z-10 inline-flex h-6 w-12 -translate-x-1/2 -translate-y-px items-center justify-center border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] text-[var(--color-text-subtle)] transition-[background-color,border-color,color] duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-highlight)]',
+    'absolute top-0 left-1/2 z-10 inline-flex h-6 w-12 -translate-x-1/2 -translate-y-px items-center justify-center border border-border-panel bg-surface-panel text-text-subtle transition-[background-color,border-color,color] duration-150 hover:border-border-strong hover:bg-surface-elevated hover:text-text-highlight',
     isStatusPanelCollapsed
       ? 'rounded-[10px] shadow-[0_10px_24px_rgba(0,0,0,0.24)]'
       : 'rounded-t-[10px] border-b-0',
   ].join(' ');
 
   return (
-    <div className="flex h-full min-h-full flex-col overflow-hidden bg-[var(--color-app-bg)]">
+    <div className="flex h-full min-h-full flex-col overflow-hidden bg-app-bg">
       <TabBar
         activeTabId={activeTabId}
         onActivateTab={activateTab}
@@ -74,7 +74,7 @@ export function App(): ReactElement {
       <main className="flex min-h-0 flex-1 flex-col px-2 pt-1 pb-2">
         <section
           aria-label="Active terminal workspace"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden border border-[var(--color-border-subtle)] bg-[var(--color-surface-terminal)] pt-1"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border-subtle bg-surface-terminal pt-1"
           id={panelId}
           role="tabpanel"
         >
@@ -93,7 +93,7 @@ export function App(): ReactElement {
           {isStatusPanelCollapsed ? null : (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute top-3 right-0 left-0 border-t border-[var(--color-border-panel)]"
+              className="pointer-events-none absolute top-3 right-0 left-0 border-t border-border-panel"
             />
           )}
 
