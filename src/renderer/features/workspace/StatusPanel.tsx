@@ -1,8 +1,8 @@
-import type { CSSProperties, ReactElement } from 'react';
-import { Play, Wrench } from 'lucide-react';
-import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
-import { McpSetupPrompt } from './McpSetupPrompt';
-import type { StatusPanelVisual } from './status-panel-visual';
+import type { CSSProperties, ReactElement } from "react";
+import { Play, Wrench } from "lucide-react";
+import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import { McpSetupPrompt } from "./McpSetupPrompt";
+import type { StatusPanelVisual } from "./status-panel-visual";
 
 interface StatusPanelProps {
   assistantStatus: AssistantStatusSnapshot;
@@ -19,32 +19,32 @@ interface StatusPanelProps {
 }
 
 const avatarBackgroundVariableByState: Record<
-  AssistantStatusSnapshot['state'],
+  AssistantStatusSnapshot["state"],
   string
 > = {
-  disconnected: '--color-avatar-idle',
-  idle: '--color-avatar-idle',
-  thinking: '--color-avatar-thinking',
-  working: '--color-avatar-working',
-  responding: '--color-avatar-responding',
-  waiting: '--color-avatar-idle',
-  surprised: '--color-avatar-surprised',
-  sad: '--color-avatar-sad',
-  happy: '--color-avatar-happy',
-  error: '--color-avatar-error',
+  disconnected: "--color-avatar-idle",
+  idle: "--color-avatar-idle",
+  thinking: "--color-avatar-thinking",
+  working: "--color-avatar-working",
+  responding: "--color-avatar-responding",
+  waiting: "--color-avatar-idle",
+  surprised: "--color-avatar-surprised",
+  sad: "--color-avatar-sad",
+  happy: "--color-avatar-happy",
+  error: "--color-avatar-error",
 };
 
 const orbClassNameByIntensity: Record<
-  AssistantStatusSnapshot['intensity'],
+  AssistantStatusSnapshot["intensity"],
   string
 > = {
-  low: 'opacity-75',
-  medium: 'opacity-90',
-  high: 'scale-[1.06] shadow-avatar-orb-strong',
+  low: "opacity-75",
+  medium: "opacity-90",
+  high: "scale-[1.06] shadow-avatar-orb-strong",
 };
 
 type AvatarStyle = CSSProperties & {
-  '--avatar-surface': string;
+  "--avatar-surface": string;
 };
 
 export function StatusPanel({
@@ -60,25 +60,25 @@ export function StatusPanel({
   statusLine,
   statusVisual,
 }: StatusPanelProps): ReactElement {
-  const isDisconnected = assistantStatus.state === 'disconnected';
+  const isDisconnected = assistantStatus.state === "disconnected";
   const avatarStyle: AvatarStyle = {
-    '--avatar-surface':
+    "--avatar-surface":
       statusVisual === null
         ? `var(${avatarBackgroundVariableByState[assistantStatus.state]})`
-        : 'var(--color-avatar-image)',
+        : "var(--color-avatar-image)",
   };
   const visibleLine = statusLine.length > 0 ? statusLine : assistantStatus.line;
 
   // MCP 한마디(overlayLine)가 활성화된 경우 활동 라벨을 별도 span으로 분리해 투명도 적용
   const hasOverlayLine =
-    typeof assistantStatus.overlayLine === 'string' &&
+    typeof assistantStatus.overlayLine === "string" &&
     assistantStatus.overlayLine.trim().length > 0;
   const overlayMainText = hasOverlayLine
     ? assistantStatus.overlayLine!.trim()
     : null;
   const overlayActivitySuffix =
     hasOverlayLine &&
-    typeof assistantStatus.activityLabel === 'string' &&
+    typeof assistantStatus.activityLabel === "string" &&
     assistantStatus.activityLabel.trim().length > 0
       ? assistantStatus.activityLabel.trim()
       : null;
