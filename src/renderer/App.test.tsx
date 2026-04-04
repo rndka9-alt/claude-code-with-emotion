@@ -11,6 +11,7 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
     onTitleChange: ReturnType<typeof vi.fn>;
     open: ReturnType<typeof vi.fn>;
     options: { scrollback: number };
+    registerLinkProvider: ReturnType<typeof vi.fn>;
     resize: ReturnType<typeof vi.fn>;
     rows: number;
     write: ReturnType<typeof vi.fn>;
@@ -31,6 +32,7 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
     attachCustomKeyEventHandler = vi.fn();
     onData = vi.fn(() => ({ dispose: vi.fn() }));
     onTitleChange = vi.fn(() => ({ dispose: vi.fn() }));
+    registerLinkProvider = vi.fn(() => ({ dispose: vi.fn() }));
 
     constructor() {
       hoistedTerminalInstances.push(this);
