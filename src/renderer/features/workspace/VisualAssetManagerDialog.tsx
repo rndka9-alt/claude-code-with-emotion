@@ -533,8 +533,8 @@ export function VisualAssetManagerDialog({
                       <div className="flex min-w-0 flex-col gap-[14px]">
                         <div className="flex items-start justify-between gap-2.5">
                           <div>
-                            <h3 className="m-0">{asset.label}</h3>
-                            <p className={managerSectionCopyClassName}>
+                            <h3 className="m-0 break-all">{asset.label}</h3>
+                            <p className={`${managerSectionCopyClassName} break-all`}>
                               {asset.path}
                             </p>
                           </div>
