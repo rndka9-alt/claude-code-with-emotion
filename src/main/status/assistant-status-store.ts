@@ -8,10 +8,14 @@ import {
 type SnapshotListener = (snapshot: AssistantStatusSnapshot) => void;
 
 export class AssistantStatusStore {
+  static readonly STATE_THROTTLE_MS = 700;
+
   private baseSnapshot: AssistantStatusSnapshot;
   private currentSnapshot: AssistantStatusSnapshot;
   private readonly listeners = new Set<SnapshotListener>();
   private revertTimer: NodeJS.Timeout | null = null;
+  private stateThrottleTimer: NodeJS.Timeout | null = null;
+  private hasPendingStateEmit = false;
   private visualOverlay: AssistantVisualOverlayUpdate = {};
 
   constructor(nowMs: number = Date.now()) {
@@ -57,7 +61,24 @@ export class AssistantStatusStore {
     this.clearRevertTimer();
     this.baseSnapshot = nextSnapshot;
     this.currentSnapshot = this.applyOverlay(nextSnapshot, source);
-    this.emit();
+
+    // 상태 변경이 너무 빠르게 반복대면 패널 라벨이 휙휙 바뀌어 읽기 힘들어서
+    // 0.7s leading+trailing throttle 을 건다. baseSnapshot 은 계속 갱신하니까
+    // throttle 창 안에 감정(visualOverlay) 이벤트가 오면 그쪽 emit 이 최신 상태를
+    // 자연스럽게 실어 내보내준다.
+    if (this.stateThrottleTimer === null) {
+      this.emit();
+      this.hasPendingStateEmit = false;
+      this.stateThrottleTimer = setTimeout(() => {
+        this.stateThrottleTimer = null;
+        if (this.hasPendingStateEmit) {
+          this.hasPendingStateEmit = false;
+          this.emit();
+        }
+      }, AssistantStatusStore.STATE_THROTTLE_MS);
+    } else {
+      this.hasPendingStateEmit = true;
+    }
   }
 
   applyVisualOverlay(
@@ -74,10 +95,13 @@ export class AssistantStatusStore {
 
     this.currentSnapshot = this.applyOverlay(this.baseSnapshot, source);
     this.emit();
+    // 감정 이벤트가 최신 baseSnapshot 을 이미 실어 내보냈으니 trailing emit 취소
+    this.hasPendingStateEmit = false;
   }
 
   dispose(): void {
     this.clearRevertTimer();
+    this.clearStateThrottleTimer();
     this.listeners.clear();
   }
 
@@ -136,5 +160,13 @@ export class AssistantStatusStore {
       clearTimeout(this.revertTimer);
       this.revertTimer = null;
     }
+  }
+
+  private clearStateThrottleTimer(): void {
+    if (this.stateThrottleTimer !== null) {
+      clearTimeout(this.stateThrottleTimer);
+      this.stateThrottleTimer = null;
+    }
+    this.hasPendingStateEmit = false;
   }
 }

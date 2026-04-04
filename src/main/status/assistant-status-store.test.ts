@@ -86,6 +86,59 @@ describe('AssistantStatusStore', () => {
     expect(store.getSnapshot().line).toBe('Base state');
   });
 
+  it('throttles rapid state emits and flushes the latest one on the trailing edge', async () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(5_000);
+      const emitted: string[] = [];
+      store.subscribe((snapshot) => {
+        emitted.push(snapshot.state);
+      });
+
+      store.applyUpdate({ state: 'thinking', line: 'A' }, 'test');
+      store.applyUpdate({ state: 'working', line: 'B' }, 'test');
+      store.applyUpdate({ state: 'responding', line: 'C' }, 'test');
+
+      // leading edge 만 바로 emit 대고 중간 갱신은 버퍼링
+      expect(emitted).toEqual(['thinking']);
+
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      // trailing edge 에서 마지막 상태만 emit
+      expect(emitted).toEqual(['thinking', 'responding']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('lets a visual overlay flush the pending state during the throttle window', async () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(6_000);
+      const emitted: Array<{ state: string; emotion: string | null }> = [];
+      store.subscribe((snapshot) => {
+        emitted.push({ state: snapshot.state, emotion: snapshot.emotion });
+      });
+
+      store.applyUpdate({ state: 'thinking', line: 'A' }, 'test');
+      store.applyUpdate({ state: 'working', line: 'B' }, 'test');
+      store.applyVisualOverlay({ emotion: 'happy' }, 'overlay');
+
+      // overlay emit 에 밀린 최신 state 가 함께 실려 나감
+      expect(emitted).toEqual([
+        { state: 'thinking', emotion: null },
+        { state: 'working', emotion: 'happy' },
+      ]);
+
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      // overlay 가 이미 flush 햇으므로 trailing emit 은 읍음
+      expect(emitted).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('lets a visual overlay line sit above the hook-driven activity label', () => {
     const store = new AssistantStatusStore(4_000);
 
