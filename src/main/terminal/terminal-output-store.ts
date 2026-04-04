@@ -1,6 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { DEFAULT_TERMINAL_HISTORY_LINES } from '../../shared/terminal-history';
+import fs from "node:fs";
+import path from "node:path";
+import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../shared/terminal-history";
 
 export interface TerminalOutputSnapshot {
   output: string;
@@ -11,7 +11,7 @@ const OUTPUT_FLUSH_DELAY_MS = 30;
 
 export class TerminalOutputStore {
   private completedLines: string[] = [];
-  private pendingOutput = '';
+  private pendingOutput = "";
   private version = 0;
   private flushTimer: NodeJS.Timeout | null = null;
 
@@ -22,7 +22,7 @@ export class TerminalOutputStore {
 
   reset(): void {
     this.completedLines = [];
-    this.pendingOutput = '';
+    this.pendingOutput = "";
     this.version = 0;
     this.flushSync();
   }
@@ -34,18 +34,26 @@ export class TerminalOutputStore {
 
     const nextOutput = `${this.pendingOutput}${data}`;
     let nextLineStartIndex = 0;
-    let newlineIndex = nextOutput.indexOf('\n');
+    let newlineIndex = nextOutput.indexOf("\n");
 
     while (newlineIndex !== -1) {
-      this.completedLines.push(nextOutput.slice(nextLineStartIndex, newlineIndex + 1));
+      this.completedLines.push(
+        nextOutput.slice(nextLineStartIndex, newlineIndex + 1),
+      );
       nextLineStartIndex = newlineIndex + 1;
-      newlineIndex = nextOutput.indexOf('\n', nextLineStartIndex);
+      newlineIndex = nextOutput.indexOf("\n", nextLineStartIndex);
     }
 
     this.pendingOutput = nextOutput.slice(nextLineStartIndex);
 
-    if (this.maxOutputLines >= 0 && this.completedLines.length > this.maxOutputLines) {
-      this.completedLines.splice(0, this.completedLines.length - this.maxOutputLines);
+    if (
+      this.maxOutputLines >= 0 &&
+      this.completedLines.length > this.maxOutputLines
+    ) {
+      this.completedLines.splice(
+        0,
+        this.completedLines.length - this.maxOutputLines,
+      );
     }
 
     this.version += 1;
@@ -56,7 +64,7 @@ export class TerminalOutputStore {
 
   getSnapshot(): TerminalOutputSnapshot {
     return {
-      output: `${this.completedLines.join('')}${this.pendingOutput}`,
+      output: `${this.completedLines.join("")}${this.pendingOutput}`,
       version: this.version,
     };
   }
@@ -83,6 +91,6 @@ export class TerminalOutputStore {
 
   private flushSync(): void {
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-    fs.writeFileSync(this.filePath, this.getSnapshot().output, 'utf8');
+    fs.writeFileSync(this.filePath, this.getSnapshot().output, "utf8");
   }
 }

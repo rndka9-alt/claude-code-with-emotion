@@ -70,9 +70,11 @@
   --shadow-tab-drag: 0 10px 24px rgba(4, 8, 15, 0.34);
   --shadow-dialog: 0 28px 80px rgba(0, 0, 0, 0.44);
   --shadow-tooltip: 0 16px 36px rgba(0, 0, 0, 0.32);
-  --shadow-avatar-orb: 0 0 20px rgba(118, 159, 255, 0.32),
+  --shadow-avatar-orb:
+    0 0 20px rgba(118, 159, 255, 0.32),
     inset 0 -4px 10px rgba(45, 69, 196, 0.26);
-  --shadow-avatar-orb-strong: 0 0 24px rgba(118, 159, 255, 0.38),
+  --shadow-avatar-orb-strong:
+    0 0 24px rgba(118, 159, 255, 0.38),
     inset 0 -4px 10px rgba(45, 69, 196, 0.28);
 }
 

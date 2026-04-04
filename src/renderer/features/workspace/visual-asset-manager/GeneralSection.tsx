@@ -1,6 +1,6 @@
-import type { ReactElement } from 'react';
-import { Wrench } from 'lucide-react';
-import { managerSectionCopyClassName } from './shared';
+import type { ReactElement } from "react";
+import { Wrench } from "lucide-react";
+import { managerSectionCopyClassName } from "./shared";
 
 interface GeneralSectionProps {
   isInstallingVisualMcp: boolean;
@@ -20,7 +20,8 @@ export function GeneralSection({
       <div>
         <h3 className="m-0">Visual MCP</h3>
         <p className={managerSectionCopyClassName}>
-          상태 오버레이랑 에셋 연동을 쓰려면 user-scope MCP 서버 설치가 필요해요.
+          상태 오버레이랑 에셋 연동을 쓰려면 user-scope MCP 서버 설치가
+          필요해요.
         </p>
       </div>
 
@@ -46,7 +47,7 @@ export function GeneralSection({
             onClick={onInstallVisualMcp}
             type="button"
           >
-            {isInstallingVisualMcp ? '설치중...' : 'Visual MCP 설치'}
+            {isInstallingVisualMcp ? "설치중..." : "Visual MCP 설치"}
           </button>
           {mcpSetupError !== null ? (
             <p className="m-0 text-sm leading-6 text-[#ffb4b4]">

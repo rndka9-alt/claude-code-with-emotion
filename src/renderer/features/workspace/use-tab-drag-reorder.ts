@@ -1,13 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent, RefObject } from 'react';
-import type { SessionTab } from './model';
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
+import type { SessionTab } from "./model";
 
 const DRAG_START_DISTANCE_PX = 6;
 const DROP_THRESHOLD_RATIO = 0.3;
 const REORDER_ANIMATION_MS = 180;
-const REORDER_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const REORDER_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-type DropIndicatorSide = 'before' | 'after';
+type DropIndicatorSide = "before" | "after";
 
 interface DragState {
   hasStarted: boolean;
@@ -60,14 +60,14 @@ function animateReorderedTabs(
 
     const deltaX = previousLeft - nextLeft;
 
-    if (deltaX === 0 || typeof element.animate !== 'function') {
+    if (deltaX === 0 || typeof element.animate !== "function") {
       return;
     }
 
     element.animate(
       [
         { transform: `translateX(${deltaX}px)` },
-        { transform: 'translateX(0)' },
+        { transform: "translateX(0)" },
       ],
       {
         duration: REORDER_ANIMATION_MS,
@@ -84,8 +84,11 @@ export function useTabDragReorder(
   onReorderTab: (tabId: string, destinationIndex: number) => void,
 ): TabDragReorderHandlers {
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
-  const [dropIndicatorTabId, setDropIndicatorTabId] = useState<string | null>(null);
-  const [dropIndicatorSide, setDropIndicatorSide] = useState<DropIndicatorSide | null>(null);
+  const [dropIndicatorTabId, setDropIndicatorTabId] = useState<string | null>(
+    null,
+  );
+  const [dropIndicatorSide, setDropIndicatorSide] =
+    useState<DropIndicatorSide | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const previousPositionsRef = useRef<Map<string, number>>(new Map());
   const suppressClickTabIdRef = useRef<string | null>(null);
@@ -126,7 +129,11 @@ export function useTabDragReorder(
       const dragState = dragStateRef.current;
       const stripElement = stripRef.current;
 
-      if (dragState === null || event.pointerId !== dragState.pointerId || stripElement === null) {
+      if (
+        dragState === null ||
+        event.pointerId !== dragState.pointerId ||
+        stripElement === null
+      ) {
         return;
       }
 
@@ -153,7 +160,9 @@ export function useTabDragReorder(
             tab,
           };
         })
-        .filter((entry): entry is TabEntryWithElement => entry.element !== undefined);
+        .filter(
+          (entry): entry is TabEntryWithElement => entry.element !== undefined,
+        );
 
       if (orderedEntries.length === 0) {
         return;
@@ -163,7 +172,8 @@ export function useTabDragReorder(
 
       for (const [index, entry] of orderedEntries.entries()) {
         const rect = entry.element.getBoundingClientRect();
-        const insertionThresholdX = rect.left + rect.width * DROP_THRESHOLD_RATIO;
+        const insertionThresholdX =
+          rect.left + rect.width * DROP_THRESHOLD_RATIO;
 
         if (event.clientX < insertionThresholdX) {
           destinationIndex = index;
@@ -173,10 +183,10 @@ export function useTabDragReorder(
 
       const tabAtIndicator =
         destinationIndex >= currentTabs.length
-          ? currentTabs[currentTabs.length - 1] ?? null
-          : currentTabs[destinationIndex] ?? null;
+          ? (currentTabs[currentTabs.length - 1] ?? null)
+          : (currentTabs[destinationIndex] ?? null);
       const indicatorSide =
-        destinationIndex >= currentTabs.length ? 'after' : 'before';
+        destinationIndex >= currentTabs.length ? "after" : "before";
 
       setDropIndicatorTabId(tabAtIndicator?.id ?? null);
       setDropIndicatorSide(tabAtIndicator === null ? null : indicatorSide);
@@ -197,14 +207,14 @@ export function useTabDragReorder(
       resetDragState();
     }
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [onReorderTab]);
 
@@ -226,8 +236,8 @@ export function useTabDragReorder(
       }
 
       if (
-        eventTarget.closest('.tab-close-button') !== null ||
-        eventTarget.closest('.tab-title-editor') !== null
+        eventTarget.closest(".tab-close-button") !== null ||
+        eventTarget.closest(".tab-title-editor") !== null
       ) {
         return;
       }

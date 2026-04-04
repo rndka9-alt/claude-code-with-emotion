@@ -1,5 +1,5 @@
-import { chmodSync, existsSync, statSync } from 'node:fs';
-import path from 'node:path';
+import { chmodSync, existsSync, statSync } from "node:fs";
+import path from "node:path";
 
 export interface NodePtyHelperPreflightResult {
   foundHelperPaths: string[];
@@ -14,8 +14,8 @@ export function resolveNodePtySpawnHelperPaths(
   const platformArchDir = `${platform}-${arch}`;
 
   return [
-    path.join(packageRoot, 'build', 'Release', 'spawn-helper'),
-    path.join(packageRoot, 'prebuilds', platformArchDir, 'spawn-helper'),
+    path.join(packageRoot, "build", "Release", "spawn-helper"),
+    path.join(packageRoot, "prebuilds", platformArchDir, "spawn-helper"),
   ];
 }
 

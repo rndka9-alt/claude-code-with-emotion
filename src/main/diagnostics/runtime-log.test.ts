@@ -1,56 +1,56 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { mkdtempSync, readFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   createRuntimeLog,
   formatRuntimeLogLine,
   resolveRuntimeLogPath,
-} from './runtime-log';
+} from "./runtime-log";
 
-describe('resolveRuntimeLogPath', () => {
-  it('uses a workspace path in development', () => {
-    expect(
-      resolveRuntimeLogPath('/tmp/app', '/tmp/user-data', false),
-    ).toBe('/tmp/app/.runtime-logs/electron-dev.log');
+describe("resolveRuntimeLogPath", () => {
+  it("uses a workspace path in development", () => {
+    expect(resolveRuntimeLogPath("/tmp/app", "/tmp/user-data", false)).toBe(
+      "/tmp/app/.runtime-logs/electron-dev.log",
+    );
   });
 
-  it('uses the user-data logs path in packaged mode', () => {
-    expect(
-      resolveRuntimeLogPath('/tmp/app', '/tmp/user-data', true),
-    ).toBe('/tmp/user-data/logs/electron-runtime.log');
+  it("uses the user-data logs path in packaged mode", () => {
+    expect(resolveRuntimeLogPath("/tmp/app", "/tmp/user-data", true)).toBe(
+      "/tmp/user-data/logs/electron-runtime.log",
+    );
   });
 });
 
-describe('formatRuntimeLogLine', () => {
-  it('formats a timestamped runtime log line', () => {
+describe("formatRuntimeLogLine", () => {
+  it("formats a timestamped runtime log line", () => {
     expect(
       formatRuntimeLogLine(
-        'renderer',
-        'booted',
-        new Date('2026-04-01T00:00:00.000Z'),
+        "renderer",
+        "booted",
+        new Date("2026-04-01T00:00:00.000Z"),
       ),
-    ).toBe('[2026-04-01T00:00:00.000Z] [renderer] booted\n');
+    ).toBe("[2026-04-01T00:00:00.000Z] [renderer] booted\n");
   });
 });
 
-describe('createRuntimeLog', () => {
-  it('writes messages and error stacks to disk', () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'runtime-log-test-'));
-    const filePath = path.join(tempDir, 'logs', 'runtime.log');
+describe("createRuntimeLog", () => {
+  it("writes messages and error stacks to disk", () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "runtime-log-test-"));
+    const filePath = path.join(tempDir, "logs", "runtime.log");
     const runtimeLog = createRuntimeLog(filePath);
 
-    runtimeLog.write('main', 'boot');
-    runtimeLog.writeError('renderer', new Error('boom'));
+    runtimeLog.write("main", "boot");
+    runtimeLog.writeError("renderer", new Error("boom"));
 
-    const contents = readFileSync(filePath, 'utf8');
+    const contents = readFileSync(filePath, "utf8");
 
-    expect(contents).toContain('[main] boot');
-    expect(contents).toContain('[renderer] Error: boom');
+    expect(contents).toContain("[main] boot");
+    expect(contents).toContain("[renderer] Error: boom");
   });
 
-  it('emits runtime payloads to an optional listener', () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'runtime-log-test-'));
-    const filePath = path.join(tempDir, 'logs', 'runtime.log');
+  it("emits runtime payloads to an optional listener", () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "runtime-log-test-"));
+    const filePath = path.join(tempDir, "logs", "runtime.log");
     const payloads: Array<{
       message: string;
       scope: string;
@@ -60,11 +60,11 @@ describe('createRuntimeLog', () => {
       payloads.push(payload);
     });
 
-    runtimeLog.write('assistant-status', 'snapshot updated');
+    runtimeLog.write("assistant-status", "snapshot updated");
 
     expect(payloads).toHaveLength(1);
-    expect(payloads[0]?.scope).toBe('assistant-status');
-    expect(payloads[0]?.message).toBe('snapshot updated');
+    expect(payloads[0]?.scope).toBe("assistant-status");
+    expect(payloads[0]?.message).toBe("snapshot updated");
     expect(payloads[0]?.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 });

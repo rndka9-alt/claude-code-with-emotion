@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const { dirname, join } = require('node:path');
-const { spawnSync } = require('node:child_process');
+const fs = require("node:fs");
+const { dirname, join } = require("node:path");
+const { spawnSync } = require("node:child_process");
 
 function appendTrace(message) {
   const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
 
-  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+  if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
     return;
   }
 
   const line = `[${new Date().toISOString()}] [claude-session-hook] ${message}\n`;
 
   try {
-    fs.appendFileSync(traceFilePath, line, 'utf8');
+    fs.appendFileSync(traceFilePath, line, "utf8");
   } catch {
     // Ignore trace write failures inside the hook helper.
   }
@@ -22,9 +22,9 @@ function appendTrace(message) {
 
 function readStdinText() {
   try {
-    return fs.readFileSync(0, 'utf8').trim();
+    return fs.readFileSync(0, "utf8").trim();
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -36,7 +36,7 @@ function parsePayload(text) {
   try {
     const parsed = JSON.parse(text);
 
-    if (typeof parsed === 'object' && parsed !== null) {
+    if (typeof parsed === "object" && parsed !== null) {
       return parsed;
     }
   } catch {
@@ -47,14 +47,14 @@ function parsePayload(text) {
 }
 
 function readStringField(payload, keys) {
-  if (typeof payload !== 'object' || payload === null) {
+  if (typeof payload !== "object" || payload === null) {
     return null;
   }
 
   for (const key of keys) {
     const value = payload[key];
 
-    if (typeof value === 'string' && value.length > 0) {
+    if (typeof value === "string" && value.length > 0) {
       return value;
     }
   }
@@ -63,23 +63,23 @@ function readStringField(payload, keys) {
 }
 
 function readBooleanField(payload, keys) {
-  if (typeof payload !== 'object' || payload === null) {
+  if (typeof payload !== "object" || payload === null) {
     return null;
   }
 
   for (const key of keys) {
     const value = payload[key];
 
-    if (typeof value === 'boolean') {
+    if (typeof value === "boolean") {
       return value;
     }
 
-    if (typeof value === 'string') {
-      if (value === 'true') {
+    if (typeof value === "string") {
+      if (value === "true") {
         return true;
       }
 
-      if (value === 'false') {
+      if (value === "false") {
         return false;
       }
     }
@@ -89,11 +89,11 @@ function readBooleanField(payload, keys) {
 }
 
 function summarizeText(text, fallback, prefix) {
-  if (typeof text !== 'string') {
+  if (typeof text !== "string") {
     return fallback;
   }
 
-  const singleLine = text.replace(/\s+/g, ' ').trim();
+  const singleLine = text.replace(/\s+/g, " ").trim();
 
   if (singleLine.length === 0) {
     return fallback;
@@ -107,21 +107,21 @@ function summarizeText(text, fallback, prefix) {
 
 function summarizePrompt(payload) {
   return summarizeText(
-    readStringField(payload, ['prompt', 'user_prompt', 'input', 'message']),
-    'Reviewing the latest user prompt',
-    'Prompt: ',
+    readStringField(payload, ["prompt", "user_prompt", "input", "message"]),
+    "Reviewing the latest user prompt",
+    "Prompt: ",
   );
 }
 
 function summarizeTool(payload, fallback) {
   const toolName = readStringField(payload, [
-    'tool_name',
-    'toolName',
-    'tool',
-    'name',
+    "tool_name",
+    "toolName",
+    "tool",
+    "name",
   ]);
 
-  if (typeof toolName !== 'string') {
+  if (typeof toolName !== "string") {
     return fallback;
   }
 
@@ -130,91 +130,91 @@ function summarizeTool(payload, fallback) {
 
 function summarizePermission(payload) {
   const toolName = readStringField(payload, [
-    'tool_name',
-    'toolName',
-    'tool',
-    'name',
+    "tool_name",
+    "toolName",
+    "tool",
+    "name",
   ]);
 
-  if (typeof toolName === 'string') {
+  if (typeof toolName === "string") {
     return `Waiting on permission for ${toolName}`;
   }
 
   return summarizeText(
-    readStringField(payload, ['message', 'reason', 'description']),
-    'Waiting on permission approval',
-    'Permission: ',
+    readStringField(payload, ["message", "reason", "description"]),
+    "Waiting on permission approval",
+    "Permission: ",
   );
 }
 
 function summarizeNotification(payload) {
   return summarizeText(
     readStringField(payload, [
-      'message',
-      'title',
-      'content',
-      'text',
-      'notification',
+      "message",
+      "title",
+      "content",
+      "text",
+      "notification",
     ]),
-    'Reviewing a Claude notification',
-    'Notification: ',
+    "Reviewing a Claude notification",
+    "Notification: ",
   );
 }
 
 function summarizePermissionCancellation(pendingPermission) {
   if (
-    typeof pendingPermission === 'object' &&
+    typeof pendingPermission === "object" &&
     pendingPermission !== null &&
-    typeof pendingPermission.task === 'string' &&
+    typeof pendingPermission.task === "string" &&
     pendingPermission.task.length > 0
   ) {
     return `${pendingPermission.task} (not approved)`;
   }
 
-  return 'Permission was not approved';
+  return "Permission was not approved";
 }
 
 function summarizeElicitation(payload) {
   return summarizeText(
-    readStringField(payload, ['question', 'prompt', 'message', 'text']),
-    'Waiting for additional input',
-    'Need input: ',
+    readStringField(payload, ["question", "prompt", "message", "text"]),
+    "Waiting for additional input",
+    "Need input: ",
   );
 }
 
 function summarizeBackgroundTask(payload, fallback) {
   return summarizeText(
     readStringField(payload, [
-      'description',
-      'task',
-      'prompt',
-      'last_assistant_message',
-      'agent_type',
-      'agent_id',
+      "description",
+      "task",
+      "prompt",
+      "last_assistant_message",
+      "agent_type",
+      "agent_id",
     ]),
     fallback,
-    'Task: ',
+    "Task: ",
   );
 }
 
 function isPermissionPromptNotification(payload) {
   const notificationType = readStringField(payload, [
-    'notification',
-    'type',
-    'subtype',
+    "notification",
+    "type",
+    "subtype",
   ]);
 
-  return notificationType === 'permission_prompt';
+  return notificationType === "permission_prompt";
 }
 
 function isToolInterrupt(payload) {
-  return readBooleanField(payload, ['is_interrupt']) === true;
+  return readBooleanField(payload, ["is_interrupt"]) === true;
 }
 
 function getHookStateFilePath() {
   const hookStateFilePath = process.env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE;
 
-  if (typeof hookStateFilePath !== 'string' || hookStateFilePath.length === 0) {
+  if (typeof hookStateFilePath !== "string" || hookStateFilePath.length === 0) {
     return null;
   }
 
@@ -229,14 +229,14 @@ function readHookState() {
   }
 
   try {
-    const text = fs.readFileSync(hookStateFilePath, 'utf8');
+    const text = fs.readFileSync(hookStateFilePath, "utf8");
     const parsed = JSON.parse(text);
 
-    if (typeof parsed === 'object' && parsed !== null) {
+    if (typeof parsed === "object" && parsed !== null) {
       return parsed;
     }
   } catch (error) {
-    if (error instanceof Error && error.name !== 'ENOENT') {
+    if (error instanceof Error && error.name !== "ENOENT") {
       appendTrace(`failed to read hook state file error=${error.message}`);
     }
   }
@@ -256,7 +256,7 @@ function writeHookState(nextState) {
     fs.writeFileSync(
       hookStateFilePath,
       JSON.stringify(nextState, null, 2),
-      'utf8',
+      "utf8",
     );
   } catch (error) {
     if (error instanceof Error) {
@@ -266,13 +266,13 @@ function writeHookState(nextState) {
 }
 
 function getPendingPermission(hookState) {
-  if (typeof hookState !== 'object' || hookState === null) {
+  if (typeof hookState !== "object" || hookState === null) {
     return null;
   }
 
   const pendingPermission = hookState.pendingPermission;
 
-  if (typeof pendingPermission !== 'object' || pendingPermission === null) {
+  if (typeof pendingPermission !== "object" || pendingPermission === null) {
     return null;
   }
 
@@ -286,27 +286,28 @@ function buildNextHookState(eventName, payload, hookState) {
   };
 
   if (
-    eventName === 'PermissionRequest' ||
-    (eventName === 'Notification' && isPermissionPromptNotification(payload))
+    eventName === "PermissionRequest" ||
+    (eventName === "Notification" && isPermissionPromptNotification(payload))
   ) {
     nextState.pendingPermission = {
       task: summarizePermission(payload),
       toolName:
-        readStringField(payload, ['tool_name', 'toolName', 'tool', 'name']) ?? '',
+        readStringField(payload, ["tool_name", "toolName", "tool", "name"]) ??
+        "",
       requestedAt: new Date().toISOString(),
     };
     return nextState;
   }
 
   if (
-    eventName === 'UserPromptSubmit' ||
-    eventName === 'PermissionDenied' ||
-    eventName === 'PreToolUse' ||
-    eventName === 'PostToolUse' ||
-    eventName === 'PostToolUseFailure' ||
-    eventName === 'Stop' ||
-    eventName === 'StopFailure' ||
-    eventName === 'SessionEnd'
+    eventName === "UserPromptSubmit" ||
+    eventName === "PermissionDenied" ||
+    eventName === "PreToolUse" ||
+    eventName === "PostToolUse" ||
+    eventName === "PostToolUseFailure" ||
+    eventName === "Stop" ||
+    eventName === "StopFailure" ||
+    eventName === "SessionEnd"
   ) {
     delete nextState.pendingPermission;
     return nextState;
@@ -316,8 +317,8 @@ function buildNextHookState(eventName, payload, hookState) {
 }
 
 function describePayloadForTrace(payload) {
-  if (typeof payload !== 'object' || payload === null) {
-    return 'none';
+  if (typeof payload !== "object" || payload === null) {
+    return "none";
   }
 
   const selectedEntries = Object.entries(payload).filter((entry) => {
@@ -325,244 +326,247 @@ function describePayloadForTrace(payload) {
     const value = entry[1];
 
     if (
-      key === 'reason' ||
-      key === 'stop_reason' ||
-      key === 'stopReason' ||
-      key === 'last_assistant_message' ||
-      key === 'tool_name' ||
-      key === 'type' ||
-      key === 'subtype' ||
-      key === 'notification' ||
-      key === 'prompt' ||
-      key === 'message'
+      key === "reason" ||
+      key === "stop_reason" ||
+      key === "stopReason" ||
+      key === "last_assistant_message" ||
+      key === "tool_name" ||
+      key === "type" ||
+      key === "subtype" ||
+      key === "notification" ||
+      key === "prompt" ||
+      key === "message"
     ) {
-      return typeof value === 'string' && value.length > 0;
+      return typeof value === "string" && value.length > 0;
     }
 
-    if (key === 'is_interrupt') {
-      return typeof value === 'boolean';
+    if (key === "is_interrupt") {
+      return typeof value === "boolean";
     }
 
     return false;
   });
 
   if (selectedEntries.length === 0) {
-    return 'none';
+    return "none";
   }
 
   return selectedEntries
     .map(([key, value]) => {
-      return `${key}=${String(value).replace(/\s+/g, ' ').slice(0, 140)}`;
+      return `${key}=${String(value).replace(/\s+/g, " ").slice(0, 140)}`;
     })
-    .join(' | ');
+    .join(" | ");
 }
 
 function createUpdate(eventName, payload, hookState) {
   const pendingPermission = getPendingPermission(hookState);
 
-  if (eventName === 'SessionStart') {
+  if (eventName === "SessionStart") {
     return {
-      activity: '다음 입력 기다리는 중',
-      state: 'waiting',
-      line: 'Claude 연결 완료! 다음 입력을 기다리고 잇어요...!',
-      task: 'Waiting for the next prompt',
-      intensity: 'low',
+      activity: "다음 입력 기다리는 중",
+      state: "waiting",
+      line: "Claude 연결 완료! 다음 입력을 기다리고 잇어요...!",
+      task: "Waiting for the next prompt",
+      intensity: "low",
     };
   }
 
-  if (eventName === 'UserPromptSubmit') {
+  if (eventName === "UserPromptSubmit") {
     return {
       activity:
         pendingPermission === null
-          ? '자료를 찾는 중'
-          : '새 입력을 다시 살피는 중',
-      state: 'thinking',
+          ? "자료를 찾는 중"
+          : "새 입력을 다시 살피는 중",
+      state: "thinking",
       line:
         pendingPermission === null
-          ? '질문 읽고 흐름 잡는 중이에요...!'
-          : '권한 승인 없이 넘어와서 새 입력을 읽는 중이에요...!',
+          ? "질문 읽고 흐름 잡는 중이에요...!"
+          : "권한 승인 없이 넘어와서 새 입력을 읽는 중이에요...!",
       task: summarizePrompt(payload),
-      intensity: 'medium',
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'PermissionRequest') {
+  if (eventName === "PermissionRequest") {
     return {
-      activity: '권한 확인 기다리는 중',
-      state: 'waiting',
-      line: '권한 확인 기다리는 중이에요...!',
+      activity: "권한 확인 기다리는 중",
+      state: "waiting",
+      line: "권한 확인 기다리는 중이에요...!",
       task: summarizePermission(payload),
-      intensity: 'medium',
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'PermissionDenied') {
+  if (eventName === "PermissionDenied") {
     return {
-      activity: '우회 경로를 찾는 중',
-      state: 'sad',
-      line: '권한이 막혀서 다른 길 찾는 중이에요...!',
+      activity: "우회 경로를 찾는 중",
+      state: "sad",
+      line: "권한이 막혀서 다른 길 찾는 중이에요...!",
       task: summarizePermission(payload),
-      intensity: 'medium',
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'PreToolUse') {
+  if (eventName === "PreToolUse") {
     return {
-      activity: '컴퓨터 작업중',
-      state: 'working',
-      line: '도구를 써서 확인하는 중이에요...!',
-      task: summarizeTool(payload, 'Using a Claude tool'),
-      intensity: 'medium',
+      activity: "컴퓨터 작업중",
+      state: "working",
+      line: "도구를 써서 확인하는 중이에요...!",
+      task: summarizeTool(payload, "Using a Claude tool"),
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'PostToolUse') {
+  if (eventName === "PostToolUse") {
     return {
-      activity: '결과를 정리하는 중',
-      state: 'thinking',
-      line: '방금 가져온 결과를 정리 중이에요...!',
-      task: summarizeTool(payload, 'Reviewing tool output'),
-      intensity: 'medium',
+      activity: "결과를 정리하는 중",
+      state: "thinking",
+      line: "방금 가져온 결과를 정리 중이에요...!",
+      task: summarizeTool(payload, "Reviewing tool output"),
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'Notification') {
+  if (eventName === "Notification") {
     if (isPermissionPromptNotification(payload)) {
       return {
-        activity: '권한 확인 기다리는 중',
-        state: 'waiting',
-        line: '권한 팝업 확인 중이에요...!',
+        activity: "권한 확인 기다리는 중",
+        state: "waiting",
+        line: "권한 팝업 확인 중이에요...!",
         task: summarizePermission(payload),
-        intensity: 'medium',
+        intensity: "medium",
       };
     }
 
     return {
-      activity: '새 알림 확인 중',
-      state: 'surprised',
-      line: '새 알림이 와서 확인 중이에요...!',
+      activity: "새 알림 확인 중",
+      state: "surprised",
+      line: "새 알림이 와서 확인 중이에요...!",
       task: summarizeNotification(payload),
-      intensity: 'medium',
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'Elicitation') {
+  if (eventName === "Elicitation") {
     return {
-      activity: '추가 입력 기다리는 중',
-      state: 'waiting',
-      line: '추가 입력을 기다리고 잇어요...!',
+      activity: "추가 입력 기다리는 중",
+      state: "waiting",
+      line: "추가 입력을 기다리고 잇어요...!",
       task: summarizeElicitation(payload),
-      intensity: 'medium',
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'ElicitationResult') {
+  if (eventName === "ElicitationResult") {
     return {
-      activity: '추가 입력 반영 중',
-      state: 'thinking',
-      line: '방금 받은 입력을 반영 중이에요...!',
+      activity: "추가 입력 반영 중",
+      state: "thinking",
+      line: "방금 받은 입력을 반영 중이에요...!",
       task: summarizeElicitation(payload),
-      intensity: 'medium',
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'SubagentStart') {
+  if (eventName === "SubagentStart") {
     return {
-      activity: '보조 작업 진행 중',
-      state: 'working',
-      line: '보조 작업을 함께 진행 중이에요...!',
-      task: summarizeBackgroundTask(payload, 'Coordinating background work'),
-      intensity: 'medium',
+      activity: "보조 작업 진행 중",
+      state: "working",
+      line: "보조 작업을 함께 진행 중이에요...!",
+      task: summarizeBackgroundTask(payload, "Coordinating background work"),
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'SubagentStop') {
+  if (eventName === "SubagentStop") {
     return {
-      activity: '보조 작업 결과 정리 중',
-      state: 'thinking',
-      line: '추가 작업 결과를 정리 중이에요...!',
-      task: summarizeBackgroundTask(payload, 'Reviewing background task output'),
-      intensity: 'medium',
+      activity: "보조 작업 결과 정리 중",
+      state: "thinking",
+      line: "추가 작업 결과를 정리 중이에요...!",
+      task: summarizeBackgroundTask(
+        payload,
+        "Reviewing background task output",
+      ),
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'TeammateIdle') {
+  if (eventName === "TeammateIdle") {
     return {
-      activity: '다음 지시 기다리는 중',
-      state: 'waiting',
-      line: '보조 작업이 다음 지시를 기다리고 잇어요...!',
-      task: summarizeBackgroundTask(payload, 'Waiting on background work'),
-      intensity: 'low',
+      activity: "다음 지시 기다리는 중",
+      state: "waiting",
+      line: "보조 작업이 다음 지시를 기다리고 잇어요...!",
+      task: summarizeBackgroundTask(payload, "Waiting on background work"),
+      intensity: "low",
     };
   }
 
-  if (eventName === 'TaskCompleted') {
+  if (eventName === "TaskCompleted") {
     return {
-      activity: '작업 마무리 중',
-      state: 'happy',
-      line: '작업 하나를 마무리햇어요...!',
-      task: summarizeBackgroundTask(payload, 'Background task completed'),
-      intensity: 'medium',
+      activity: "작업 마무리 중",
+      state: "happy",
+      line: "작업 하나를 마무리햇어요...!",
+      task: summarizeBackgroundTask(payload, "Background task completed"),
+      intensity: "medium",
     };
   }
 
-  if (eventName === 'PostToolUseFailure') {
+  if (eventName === "PostToolUseFailure") {
     if (isToolInterrupt(payload)) {
       return {
-        activity: '중단된 작업 정리 중',
-        state: 'waiting',
-        line: '유저가 도구 실행을 중간에 멈췃어요...!',
-        task: summarizeTool(payload, 'Interrupted during tool use'),
-        intensity: 'medium',
+        activity: "중단된 작업 정리 중",
+        state: "waiting",
+        line: "유저가 도구 실행을 중간에 멈췃어요...!",
+        task: summarizeTool(payload, "Interrupted during tool use"),
+        intensity: "medium",
       };
     }
 
     return {
-      activity: '문제 원인 확인 중',
-      state: 'error',
-      line: '도구 실행 중에 문제가 생겻어요...!',
-      task: summarizeTool(payload, 'Claude tool failed'),
-      intensity: 'high',
+      activity: "문제 원인 확인 중",
+      state: "error",
+      line: "도구 실행 중에 문제가 생겻어요...!",
+      task: summarizeTool(payload, "Claude tool failed"),
+      intensity: "high",
     };
   }
 
-  if (eventName === 'Stop') {
+  if (eventName === "Stop") {
     return {
-      activity: '다음 입력 기다리는 중',
-      state: 'waiting',
-      line: '응답을 마치고 다음 입력을 기다리고 잇어요...!',
-      task: 'Waiting for the next prompt',
-      intensity: 'low',
+      activity: "다음 입력 기다리는 중",
+      state: "waiting",
+      line: "응답을 마치고 다음 입력을 기다리고 잇어요...!",
+      task: "Waiting for the next prompt",
+      intensity: "low",
     };
   }
 
-  if (eventName === 'StopFailure') {
+  if (eventName === "StopFailure") {
     return {
-      activity: '오류 확인 중',
-      state: 'error',
-      line: '응답 중에 문제가 생겻어요...!',
-      task: 'Claude hit a stop failure',
-      intensity: 'high',
+      activity: "오류 확인 중",
+      state: "error",
+      line: "응답 중에 문제가 생겻어요...!",
+      task: "Claude hit a stop failure",
+      intensity: "high",
     };
   }
 
-  if (eventName === 'SessionEnd') {
+  if (eventName === "SessionEnd") {
     if (pendingPermission !== null) {
       return {
-        activity: '연결 종료됨',
-        state: 'disconnected',
-        line: '권한 승인 없이 세션이 닫혓어요...!',
+        activity: "연결 종료됨",
+        state: "disconnected",
+        line: "권한 승인 없이 세션이 닫혓어요...!",
         task: summarizePermissionCancellation(pendingPermission),
-        intensity: 'low',
+        intensity: "low",
       };
     }
 
     return {
-      activity: '연결 대기 중',
-      state: 'disconnected',
-      line: 'Claude 세션이 종료돼서 지금은 미연결 상태예요...!',
-      task: 'Waiting for Claude to start',
-      intensity: 'low',
+      activity: "연결 대기 중",
+      state: "disconnected",
+      line: "Claude 세션이 종료돼서 지금은 미연결 상태예요...!",
+      task: "Waiting for Claude to start",
+      intensity: "low",
     };
   }
 
@@ -572,31 +576,31 @@ function createUpdate(eventName, payload, hookState) {
 function publishStatus(update) {
   const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
   const statusCommand =
-    typeof helperBinDir === 'string' && helperBinDir.length > 0
-      ? join(helperBinDir, 'claude-status')
-      : 'claude-status';
+    typeof helperBinDir === "string" && helperBinDir.length > 0
+      ? join(helperBinDir, "claude-status")
+      : "claude-status";
   const args = [
-    '--state',
+    "--state",
     update.state,
-    '--line',
+    "--line",
     update.line,
-    '--activity',
+    "--activity",
     update.activity,
-    '--task',
+    "--task",
     update.task,
-    '--intensity',
+    "--intensity",
     update.intensity,
   ];
 
   const result = spawnSync(statusCommand, args, {
-    stdio: 'ignore',
+    stdio: "ignore",
   });
 
   if (result.status === 0) {
     return;
   }
 
-  if (typeof result.error?.message === 'string') {
+  if (typeof result.error?.message === "string") {
     appendTrace(
       `claude-status invocation failed command=${statusCommand} error=${result.error.message}`,
     );
@@ -610,8 +614,8 @@ function publishStatus(update) {
 function main() {
   const eventName = process.argv[2];
 
-  if (typeof eventName !== 'string' || eventName.length === 0) {
-    appendTrace('missing hook event name');
+  if (typeof eventName !== "string" || eventName.length === 0) {
+    appendTrace("missing hook event name");
     process.exit(1);
   }
 
@@ -622,10 +626,10 @@ function main() {
   const nextHookState = buildNextHookState(eventName, payload, hookState);
 
   appendTrace(
-    `event=${eventName} payloadKeys=${payload !== null ? Object.keys(payload).join(',') : 'none'} payloadSummary=${describePayloadForTrace(payload)}`,
+    `event=${eventName} payloadKeys=${payload !== null ? Object.keys(payload).join(",") : "none"} payloadSummary=${describePayloadForTrace(payload)}`,
   );
   appendTrace(
-    `hook-state pendingPermission=${getPendingPermission(nextHookState) === null ? 'none' : 'active'} lastEvent=${typeof nextHookState.lastEvent === 'string' ? nextHookState.lastEvent : 'none'}`,
+    `hook-state pendingPermission=${getPendingPermission(nextHookState) === null ? "none" : "active"} lastEvent=${typeof nextHookState.lastEvent === "string" ? nextHookState.lastEvent : "none"}`,
   );
   writeHookState(nextHookState);
 

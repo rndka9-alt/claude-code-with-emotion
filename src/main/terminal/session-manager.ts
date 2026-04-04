@@ -1,17 +1,17 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { spawn } from 'node-pty';
-import type { IPty } from 'node-pty';
-import { ensureClaudeHooksSettingsFile } from './claude-hooks-settings';
-import { TerminalOutputStore } from './terminal-output-store';
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawn } from "node-pty";
+import type { IPty } from "node-pty";
+import { ensureClaudeHooksSettingsFile } from "./claude-hooks-settings";
+import { TerminalOutputStore } from "./terminal-output-store";
 import type {
   TerminalBootstrapRequest,
   TerminalBootstrapResponse,
   TerminalCloseRequest,
   TerminalInputRequest,
   TerminalResizeRequest,
-} from '../../shared/terminal-bridge';
+} from "../../shared/terminal-bridge";
 
 interface TerminalDisposable {
   dispose: () => void;
@@ -42,7 +42,9 @@ interface RuntimeFactoryOptions {
   env: Record<string, string>;
 }
 
-type RuntimeFactory = (options: RuntimeFactoryOptions) => TerminalSessionRuntime;
+type RuntimeFactory = (
+  options: RuntimeFactoryOptions,
+) => TerminalSessionRuntime;
 type OutputListener = (
   sessionId: string,
   event: { data: string; outputVersion: number },
@@ -66,7 +68,7 @@ function createInitialCommandInput(command: string): string {
   const trimmedCommand = command.trim();
 
   if (trimmedCommand.length === 0) {
-    return '';
+    return "";
   }
 
   return `${trimmedCommand}\r`;
@@ -92,13 +94,15 @@ function adaptPty(ptyProcess: IPty): TerminalSessionRuntime {
   };
 }
 
-function createNodePtyRuntime(options: RuntimeFactoryOptions): TerminalSessionRuntime {
+function createNodePtyRuntime(
+  options: RuntimeFactoryOptions,
+): TerminalSessionRuntime {
   const ptyProcess = spawn(options.shell, options.shellArgs, {
     cols: options.cols,
     rows: options.rows,
     cwd: options.cwd,
     env: options.env,
-    name: 'xterm-256color',
+    name: "xterm-256color",
   });
 
   return adaptPty(ptyProcess);
@@ -107,11 +111,11 @@ function createNodePtyRuntime(options: RuntimeFactoryOptions): TerminalSessionRu
 export function resolveShell(env: NodeJS.ProcessEnv): string {
   const shell = env.SHELL;
 
-  if (typeof shell === 'string' && shell.length > 0) {
+  if (typeof shell === "string" && shell.length > 0) {
     return shell;
   }
 
-  return '/bin/zsh';
+  return "/bin/zsh";
 }
 
 export function createRuntimeEnv(
@@ -124,12 +128,12 @@ export function createRuntimeEnv(
   visualOverlayFilePath: string,
 ): Record<string, string> {
   const sanitizedEnvEntries = Object.entries(env).filter((entry) => {
-    return typeof entry[1] === 'string';
+    return typeof entry[1] === "string";
   });
   const pathSegments = [helperBinDir];
   const existingPath = env.PATH;
 
-  if (typeof existingPath === 'string' && existingPath.length > 0) {
+  if (typeof existingPath === "string" && existingPath.length > 0) {
     pathSegments.push(existingPath);
   }
 
@@ -137,18 +141,18 @@ export function createRuntimeEnv(
     ...Object.fromEntries(sanitizedEnvEntries),
     CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
     CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: `${statusFilePath}.hook-state.json`,
-    CLAUDE_WITH_EMOTION_ORIGINAL_PATH: existingPath ?? '',
+    CLAUDE_WITH_EMOTION_ORIGINAL_PATH: existingPath ?? "",
     CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: helperBinDir,
     CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
     CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: visualAssetCatalogFilePath,
     CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: visualOverlayFilePath,
     PWD: cwd,
-    PATH: pathSegments.join(':'),
-    HEADLINE_INFO_MODE: env.HEADLINE_INFO_MODE ?? 'prompt',
-    HEADLINE_LINE_MODE: env.HEADLINE_LINE_MODE ?? 'off',
-    HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? 'false',
-    TERM: 'xterm-256color',
-    TERM_PROGRAM: 'claude-code-with-emotion',
+    PATH: pathSegments.join(":"),
+    HEADLINE_INFO_MODE: env.HEADLINE_INFO_MODE ?? "prompt",
+    HEADLINE_LINE_MODE: env.HEADLINE_LINE_MODE ?? "off",
+    HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? "false",
+    TERM: "xterm-256color",
+    TERM_PROGRAM: "claude-code-with-emotion",
   };
 }
 
@@ -161,7 +165,7 @@ function createShellExports(env: Record<string, string>): string {
     .map(([key, value]) => {
       return `export ${key}=${quoteForShell(value)}`;
     })
-    .join('\n');
+    .join("\n");
 }
 
 function createZshWrapperFile(
@@ -171,8 +175,8 @@ function createZshWrapperFile(
   const sourceLine = [
     `if [ -f "$HOME/${sourceFileName}" ]; then`,
     `  . "$HOME/${sourceFileName}"`,
-    'fi',
-  ].join('\n');
+    "fi",
+  ].join("\n");
 
   return `${sourceLine}\n${createShellExports(env)}\n`;
 }
@@ -180,9 +184,9 @@ function createZshWrapperFile(
 function getZshWrapperDir(homeDir: string): string {
   return path.join(
     os.tmpdir(),
-    'claude-code-with-emotion-shell',
-    Buffer.from(homeDir).toString('hex'),
-    'zsh',
+    "claude-code-with-emotion-shell",
+    Buffer.from(homeDir).toString("hex"),
+    "zsh",
   );
 }
 
@@ -194,24 +198,24 @@ function ensureZshWrapperDir(
 
   fs.mkdirSync(wrapperDir, { recursive: true });
   fs.writeFileSync(
-    path.join(wrapperDir, '.zshenv'),
-    createZshWrapperFile('.zshenv', env),
-    'utf8',
+    path.join(wrapperDir, ".zshenv"),
+    createZshWrapperFile(".zshenv", env),
+    "utf8",
   );
   fs.writeFileSync(
-    path.join(wrapperDir, '.zprofile'),
-    createZshWrapperFile('.zprofile', env),
-    'utf8',
+    path.join(wrapperDir, ".zprofile"),
+    createZshWrapperFile(".zprofile", env),
+    "utf8",
   );
   fs.writeFileSync(
-    path.join(wrapperDir, '.zshrc'),
-    createZshWrapperFile('.zshrc', env),
-    'utf8',
+    path.join(wrapperDir, ".zshrc"),
+    createZshWrapperFile(".zshrc", env),
+    "utf8",
   );
   fs.writeFileSync(
-    path.join(wrapperDir, '.zlogin'),
-    createZshWrapperFile('.zlogin', env),
-    'utf8',
+    path.join(wrapperDir, ".zlogin"),
+    createZshWrapperFile(".zlogin", env),
+    "utf8",
   );
 
   return wrapperDir;
@@ -222,12 +226,12 @@ export function createShellLaunchConfig(
   env: Record<string, string>,
 ): ShellLaunchConfig {
   const shellName = path.basename(shell);
-  const interactiveShellArgs = ['-i', '-l'];
+  const interactiveShellArgs = ["-i", "-l"];
 
-  if (shellName === 'zsh') {
+  if (shellName === "zsh") {
     const homeDir = env.HOME;
 
-    if (typeof homeDir === 'string' && homeDir.length > 0) {
+    if (typeof homeDir === "string" && homeDir.length > 0) {
       const wrapperDir = ensureZshWrapperDir(homeDir, env);
 
       return {
@@ -240,7 +244,7 @@ export function createShellLaunchConfig(
     }
   }
 
-  if (shellName === 'bash') {
+  if (shellName === "bash") {
     return {
       env,
       shellArgs: interactiveShellArgs,
@@ -249,7 +253,7 @@ export function createShellLaunchConfig(
 
   return {
     env,
-    shellArgs: ['-l'],
+    shellArgs: ["-l"],
   };
 }
 
@@ -309,7 +313,7 @@ export class TerminalSessionManager {
     );
     const homeDir = runtimeEnv.HOME;
 
-    if (typeof homeDir === 'string' && homeDir.length > 0) {
+    if (typeof homeDir === "string" && homeDir.length > 0) {
       runtimeEnv.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE =
         ensureClaudeHooksSettingsFile(this.helperBinDir, homeDir);
     }

@@ -1,5 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
 export interface WindowBounds {
   x: number;
@@ -16,11 +16,11 @@ const DEFAULT_BOUNDS: WindowBounds = {
 };
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function parseWindowBoundsFromDisk(
@@ -28,7 +28,7 @@ function parseWindowBoundsFromDisk(
   logEvent?: (message: string) => void,
 ): WindowBounds | null {
   try {
-    const text = fs.readFileSync(filePath, 'utf8');
+    const text = fs.readFileSync(filePath, "utf8");
     const parsed: unknown = JSON.parse(text);
 
     if (
@@ -38,7 +38,7 @@ function parseWindowBoundsFromDisk(
       !isFiniteNumber(parsed.width) ||
       !isFiniteNumber(parsed.height)
     ) {
-      logEvent?.('window bounds on disk had an invalid shape');
+      logEvent?.("window bounds on disk had an invalid shape");
       return null;
     }
 
@@ -71,11 +71,7 @@ export class WindowBoundsStore {
     this.bounds = bounds;
 
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
-    fs.writeFileSync(
-      this.filePath,
-      JSON.stringify(bounds, null, 2),
-      'utf8',
-    );
+    fs.writeFileSync(this.filePath, JSON.stringify(bounds, null, 2), "utf8");
     this.logEvent?.(
       `saved window bounds ${bounds.width}x${bounds.height} at (${bounds.x},${bounds.y})`,
     );

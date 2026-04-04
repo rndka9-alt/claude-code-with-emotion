@@ -1,10 +1,10 @@
-import { Grip } from 'lucide-react';
-import { useState, type ReactElement } from 'react';
-import { PaneStack } from './features/workspace/PaneStack';
-import { StatusPanel } from './features/workspace/StatusPanel';
-import { TabBar } from './features/workspace/TabBar';
-import { VisualAssetManagerDialog } from './features/workspace/VisualAssetManagerDialog';
-import { useWorkspaceScreenViewModel } from './features/workspace/use-workspace-screen-view-model';
+import { Grip } from "lucide-react";
+import { useState, type ReactElement } from "react";
+import { PaneStack } from "./features/workspace/PaneStack";
+import { StatusPanel } from "./features/workspace/StatusPanel";
+import { TabBar } from "./features/workspace/TabBar";
+import { VisualAssetManagerDialog } from "./features/workspace/VisualAssetManagerDialog";
+import { useWorkspaceScreenViewModel } from "./features/workspace/use-workspace-screen-view-model";
 
 export function App(): ReactElement {
   const [isStatusPanelCollapsed, setIsStatusPanelCollapsed] = useState(false);
@@ -46,16 +46,17 @@ export function App(): ReactElement {
     visualAssetCatalog,
     visibleTabs,
   } = useWorkspaceScreenViewModel();
-  const panelId = visibleTabs[0] !== undefined ? `panel-${visibleTabs[0].id}` : 'panel-stack';
+  const panelId =
+    visibleTabs[0] !== undefined ? `panel-${visibleTabs[0].id}` : "panel-stack";
   const statusPanelToggleLabel = isStatusPanelCollapsed
-    ? 'Expand assistant status panel'
-    : 'Collapse assistant status panel';
+    ? "Expand assistant status panel"
+    : "Collapse assistant status panel";
   const statusPanelHandleClassName = [
-    'absolute top-0 left-1/2 z-10 inline-flex h-6 w-12 -translate-x-1/2 -translate-y-px items-center justify-center border border-border-panel bg-surface-panel text-text-subtle transition-[background-color,border-color,color] duration-150 hover:border-border-strong hover:bg-surface-elevated hover:text-text-highlight',
+    "absolute top-0 left-1/2 z-10 inline-flex h-6 w-12 -translate-x-1/2 -translate-y-px items-center justify-center border border-border-panel bg-surface-panel text-text-subtle transition-[background-color,border-color,color] duration-150 hover:border-border-strong hover:bg-surface-elevated hover:text-text-highlight",
     isStatusPanelCollapsed
-      ? 'rounded-[10px] shadow-[0_10px_24px_rgba(0,0,0,0.24)]'
-      : 'rounded-t-[10px] border-b-0',
-  ].join(' ');
+      ? "rounded-[10px] shadow-[0_10px_24px_rgba(0,0,0,0.24)]"
+      : "rounded-t-[10px] border-b-0",
+  ].join(" ");
 
   return (
     <div className="flex h-full min-h-full flex-col overflow-hidden bg-app-bg">
@@ -65,7 +66,7 @@ export function App(): ReactElement {
         onCloseTab={closeTab}
         onCreateTab={createTab}
         onRenameTab={(tabId, title) => {
-          updateTabTitle(tabId, title, 'manual');
+          updateTabTitle(tabId, title, "manual");
         }}
         onReorderTab={reorderTab}
         tabs={tabs}
@@ -82,7 +83,7 @@ export function App(): ReactElement {
             onResizePane={resizePane}
             paneSizes={paneSizes}
             onSyncTabTitle={(tabId, title) => {
-              updateTabTitle(tabId, title, 'terminal');
+              updateTabTitle(tabId, title, "terminal");
             }}
             terminalFocusRequestKey={terminalFocusRequestKey}
             tabs={visibleTabs}

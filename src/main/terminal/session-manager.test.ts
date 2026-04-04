@@ -3,15 +3,15 @@ import {
   createRuntimeEnv,
   resolveShell,
   TerminalSessionManager,
-} from './session-manager';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+} from "./session-manager";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import type {
   TerminalBootstrapRequest,
   TerminalInputRequest,
   TerminalResizeRequest,
-} from '../../shared/terminal-bridge';
+} from "../../shared/terminal-bridge";
 
 interface FakeRuntimeRecord {
   cols: number;
@@ -26,115 +26,113 @@ interface FakeRuntimeRecord {
 
 function createBootstrapRequest(): TerminalBootstrapRequest {
   return {
-    sessionId: 'session-1',
-    title: 'main session',
-    cwd: '/tmp/app',
-    command: 'claude',
+    sessionId: "session-1",
+    title: "main session",
+    cwd: "/tmp/app",
+    command: "claude",
     cols: 120,
     rows: 32,
   };
 }
 
-describe('resolveShell', () => {
-  it('prefers SHELL and falls back to /bin/zsh', () => {
-    expect(resolveShell({ SHELL: '/bin/bash' })).toBe('/bin/bash');
-    expect(resolveShell({})).toBe('/bin/zsh');
+describe("resolveShell", () => {
+  it("prefers SHELL and falls back to /bin/zsh", () => {
+    expect(resolveShell({ SHELL: "/bin/bash" })).toBe("/bin/bash");
+    expect(resolveShell({})).toBe("/bin/zsh");
   });
 });
 
-describe('createRuntimeEnv', () => {
-  it('adds terminal-specific env vars and drops non-string values', () => {
+describe("createRuntimeEnv", () => {
+  it("adds terminal-specific env vars and drops non-string values", () => {
     const env = createRuntimeEnv(
-      { HOME: '/tmp/home', PATH: '/usr/bin', INVALID: undefined },
-      '/tmp/app',
-      '/tmp/helper-bin',
-      '/tmp/status.json',
-      '/tmp/trace.log',
-      '/tmp/visual-assets.json',
-      '/tmp/visual-overlay.json',
+      { HOME: "/tmp/home", PATH: "/usr/bin", INVALID: undefined },
+      "/tmp/app",
+      "/tmp/helper-bin",
+      "/tmp/status.json",
+      "/tmp/trace.log",
+      "/tmp/visual-assets.json",
+      "/tmp/visual-overlay.json",
     );
 
-    expect(env.PWD).toBe('/tmp/app');
-    expect(env.TERM).toBe('xterm-256color');
-    expect(env.TERM_PROGRAM).toBe('claude-code-with-emotion');
-    expect(env.HEADLINE_INFO_MODE).toBe('prompt');
-    expect(env.HEADLINE_LINE_MODE).toBe('off');
-    expect(env.HEADLINE_DO_CLOCK).toBe('false');
-    expect(env.PATH).toBe('/tmp/helper-bin:/usr/bin');
-    expect(env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH).toBe('/usr/bin');
-    expect(env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR).toBe('/tmp/helper-bin');
-    expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe('/tmp/trace.log');
+    expect(env.PWD).toBe("/tmp/app");
+    expect(env.TERM).toBe("xterm-256color");
+    expect(env.TERM_PROGRAM).toBe("claude-code-with-emotion");
+    expect(env.HEADLINE_INFO_MODE).toBe("prompt");
+    expect(env.HEADLINE_LINE_MODE).toBe("off");
+    expect(env.HEADLINE_DO_CLOCK).toBe("false");
+    expect(env.PATH).toBe("/tmp/helper-bin:/usr/bin");
+    expect(env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH).toBe("/usr/bin");
+    expect(env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR).toBe("/tmp/helper-bin");
+    expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe("/tmp/trace.log");
     expect(env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE).toBe(
-      '/tmp/visual-assets.json',
+      "/tmp/visual-assets.json",
     );
     expect(env.CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE).toBe(
-      '/tmp/visual-overlay.json',
+      "/tmp/visual-overlay.json",
     );
-    expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe('/tmp/status.json');
+    expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe("/tmp/status.json");
     expect(env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE).toBe(
-      '/tmp/status.json.hook-state.json',
+      "/tmp/status.json.hook-state.json",
     );
-    expect(Object.hasOwn(env, 'INVALID')).toBe(false);
+    expect(Object.hasOwn(env, "INVALID")).toBe(false);
   });
 
-  it('preserves an existing headline mode override', () => {
+  it("preserves an existing headline mode override", () => {
     const env = createRuntimeEnv(
       {
-        HEADLINE_INFO_MODE: 'precmd',
-        HEADLINE_LINE_MODE: 'on',
-        HEADLINE_DO_CLOCK: 'true',
-        HOME: '/tmp/home',
-        PATH: '/usr/bin',
+        HEADLINE_INFO_MODE: "precmd",
+        HEADLINE_LINE_MODE: "on",
+        HEADLINE_DO_CLOCK: "true",
+        HOME: "/tmp/home",
+        PATH: "/usr/bin",
       },
-      '/tmp/app',
-      '/tmp/helper-bin',
-      '/tmp/status.json',
-      '/tmp/trace.log',
-      '/tmp/visual-assets.json',
-      '/tmp/visual-overlay.json',
+      "/tmp/app",
+      "/tmp/helper-bin",
+      "/tmp/status.json",
+      "/tmp/trace.log",
+      "/tmp/visual-assets.json",
+      "/tmp/visual-overlay.json",
     );
 
-    expect(env.HEADLINE_INFO_MODE).toBe('precmd');
-    expect(env.HEADLINE_LINE_MODE).toBe('on');
-    expect(env.HEADLINE_DO_CLOCK).toBe('true');
+    expect(env.HEADLINE_INFO_MODE).toBe("precmd");
+    expect(env.HEADLINE_LINE_MODE).toBe("on");
+    expect(env.HEADLINE_DO_CLOCK).toBe("true");
   });
 });
 
-describe('createShellLaunchConfig', () => {
-  it('wraps zsh startup files so helper commands stay first on PATH', () => {
+describe("createShellLaunchConfig", () => {
+  it("wraps zsh startup files so helper commands stay first on PATH", () => {
     const tempHome = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'claude-with-emotion-home-'),
+      path.join(os.tmpdir(), "claude-with-emotion-home-"),
     );
-    let wrapperDir = '';
+    let wrapperDir = "";
     const env = {
       HOME: tempHome,
-      PATH: '/tmp/helper-bin:/usr/bin',
-      CLAUDE_WITH_EMOTION_ORIGINAL_PATH: '/usr/bin',
-      CLAUDE_WITH_EMOTION_STATUS_FILE: '/tmp/status.json',
-      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: '/tmp/status.json.hook-state.json',
-      CLAUDE_WITH_EMOTION_TRACE_FILE: '/tmp/trace.log',
-      CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: '/tmp/visual-assets.json',
-      CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: '/tmp/visual-overlay.json',
+      PATH: "/tmp/helper-bin:/usr/bin",
+      CLAUDE_WITH_EMOTION_ORIGINAL_PATH: "/usr/bin",
+      CLAUDE_WITH_EMOTION_STATUS_FILE: "/tmp/status.json",
+      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: "/tmp/status.json.hook-state.json",
+      CLAUDE_WITH_EMOTION_TRACE_FILE: "/tmp/trace.log",
+      CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: "/tmp/visual-assets.json",
+      CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: "/tmp/visual-overlay.json",
     };
 
     try {
-      const launchConfig = createShellLaunchConfig('/bin/zsh', env);
+      const launchConfig = createShellLaunchConfig("/bin/zsh", env);
       const zdotDir = launchConfig.env.ZDOTDIR;
-      wrapperDir = typeof zdotDir === 'string' ? zdotDir : '';
+      wrapperDir = typeof zdotDir === "string" ? zdotDir : "";
 
-      expect(launchConfig.shellArgs).toEqual(['-i', '-l']);
-      expect(typeof zdotDir).toBe('string');
+      expect(launchConfig.shellArgs).toEqual(["-i", "-l"]);
+      expect(typeof zdotDir).toBe("string");
 
-      if (typeof zdotDir !== 'string') {
-        throw new Error('Expected ZDOTDIR to be a string');
+      if (typeof zdotDir !== "string") {
+        throw new Error("Expected ZDOTDIR to be a string");
       }
 
-      const zshrc = fs.readFileSync(path.join(zdotDir, '.zshrc'), 'utf8');
+      const zshrc = fs.readFileSync(path.join(zdotDir, ".zshrc"), "utf8");
 
       expect(zshrc).toContain('. "$HOME/.zshrc"');
-      expect(zshrc).toContain(
-        "export PATH='/tmp/helper-bin:/usr/bin'",
-      );
+      expect(zshrc).toContain("export PATH='/tmp/helper-bin:/usr/bin'");
       expect(zshrc).toContain(
         "export CLAUDE_WITH_EMOTION_STATUS_FILE='/tmp/status.json'",
       );
@@ -149,25 +147,25 @@ describe('createShellLaunchConfig', () => {
     }
   });
 
-  it('keeps non-zsh shells on the direct login-shell path', () => {
+  it("keeps non-zsh shells on the direct login-shell path", () => {
     const env = {
-      HOME: '/tmp/home',
-      PATH: '/tmp/helper-bin:/usr/bin',
+      HOME: "/tmp/home",
+      PATH: "/tmp/helper-bin:/usr/bin",
     };
 
-    const launchConfig = createShellLaunchConfig('/bin/bash', env);
+    const launchConfig = createShellLaunchConfig("/bin/bash", env);
 
-    expect(launchConfig.shellArgs).toEqual(['-i', '-l']);
+    expect(launchConfig.shellArgs).toEqual(["-i", "-l"]);
     expect(launchConfig.env).toEqual(env);
   });
 });
 
-describe('TerminalSessionManager', () => {
-  it('bootstraps a runtime and auto-launches the requested command', () => {
+describe("TerminalSessionManager", () => {
+  it("bootstraps a runtime and auto-launches the requested command", () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputEvents: string[] = [];
     const outputRootDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'claude-terminal-session-output-'),
+      path.join(os.tmpdir(), "claude-terminal-session-output-"),
     );
     const manager = new TerminalSessionManager(
       ({ cols, rows, cwd, env, shell, shellArgs }) => {
@@ -192,9 +190,9 @@ describe('TerminalSessionManager', () => {
           write: (data) => {
             record.writes.push(data);
 
-            if (data === 'ping\r') {
+            if (data === "ping\r") {
               for (const listener of dataListeners) {
-                listener('pong');
+                listener("pong");
               }
             }
           },
@@ -233,45 +231,45 @@ describe('TerminalSessionManager', () => {
         outputEvents.push(`${sessionId}:${event.outputVersion}:${event.data}`);
       },
       () => {},
-      '/tmp/helper-bin',
-      '/tmp/trace.log',
-      '/tmp/visual-assets.json',
+      "/tmp/helper-bin",
+      "/tmp/trace.log",
+      "/tmp/visual-assets.json",
       outputRootDir,
     );
     try {
       const response = manager.bootstrapSession(
         createBootstrapRequest(),
-        '/tmp/status.json',
-        '/tmp/visual-overlay.json',
+        "/tmp/status.json",
+        "/tmp/visual-overlay.json",
       );
 
       expect(createdRuntimes).toHaveLength(1);
-      expect(createdRuntimes[0]?.writes).toEqual(['claude\r']);
+      expect(createdRuntimes[0]?.writes).toEqual(["claude\r"]);
       expect(response).toEqual({
-        outputSnapshot: '',
+        outputSnapshot: "",
         outputVersion: 0,
       });
       const inputRequest: TerminalInputRequest = {
-        sessionId: 'session-1',
-        data: 'ping\r',
+        sessionId: "session-1",
+        data: "ping\r",
       };
 
       manager.sendInput(inputRequest);
 
-      expect(outputEvents).toContain('session-1:1:pong');
+      expect(outputEvents).toContain("session-1:1:pong");
       expect(
         manager.bootstrapSession(
           createBootstrapRequest(),
-          '/tmp/status.json',
-          '/tmp/visual-overlay.json',
+          "/tmp/status.json",
+          "/tmp/visual-overlay.json",
         ),
       ).toEqual({
-        outputSnapshot: 'pong',
+        outputSnapshot: "pong",
         outputVersion: 1,
       });
 
       const resizeRequest: TerminalResizeRequest = {
-        sessionId: 'session-1',
+        sessionId: "session-1",
         cols: 140,
         rows: 40,
       };
@@ -285,20 +283,17 @@ describe('TerminalSessionManager', () => {
 
       expect(createdRuntimes[0]?.killed).toBe(true);
       expect(
-        fs.readFileSync(
-          path.join(outputRootDir, 'session-1.log'),
-          'utf8',
-        ),
-      ).toBe('pong');
+        fs.readFileSync(path.join(outputRootDir, "session-1.log"), "utf8"),
+      ).toBe("pong");
     } finally {
       fs.rmSync(outputRootDir, { recursive: true, force: true });
     }
   });
 
-  it('closes a specific session runtime when asked explicitly', () => {
+  it("closes a specific session runtime when asked explicitly", () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputRootDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'claude-terminal-session-output-'),
+      path.join(os.tmpdir(), "claude-terminal-session-output-"),
     );
     const manager = new TerminalSessionManager(
       ({ cols, rows, cwd, env, shell, shellArgs }) => {
@@ -351,18 +346,18 @@ describe('TerminalSessionManager', () => {
       },
       () => {},
       () => {},
-      '/tmp/helper-bin',
-      '/tmp/trace.log',
-      '/tmp/visual-assets.json',
+      "/tmp/helper-bin",
+      "/tmp/trace.log",
+      "/tmp/visual-assets.json",
       outputRootDir,
     );
     try {
       manager.bootstrapSession(
         createBootstrapRequest(),
-        '/tmp/status.json',
-        '/tmp/visual-overlay.json',
+        "/tmp/status.json",
+        "/tmp/visual-overlay.json",
       );
-      manager.closeSession({ sessionId: 'session-1' });
+      manager.closeSession({ sessionId: "session-1" });
 
       expect(createdRuntimes[0]?.killed).toBe(true);
     } finally {

@@ -1,5 +1,5 @@
-import '@testing-library/jest-dom';
-import { afterEach } from 'vitest';
+import "@testing-library/jest-dom";
+import { afterEach } from "vitest";
 
 class ResizeObserverStub {
   observe(_target?: Element): void {}
@@ -9,12 +9,12 @@ class ResizeObserverStub {
   disconnect(): void {}
 }
 
-if (typeof window.ResizeObserver === 'undefined') {
+if (typeof window.ResizeObserver === "undefined") {
   window.ResizeObserver = ResizeObserverStub;
 }
 
-if (typeof window.matchMedia !== 'function') {
-  Object.defineProperty(window, 'matchMedia', {
+if (typeof window.matchMedia !== "function") {
+  Object.defineProperty(window, "matchMedia", {
     configurable: true,
     writable: true,
     value: (query: string) => {
@@ -34,11 +34,11 @@ if (typeof window.matchMedia !== 'function') {
   });
 }
 
-if (typeof window.PointerEvent === 'undefined') {
+if (typeof window.PointerEvent === "undefined") {
   window.PointerEvent = MouseEvent as typeof PointerEvent;
 }
 
-Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
   configurable: true,
   value: () => {
     return {
@@ -58,7 +58,7 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
 });
 
 afterEach(() => {
-  return import('../features/workspace/terminal-session-registry').then(
+  return import("../features/workspace/terminal-session-registry").then(
     ({ disposeAllTerminalSessions }) => {
       disposeAllTerminalSessions();
     },

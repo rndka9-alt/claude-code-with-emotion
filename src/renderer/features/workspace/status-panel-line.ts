@@ -1,13 +1,13 @@
-import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
+import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
 import {
   createEmptyVisualAssetCatalog,
   resolveVisualStateLine,
   type VisualAssetCatalog,
-} from '../../../shared/visual-assets';
+} from "../../../shared/visual-assets";
 import {
   getDefaultVisualStateLine,
   normalizeAssistantVisualSelection,
-} from '../../../shared/visual-presets';
+} from "../../../shared/visual-presets";
 
 export function formatStatusPanelLine(
   assistantStatus: AssistantStatusSnapshot,
@@ -18,12 +18,12 @@ export function formatStatusPanelLine(
     emotion: assistantStatus.emotion,
   });
   const activityLabel =
-    typeof assistantStatus.activityLabel === 'string'
+    typeof assistantStatus.activityLabel === "string"
       ? assistantStatus.activityLabel.trim()
-      : '';
-  const overlayLine = assistantStatus.overlayLine?.trim() ?? '';
+      : "";
+  const overlayLine = assistantStatus.overlayLine?.trim() ?? "";
   const customStateLine =
-    resolveVisualStateLine(catalog, normalizedSelection.state)?.trim() ?? '';
+    resolveVisualStateLine(catalog, normalizedSelection.state)?.trim() ?? "";
   const defaultStateLine = getDefaultVisualStateLine(
     normalizedSelection.state,
   ).trim();

@@ -1,36 +1,36 @@
 #!/usr/bin/env node
 
-const { spawnSync } = require('node:child_process');
-const fs = require('node:fs');
-const path = require('node:path');
-const { createVisualPromptHints } = require('./lib/claude-visual-mcp-prompts');
+const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+const { createVisualPromptHints } = require("./lib/claude-visual-mcp-prompts");
 const {
   createVisualMcpChildEnv,
   resolveVisualMcpRuntime,
-} = require('./lib/claude-visual-mcp-state');
+} = require("./lib/claude-visual-mcp-state");
 
-const SERVER_NAME = 'claude-code-with-emotion-visuals';
-const SERVER_VERSION = '0.1.0';
+const SERVER_NAME = "claude-code-with-emotion-visuals";
+const SERVER_VERSION = "0.1.0";
 const helperDir = __dirname;
 const nodeRuntimePath = process.execPath;
-const statusHelperPath = path.join(helperDir, 'claude-status');
-const visualStateHelperPath = path.join(helperDir, 'claude-visual-state');
+const statusHelperPath = path.join(helperDir, "claude-status");
+const visualStateHelperPath = path.join(helperDir, "claude-visual-state");
 
 let inputBuffer = Buffer.alloc(0);
-let negotiatedProtocolVersion = '2024-11-05';
-let transportMode = 'content-length';
+let negotiatedProtocolVersion = "2024-11-05";
+let transportMode = "content-length";
 
 function appendTrace(message) {
   const traceFilePath = resolveVisualMcpRuntime().traceFilePath;
 
-  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+  if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
     return;
   }
 
   const line = `[${new Date().toISOString()}] [claude-visual-mcp] ${message}\n`;
 
   try {
-    fs.appendFileSync(traceFilePath, line, 'utf8');
+    fs.appendFileSync(traceFilePath, line, "utf8");
   } catch {
     // Ignore trace write failures inside the MCP helper.
   }
@@ -38,13 +38,13 @@ function appendTrace(message) {
 
 function sendMessage(message) {
   const json = JSON.stringify(message);
-  const contentLength = Buffer.byteLength(json, 'utf8');
+  const contentLength = Buffer.byteLength(json, "utf8");
 
   appendTrace(
-    `send message transport=${transportMode} keys=${Object.keys(message).join(',')} bytes=${contentLength}`,
+    `send message transport=${transportMode} keys=${Object.keys(message).join(",")} bytes=${contentLength}`,
   );
 
-  if (transportMode === 'jsonl') {
+  if (transportMode === "jsonl") {
     process.stdout.write(`${json}\n`);
     return;
   }
@@ -54,7 +54,7 @@ function sendMessage(message) {
 
 function sendSuccess(id, result) {
   sendMessage({
-    jsonrpc: '2.0',
+    jsonrpc: "2.0",
     id,
     result,
   });
@@ -62,7 +62,7 @@ function sendSuccess(id, result) {
 
 function sendError(id, code, message) {
   sendMessage({
-    jsonrpc: '2.0',
+    jsonrpc: "2.0",
     id,
     error: {
       code,
@@ -83,11 +83,11 @@ function readAvailableVisualOptions() {
 
   const result = spawnSync(
     nodeRuntimePath,
-    [statusHelperPath, '--list-visual-options'],
+    [statusHelperPath, "--list-visual-options"],
     {
       cwd: process.cwd(),
       env: createVisualMcpChildEnv(process.env),
-      encoding: 'utf8',
+      encoding: "utf8",
     },
   );
 
@@ -102,7 +102,7 @@ function readAvailableVisualOptions() {
     const parsed = JSON.parse(result.stdout.trim());
 
     if (
-      typeof parsed === 'object' &&
+      typeof parsed === "object" &&
       parsed !== null &&
       Array.isArray(parsed.states) &&
       Array.isArray(parsed.emotions)
@@ -129,58 +129,58 @@ function createToolsListResult() {
   }
 
   const availableOptions = readAvailableVisualOptions();
-  const emotionEnum = ['neutral', ...availableOptions.emotions];
+  const emotionEnum = ["neutral", ...availableOptions.emotions];
   const promptHints = createVisualPromptHints();
 
   return {
     tools: [
       {
-        name: 'get_available_visual_options',
+        name: "get_available_visual_options",
         description:
-          'Return the currently mapped visual state and emotion presets from the local app catalog.',
+          "Return the currently mapped visual state and emotion presets from the local app catalog.",
         inputSchema: {
-          type: 'object',
+          type: "object",
           properties: {},
           additionalProperties: false,
         },
       },
       {
-        name: 'set_visual_emotion',
+        name: "set_visual_emotion",
         description: promptHints.emotionSelectionPrompt,
         inputSchema: {
-          type: 'object',
+          type: "object",
           properties: {
             emotion: {
-              type: 'string',
+              type: "string",
               enum: emotionEnum,
             },
           },
-          required: ['emotion'],
+          required: ["emotion"],
           additionalProperties: false,
         },
       },
       {
-        name: 'set_visual_line',
+        name: "set_visual_line",
         description: promptHints.lineSelectionPrompt,
         inputSchema: {
-          type: 'object',
+          type: "object",
           properties: {
             line: {
-              type: 'string',
+              type: "string",
               minLength: 1,
               maxLength: 80,
             },
           },
-          required: ['line'],
+          required: ["line"],
           additionalProperties: false,
         },
       },
       {
-        name: 'clear_visual_line',
+        name: "clear_visual_line",
         description:
-          'Clear the extra in-character one-line utterance and fall back to the hook-driven activity label by itself.',
+          "Clear the extra in-character one-line utterance and fall back to the hook-driven activity label by itself.",
         inputSchema: {
-          type: 'object',
+          type: "object",
           properties: {},
           additionalProperties: false,
         },
@@ -191,11 +191,11 @@ function createToolsListResult() {
 
 function callVisualEmotionTool(argumentsObject) {
   const availableOptions = readAvailableVisualOptions();
-  const allowedEmotions = new Set(['neutral', ...availableOptions.emotions]);
+  const allowedEmotions = new Set(["neutral", ...availableOptions.emotions]);
   const emotion =
-    typeof argumentsObject === 'object' &&
+    typeof argumentsObject === "object" &&
     argumentsObject !== null &&
-    typeof argumentsObject.emotion === 'string'
+    typeof argumentsObject.emotion === "string"
       ? argumentsObject.emotion
       : null;
 
@@ -204,8 +204,8 @@ function callVisualEmotionTool(argumentsObject) {
       isError: true,
       content: [
         {
-          type: 'text',
-          text: `Unsupported emotion: ${emotion ?? 'missing'}`,
+          type: "text",
+          text: `Unsupported emotion: ${emotion ?? "missing"}`,
         },
       ],
     };
@@ -213,11 +213,11 @@ function callVisualEmotionTool(argumentsObject) {
 
   const result = spawnSync(
     nodeRuntimePath,
-    [visualStateHelperPath, '--emotion', emotion],
+    [visualStateHelperPath, "--emotion", emotion],
     {
       cwd: process.cwd(),
       env: createVisualMcpChildEnv(process.env),
-      encoding: 'utf8',
+      encoding: "utf8",
     },
   );
 
@@ -226,8 +226,9 @@ function callVisualEmotionTool(argumentsObject) {
       isError: true,
       content: [
         {
-          type: 'text',
-          text: result.stderr || result.stdout || 'Failed to write visual overlay',
+          type: "text",
+          text:
+            result.stderr || result.stdout || "Failed to write visual overlay",
         },
       ],
     };
@@ -236,10 +237,10 @@ function callVisualEmotionTool(argumentsObject) {
   return {
     content: [
       {
-        type: 'text',
+        type: "text",
         text:
-          emotion === 'neutral'
-            ? 'Cleared the visual emotion overlay.'
+          emotion === "neutral"
+            ? "Cleared the visual emotion overlay."
             : `Set the visual emotion overlay to ${emotion}.`,
       },
     ],
@@ -251,19 +252,19 @@ function callVisualEmotionTool(argumentsObject) {
 
 function callVisualLineTool(argumentsObject) {
   const line =
-    typeof argumentsObject === 'object' &&
+    typeof argumentsObject === "object" &&
     argumentsObject !== null &&
-    typeof argumentsObject.line === 'string'
+    typeof argumentsObject.line === "string"
       ? argumentsObject.line.trim()
-      : '';
+      : "";
 
   if (line.length === 0) {
     return {
       isError: true,
       content: [
         {
-          type: 'text',
-          text: 'Missing line text.',
+          type: "text",
+          text: "Missing line text.",
         },
       ],
     };
@@ -271,11 +272,11 @@ function callVisualLineTool(argumentsObject) {
 
   const result = spawnSync(
     nodeRuntimePath,
-    [visualStateHelperPath, '--line', line],
+    [visualStateHelperPath, "--line", line],
     {
       cwd: process.cwd(),
       env: createVisualMcpChildEnv(process.env),
-      encoding: 'utf8',
+      encoding: "utf8",
     },
   );
 
@@ -284,8 +285,8 @@ function callVisualLineTool(argumentsObject) {
       isError: true,
       content: [
         {
-          type: 'text',
-          text: result.stderr || result.stdout || 'Failed to write visual line',
+          type: "text",
+          text: result.stderr || result.stdout || "Failed to write visual line",
         },
       ],
     };
@@ -294,7 +295,7 @@ function callVisualLineTool(argumentsObject) {
   return {
     content: [
       {
-        type: 'text',
+        type: "text",
         text: `Set the visual line to "${line}".`,
       },
     ],
@@ -307,11 +308,11 @@ function callVisualLineTool(argumentsObject) {
 function clearVisualLineTool() {
   const result = spawnSync(
     nodeRuntimePath,
-    [visualStateHelperPath, '--clear-line'],
+    [visualStateHelperPath, "--clear-line"],
     {
       cwd: process.cwd(),
       env: createVisualMcpChildEnv(process.env),
-      encoding: 'utf8',
+      encoding: "utf8",
     },
   );
 
@@ -320,8 +321,8 @@ function clearVisualLineTool() {
       isError: true,
       content: [
         {
-          type: 'text',
-          text: result.stderr || result.stdout || 'Failed to clear visual line',
+          type: "text",
+          text: result.stderr || result.stdout || "Failed to clear visual line",
         },
       ],
     };
@@ -330,8 +331,8 @@ function clearVisualLineTool() {
   return {
     content: [
       {
-        type: 'text',
-        text: 'Cleared the visual line.',
+        type: "text",
+        text: "Cleared the visual line.",
       },
     ],
     structuredContent: {
@@ -341,36 +342,36 @@ function clearVisualLineTool() {
 }
 
 function handleRequest(message) {
-  if (typeof message !== 'object' || message === null) {
-    appendTrace('ignore non-object request');
+  if (typeof message !== "object" || message === null) {
+    appendTrace("ignore non-object request");
     return;
   }
 
-  const id = Object.prototype.hasOwnProperty.call(message, 'id')
+  const id = Object.prototype.hasOwnProperty.call(message, "id")
     ? message.id
     : null;
-  const method = typeof message.method === 'string' ? message.method : null;
+  const method = typeof message.method === "string" ? message.method : null;
 
   appendTrace(
-    `handle request id=${id === null ? 'none' : String(id)} method=${method ?? 'none'}`,
+    `handle request id=${id === null ? "none" : String(id)} method=${method ?? "none"}`,
   );
 
   if (method === null) {
     if (id !== null) {
-      sendError(id, -32600, 'Invalid request');
+      sendError(id, -32600, "Invalid request");
     }
     return;
   }
 
-  if (method === 'notifications/initialized') {
+  if (method === "notifications/initialized") {
     return;
   }
 
-  if (method === 'initialize') {
+  if (method === "initialize") {
     const requestedProtocolVersion =
-      typeof message.params === 'object' &&
+      typeof message.params === "object" &&
       message.params !== null &&
-      typeof message.params.protocolVersion === 'string'
+      typeof message.params.protocolVersion === "string"
         ? message.params.protocolVersion
         : negotiatedProtocolVersion;
 
@@ -389,31 +390,31 @@ function handleRequest(message) {
     return;
   }
 
-  if (method === 'tools/list') {
+  if (method === "tools/list") {
     sendSuccess(id, createToolsListResult());
     return;
   }
 
-  if (method === 'tools/call') {
+  if (method === "tools/call") {
     const toolName =
-      typeof message.params === 'object' &&
+      typeof message.params === "object" &&
       message.params !== null &&
-      typeof message.params.name === 'string'
+      typeof message.params.name === "string"
         ? message.params.name
         : null;
     const argumentsObject =
-      typeof message.params === 'object' && message.params !== null
+      typeof message.params === "object" && message.params !== null
         ? message.params.arguments
         : null;
 
-    if (toolName === 'get_available_visual_options') {
+    if (toolName === "get_available_visual_options") {
       const availableOptions = readAvailableVisualOptions();
       const promptHints = createVisualPromptHints();
 
       sendSuccess(id, {
         content: [
           {
-            type: 'text',
+            type: "text",
             text: JSON.stringify({
               ...availableOptions,
               promptHints,
@@ -428,22 +429,22 @@ function handleRequest(message) {
       return;
     }
 
-    if (toolName === 'set_visual_emotion') {
+    if (toolName === "set_visual_emotion") {
       sendSuccess(id, callVisualEmotionTool(argumentsObject));
       return;
     }
 
-    if (toolName === 'set_visual_line') {
+    if (toolName === "set_visual_line") {
       sendSuccess(id, callVisualLineTool(argumentsObject));
       return;
     }
 
-    if (toolName === 'clear_visual_line') {
+    if (toolName === "clear_visual_line") {
       sendSuccess(id, clearVisualLineTool());
       return;
     }
 
-    sendError(id, -32601, `Unknown tool: ${toolName ?? 'missing'}`);
+    sendError(id, -32601, `Unknown tool: ${toolName ?? "missing"}`);
     return;
   }
 
@@ -454,14 +455,17 @@ function handleRequest(message) {
 
 function processInputBuffer() {
   while (true) {
-    if (transportMode === 'jsonl') {
-      const newlineIndex = inputBuffer.indexOf('\n');
+    if (transportMode === "jsonl") {
+      const newlineIndex = inputBuffer.indexOf("\n");
 
       if (newlineIndex === -1) {
         return;
       }
 
-      const messageText = inputBuffer.subarray(0, newlineIndex).toString('utf8').trim();
+      const messageText = inputBuffer
+        .subarray(0, newlineIndex)
+        .toString("utf8")
+        .trim();
 
       inputBuffer = inputBuffer.subarray(newlineIndex + 1);
 
@@ -480,15 +484,15 @@ function processInputBuffer() {
         sendError(
           null,
           -32700,
-          error instanceof Error ? error.message : 'Parse error',
+          error instanceof Error ? error.message : "Parse error",
         );
       }
 
       continue;
     }
 
-    const crlfHeaderEndIndex = inputBuffer.indexOf('\r\n\r\n');
-    const lfHeaderEndIndex = inputBuffer.indexOf('\n\n');
+    const crlfHeaderEndIndex = inputBuffer.indexOf("\r\n\r\n");
+    const lfHeaderEndIndex = inputBuffer.indexOf("\n\n");
     let headerEndIndex = -1;
     let headerDelimiterLength = 0;
 
@@ -507,7 +511,7 @@ function processInputBuffer() {
       return;
     }
 
-    const headerText = inputBuffer.subarray(0, headerEndIndex).toString('utf8');
+    const headerText = inputBuffer.subarray(0, headerEndIndex).toString("utf8");
     const contentLengthMatch = headerText.match(/Content-Length:\s*(\d+)/i);
 
     if (contentLengthMatch === null) {
@@ -525,7 +529,7 @@ function processInputBuffer() {
 
     const messageText = inputBuffer
       .subarray(messageStartIndex, messageEndIndex)
-      .toString('utf8');
+      .toString("utf8");
 
     inputBuffer = inputBuffer.subarray(messageEndIndex);
     appendTrace(`decoded message bytes=${contentLength}`);
@@ -539,39 +543,43 @@ function processInputBuffer() {
       sendError(
         null,
         -32700,
-        error instanceof Error ? error.message : 'Parse error',
+        error instanceof Error ? error.message : "Parse error",
       );
     }
   }
 }
 
 appendTrace(`server start pid=${process.pid} cwd=${process.cwd()}`);
-process.stdin.on('data', (chunk) => {
+process.stdin.on("data", (chunk) => {
   appendTrace(`stdin chunk bytes=${chunk.length}`);
-  appendTrace(`stdin chunk preview=${JSON.stringify(chunk.toString('utf8'))}`);
+  appendTrace(`stdin chunk preview=${JSON.stringify(chunk.toString("utf8"))}`);
 
   if (
     inputBuffer.length === 0 &&
-    !chunk.toString('utf8').startsWith('Content-Length:')
+    !chunk.toString("utf8").startsWith("Content-Length:")
   ) {
-    transportMode = 'jsonl';
-    appendTrace('detected jsonl transport');
+    transportMode = "jsonl";
+    appendTrace("detected jsonl transport");
   }
 
   inputBuffer = Buffer.concat([inputBuffer, chunk]);
   processInputBuffer();
 });
-process.stdin.on('end', () => {
-  appendTrace('stdin end');
+process.stdin.on("end", () => {
+  appendTrace("stdin end");
 });
-process.on('exit', (code) => {
+process.on("exit", (code) => {
   appendTrace(`process exit code=${code}`);
 });
-process.on('uncaughtException', (error) => {
-  appendTrace(`uncaughtException=${error instanceof Error ? error.stack ?? error.message : String(error)}`);
+process.on("uncaughtException", (error) => {
+  appendTrace(
+    `uncaughtException=${error instanceof Error ? (error.stack ?? error.message) : String(error)}`,
+  );
 });
-process.on('unhandledRejection', (reason) => {
-  appendTrace(`unhandledRejection=${reason instanceof Error ? reason.stack ?? reason.message : String(reason)}`);
+process.on("unhandledRejection", (reason) => {
+  appendTrace(
+    `unhandledRejection=${reason instanceof Error ? (reason.stack ?? reason.message) : String(reason)}`,
+  );
 });
 
 process.stdin.resume();

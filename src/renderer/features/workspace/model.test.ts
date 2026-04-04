@@ -4,186 +4,189 @@ import {
   getVisibleTabs,
   resizePaneSizes,
   workspaceReducer,
-} from './model';
+} from "./model";
 
-describe('workspaceReducer', () => {
-  it('uses the app workspace cwd for new sessions', () => {
-    Object.defineProperty(window, 'claudeApp', {
+describe("workspaceReducer", () => {
+  it("uses the app workspace cwd for new sessions", () => {
+    Object.defineProperty(window, "claudeApp", {
       configurable: true,
       value: {
-        workspaceCwd: '/tmp/workspace-under-test',
+        workspaceCwd: "/tmp/workspace-under-test",
       },
     });
 
     const state = createInitialWorkspaceState(10_000);
 
-    expect(state.tabs[0]?.cwd).toBe('/tmp/workspace-under-test');
-    expect(state.tabs[0]?.command).toBe('');
+    expect(state.tabs[0]?.cwd).toBe("/tmp/workspace-under-test");
+    expect(state.tabs[0]?.command).toBe("");
   });
 
-  it('creates a new active tab with updated assistant status', () => {
+  it("creates a new active tab with updated assistant status", () => {
     const state = createInitialWorkspaceState(10_000);
     const nextState = workspaceReducer(state, {
-      type: 'createTab',
+      type: "createTab",
       nowMs: 12_000,
     });
 
     expect(nextState.tabs).toHaveLength(2);
-    expect(nextState.activeTabId).toBe('session-2');
-    expect(nextState.assistantStatus.visualState).toBe('happy');
+    expect(nextState.activeTabId).toBe("session-2");
+    expect(nextState.assistantStatus.visualState).toBe("happy");
   });
 
-  it('activates an existing tab and keeps unknown tabs ignored', () => {
+  it("activates an existing tab and keeps unknown tabs ignored", () => {
     const state = workspaceReducer(createInitialWorkspaceState(20_000), {
-      type: 'createTab',
+      type: "createTab",
       nowMs: 20_500,
     });
     const activatedState = workspaceReducer(state, {
-      type: 'activateTab',
-      tabId: 'session-1',
+      type: "activateTab",
+      tabId: "session-1",
       nowMs: 21_000,
     });
     const unchangedState = workspaceReducer(state, {
-      type: 'activateTab',
-      tabId: 'missing-tab',
+      type: "activateTab",
+      tabId: "missing-tab",
       nowMs: 21_000,
     });
 
-    expect(activatedState.activeTabId).toBe('session-1');
+    expect(activatedState.activeTabId).toBe("session-1");
     expect(unchangedState).toBe(state);
   });
 
-  it('closes a tab and keeps the neighboring tab active', () => {
+  it("closes a tab and keeps the neighboring tab active", () => {
     const state = workspaceReducer(createInitialWorkspaceState(20_000), {
-      type: 'createTab',
+      type: "createTab",
       nowMs: 20_500,
     });
     const nextState = workspaceReducer(state, {
-      type: 'closeTab',
-      tabId: 'session-1',
+      type: "closeTab",
+      tabId: "session-1",
       nowMs: 21_000,
-      reason: 'manual',
+      reason: "manual",
     });
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.activeTabId).toBe('session-2');
+    expect(nextState.activeTabId).toBe("session-2");
     expect(nextState.assistantStatus.currentTask).toBe(
       'Closed "new session 1 · claude-code-with-emotion"',
     );
   });
 
-  it('creates a replacement session when the last tab closes', () => {
+  it("creates a replacement session when the last tab closes", () => {
     const state = createInitialWorkspaceState(20_000);
     const nextState = workspaceReducer(state, {
-      type: 'closeTab',
-      tabId: 'session-1',
+      type: "closeTab",
+      tabId: "session-1",
       nowMs: 26_000,
-      reason: 'exit',
+      reason: "exit",
     });
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.activeTabId).toBe('session-2');
+    expect(nextState.activeTabId).toBe("session-2");
     expect(nextState.assistantStatus.line).toBe(
-      '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!',
+      "마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!",
     );
   });
 
-  it('pauses Claude auto-launch after an immediate last-session exit', () => {
+  it("pauses Claude auto-launch after an immediate last-session exit", () => {
     const state = createInitialWorkspaceState(20_000);
     const nextState = workspaceReducer(state, {
-      type: 'closeTab',
-      tabId: 'session-1',
+      type: "closeTab",
+      tabId: "session-1",
       nowMs: 21_000,
-      reason: 'exit',
+      reason: "exit",
     });
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.tabs[0]?.id).toBe('session-2');
-    expect(nextState.tabs[0]?.command).toBe('');
-    expect(nextState.assistantStatus.visualState).toBe('error');
+    expect(nextState.tabs[0]?.id).toBe("session-2");
+    expect(nextState.tabs[0]?.command).toBe("");
+    expect(nextState.assistantStatus.visualState).toBe("error");
     expect(nextState.assistantStatus.line).toBe(
-      '세션이 너무 빨리 종료돼서 Claude 자동 재실행은 멈춰뒀어요...!',
+      "세션이 너무 빨리 종료돼서 Claude 자동 재실행은 멈춰뒀어요...!",
     );
   });
 
-  it('reorders tabs when a tab is dragged over another tab', () => {
-    const withSecondTab = workspaceReducer(createInitialWorkspaceState(20_000), {
-      type: 'createTab',
-      nowMs: 21_000,
-    });
+  it("reorders tabs when a tab is dragged over another tab", () => {
+    const withSecondTab = workspaceReducer(
+      createInitialWorkspaceState(20_000),
+      {
+        type: "createTab",
+        nowMs: 21_000,
+      },
+    );
     const state = workspaceReducer(withSecondTab, {
-      type: 'createTab',
+      type: "createTab",
       nowMs: 21_250,
     });
     const nextState = workspaceReducer(state, {
-      type: 'reorderTab',
-      tabId: 'session-3',
+      type: "reorderTab",
+      tabId: "session-3",
       destinationIndex: 0,
       nowMs: 21_500,
     });
 
     expect(nextState.tabs.map((tab) => tab.id)).toEqual([
-      'session-3',
-      'session-1',
-      'session-2',
+      "session-3",
+      "session-1",
+      "session-2",
     ]);
-    expect(nextState.activeTabId).toBe('session-3');
+    expect(nextState.activeTabId).toBe("session-3");
     expect(nextState.assistantStatus.currentTask).toBe(
       'Moved "new session 3 · claude-code-with-emotion"',
     );
   });
 
-  it('renames a tab manually with trimmed title', () => {
+  it("renames a tab manually with trimmed title", () => {
     const state = workspaceReducer(createInitialWorkspaceState(20_000), {
-      type: 'updateTabTitle',
-      tabId: 'session-1',
-      title: '  docs  ',
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "  docs  ",
       nowMs: 21_000,
-      source: 'manual',
+      source: "manual",
     });
 
-    expect(state.tabs[0]?.title).toBe('docs');
+    expect(state.tabs[0]?.title).toBe("docs");
     expect(state.assistantStatus.currentTask).toBe(
       'Renamed "new session 1 · claude-code-with-emotion" to "docs"',
     );
   });
 
-  it('syncs a terminal title into the tab title', () => {
+  it("syncs a terminal title into the tab title", () => {
     const state = workspaceReducer(createInitialWorkspaceState(20_000), {
-      type: 'updateTabTitle',
-      tabId: 'session-1',
-      title: 'claude-code-with-emotion · main workspace',
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "claude-code-with-emotion · main workspace",
       nowMs: 21_000,
-      source: 'terminal',
+      source: "terminal",
     });
 
     expect(state.tabs[0]?.title).toBe(
-      'claude-code-with-emotion · main workspace',
+      "claude-code-with-emotion · main workspace",
     );
     expect(state.assistantStatus.line).toBe(
-      '터미널 타이틀을 탭 이름으로 동기화햇어요...!',
+      "터미널 타이틀을 탭 이름으로 동기화햇어요...!",
     );
   });
 });
 
-describe('formatElapsedLabel', () => {
-  it('formats seconds, minutes, and hours consistently', () => {
-    expect(formatElapsedLabel(9_000)).toBe('9s');
-    expect(formatElapsedLabel(125_000)).toBe('2m 5s');
-    expect(formatElapsedLabel(4_200_000)).toBe('1h 10m');
+describe("formatElapsedLabel", () => {
+  it("formats seconds, minutes, and hours consistently", () => {
+    expect(formatElapsedLabel(9_000)).toBe("9s");
+    expect(formatElapsedLabel(125_000)).toBe("2m 5s");
+    expect(formatElapsedLabel(4_200_000)).toBe("1h 10m");
   });
 });
 
-describe('getVisibleTabs', () => {
-  it('returns only the active tab for the workspace content area', () => {
+describe("getVisibleTabs", () => {
+  it("returns only the active tab for the workspace content area", () => {
     const state = createInitialWorkspaceState(20_000);
 
     expect(getVisibleTabs(state)).toEqual([state.tabs[0]]);
   });
 });
 
-describe('resizePaneSizes', () => {
-  it('resizes adjacent panes while preserving minimum size', () => {
+describe("resizePaneSizes", () => {
+  it("resizes adjacent panes while preserving minimum size", () => {
     expect(resizePaneSizes([0.5, 0.5], 0, 0.12)).toEqual([0.62, 0.38]);
     expect(resizePaneSizes([0.5, 0.5], 0, 0.4)).toEqual([0.82, 0.18]);
   });

@@ -1,20 +1,20 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 import {
   createDefaultAppThemeSelection,
   isAppThemeId,
   type AppThemeSelection,
-} from '../../shared/theme';
+} from "../../shared/theme";
 
 type ThemeListener = (selection: AppThemeSelection) => void;
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
-function sanitizeThemeSelection(
-  candidate: { themeId: string },
-): AppThemeSelection {
+function sanitizeThemeSelection(candidate: {
+  themeId: string;
+}): AppThemeSelection {
   return isAppThemeId(candidate.themeId)
     ? { themeId: candidate.themeId }
     : createDefaultAppThemeSelection();
@@ -25,11 +25,11 @@ function parseThemeSelectionFromDisk(
   logEvent?: (message: string) => void,
 ): AppThemeSelection {
   try {
-    const text = fs.readFileSync(filePath, 'utf8');
+    const text = fs.readFileSync(filePath, "utf8");
     const parsed: unknown = JSON.parse(text);
 
-    if (!isObjectRecord(parsed) || typeof parsed.themeId !== 'string') {
-      logEvent?.('app theme selection on disk had an invalid shape');
+    if (!isObjectRecord(parsed) || typeof parsed.themeId !== "string") {
+      logEvent?.("app theme selection on disk had an invalid shape");
       return createDefaultAppThemeSelection();
     }
 
@@ -37,7 +37,7 @@ function parseThemeSelectionFromDisk(
 
     return sanitizeThemeSelection({ themeId });
   } catch (error) {
-    if (error instanceof Error && error.name !== 'ENOENT') {
+    if (error instanceof Error && error.name !== "ENOENT") {
       logEvent?.(`failed to read app theme selection: ${error.message}`);
     }
 
@@ -55,8 +55,8 @@ function persistThemeSelectionIfMissing(
   }
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(selection, null, 2), 'utf8');
-  logEvent?.('initialized default app theme selection on disk');
+  fs.writeFileSync(filePath, JSON.stringify(selection, null, 2), "utf8");
+  logEvent?.("initialized default app theme selection on disk");
 }
 
 export class ThemeStore {
@@ -82,11 +82,13 @@ export class ThemeStore {
     fs.writeFileSync(
       this.filePath,
       JSON.stringify(sanitizedSelection, null, 2),
-      'utf8',
+      "utf8",
     );
     this.selection = sanitizedSelection;
     this.emit();
-    this.logEvent?.(`saved app theme selection theme=${sanitizedSelection.themeId}`);
+    this.logEvent?.(
+      `saved app theme selection theme=${sanitizedSelection.themeId}`,
+    );
 
     return sanitizedSelection;
   }

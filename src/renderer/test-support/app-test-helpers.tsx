@@ -1,8 +1,8 @@
-import { createDefaultAssistantStatusSnapshot } from '../../shared/assistant-status';
+import { createDefaultAssistantStatusSnapshot } from "../../shared/assistant-status";
 import {
   createDefaultAppThemeSelection,
   type AppThemeSelection,
-} from '../../shared/theme';
+} from "../../shared/theme";
 
 export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
   saveThemeSelection: ReturnType<typeof vi.fn>;
@@ -11,11 +11,11 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
     async (selection: AppThemeSelection) => selection,
   );
 
-  Object.defineProperty(window, 'claudeApp', {
+  Object.defineProperty(window, "claudeApp", {
     configurable: true,
     value: {
-      appVersion: 'test',
-      workspaceCwd: '/tmp/claude-code-with-emotion',
+      appVersion: "test",
+      workspaceCwd: "/tmp/claude-code-with-emotion",
       appTheme: {
         getSelection: vi
           .fn()
@@ -38,19 +38,19 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
       mcpSetup: {
         getStatus: vi.fn().mockResolvedValue({
           installed: false,
-          stateFilePath: '/tmp/assistant-visual-mcp.json',
+          stateFilePath: "/tmp/assistant-visual-mcp.json",
         }),
         install: vi.fn().mockResolvedValue({
           installed: true,
-          stateFilePath: '/tmp/assistant-visual-mcp.json',
+          stateFilePath: "/tmp/assistant-visual-mcp.json",
         }),
         remove: vi.fn().mockResolvedValue({
           installed: false,
-          stateFilePath: '/tmp/assistant-visual-mcp.json',
+          stateFilePath: "/tmp/assistant-visual-mcp.json",
         }),
       },
       terminals: {
-        bootstrapSession: vi.fn().mockResolvedValue({ initialOutput: '' }),
+        bootstrapSession: vi.fn().mockResolvedValue({ initialOutput: "" }),
         sendInput,
         resizeSession: vi.fn(),
         closeSession: vi.fn(),

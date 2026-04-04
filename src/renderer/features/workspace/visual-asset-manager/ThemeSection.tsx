@@ -1,11 +1,11 @@
-import type { ReactElement } from 'react';
+import type { ReactElement } from "react";
 import {
   APP_THEME_PRESETS,
   isAppThemeId,
   type AppThemeId,
   type AppThemeOption,
-} from '../../../../shared/theme';
-import { managerSectionCopyClassName } from './shared';
+} from "../../../../shared/theme";
+import { managerSectionCopyClassName } from "./shared";
 
 interface ThemeSectionProps {
   availableThemes: AppThemeOption[];

@@ -1,6 +1,6 @@
-import fs from 'node:fs';
-import crypto from 'node:crypto';
-import path from 'node:path';
+import fs from "node:fs";
+import crypto from "node:crypto";
+import path from "node:path";
 import {
   collectAvailableVisualOptions,
   createEmptyVisualAssetCatalog,
@@ -9,17 +9,17 @@ import {
   type VisualAssetMapping,
   type VisualAssetRecord,
   type VisualStateLineMapping,
-} from '../../shared/visual-assets';
+} from "../../shared/visual-assets";
 import {
   isVisualEmotionPresetId,
   isVisualStatePresetId,
-} from '../../shared/visual-presets';
-import type { VisualAssetPickerFile } from '../../shared/visual-assets-bridge';
+} from "../../shared/visual-presets";
+import type { VisualAssetPickerFile } from "../../shared/visual-assets-bridge";
 
 type CatalogListener = (catalog: VisualAssetCatalog) => void;
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 function isVisualAssetRecord(value: unknown): value is VisualAssetRecord {
@@ -28,21 +28,21 @@ function isVisualAssetRecord(value: unknown): value is VisualAssetRecord {
   }
 
   if (
-    typeof value.id !== 'string' ||
-    typeof value.kind !== 'string' ||
-    typeof value.label !== 'string' ||
-    typeof value.path !== 'string'
+    typeof value.id !== "string" ||
+    typeof value.kind !== "string" ||
+    typeof value.label !== "string" ||
+    typeof value.path !== "string"
   ) {
     return false;
   }
 
-  if (value.kind !== 'image') {
+  if (value.kind !== "image") {
     return false;
   }
 
   if (
-    Object.hasOwn(value, 'isDefault') &&
-    typeof value.isDefault !== 'boolean'
+    Object.hasOwn(value, "isDefault") &&
+    typeof value.isDefault !== "boolean"
   ) {
     return false;
   }
@@ -51,42 +51,42 @@ function isVisualAssetRecord(value: unknown): value is VisualAssetRecord {
 }
 
 function isVisualAssetMapping(value: unknown): value is VisualAssetMapping {
-  if (!isObjectRecord(value) || typeof value.assetId !== 'string') {
+  if (!isObjectRecord(value) || typeof value.assetId !== "string") {
     return false;
   }
 
-  const hasState = Object.hasOwn(value, 'state');
-  const hasEmotion = Object.hasOwn(value, 'emotion');
+  const hasState = Object.hasOwn(value, "state");
+  const hasEmotion = Object.hasOwn(value, "emotion");
 
   if (!hasState && !hasEmotion) {
     return false;
   }
 
-  if (hasState && typeof value.state !== 'string') {
+  if (hasState && typeof value.state !== "string") {
     return false;
   }
 
-  if (hasEmotion && typeof value.emotion !== 'string') {
+  if (hasEmotion && typeof value.emotion !== "string") {
     return false;
   }
 
   return true;
 }
 
-function isVisualStateLineMapping(value: unknown): value is VisualStateLineMapping {
+function isVisualStateLineMapping(
+  value: unknown,
+): value is VisualStateLineMapping {
   if (!isObjectRecord(value)) {
     return false;
   }
 
-  return typeof value.state === 'string' && typeof value.line === 'string';
+  return typeof value.state === "string" && typeof value.line === "string";
 }
 
 function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
   const assets = candidate.assets.filter((asset) => {
     return (
-      asset.id.length > 0 &&
-      asset.label.length > 0 &&
-      asset.path.length > 0
+      asset.id.length > 0 && asset.label.length > 0 && asset.path.length > 0
     );
   });
   const knownAssetIds = new Set(assets.map((asset) => asset.id));
@@ -98,16 +98,14 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
     const stateIsValid =
       mapping.state === undefined || isVisualStatePresetId(mapping.state);
     const emotionIsValid =
-      mapping.emotion === undefined ||
-      isVisualEmotionPresetId(mapping.emotion);
+      mapping.emotion === undefined || isVisualEmotionPresetId(mapping.emotion);
 
     return stateIsValid && emotionIsValid;
   });
   const stateLines = candidate.stateLines
     .filter((mapping) => {
       return (
-        isVisualStatePresetId(mapping.state) &&
-        mapping.line.trim().length > 0
+        isVisualStatePresetId(mapping.state) && mapping.line.trim().length > 0
       );
     })
     .map((mapping) => {
@@ -130,7 +128,7 @@ function parseCatalogFromDisk(
   logEvent?: (message: string) => void,
 ): VisualAssetCatalog {
   try {
-    const text = fs.readFileSync(filePath, 'utf8');
+    const text = fs.readFileSync(filePath, "utf8");
     const parsed: unknown = JSON.parse(text);
 
     if (
@@ -139,7 +137,7 @@ function parseCatalogFromDisk(
       !Array.isArray(parsed.assets) ||
       !Array.isArray(parsed.mappings)
     ) {
-      logEvent?.('visual asset catalog on disk had an invalid shape');
+      logEvent?.("visual asset catalog on disk had an invalid shape");
       return createEmptyVisualAssetCatalog();
     }
 
@@ -154,7 +152,7 @@ function parseCatalogFromDisk(
 
     return sanitizeCatalog(candidate);
   } catch (error) {
-    if (error instanceof Error && error.name !== 'ENOENT') {
+    if (error instanceof Error && error.name !== "ENOENT") {
       logEvent?.(`failed to read visual asset catalog: ${error.message}`);
     }
 
@@ -172,13 +170,13 @@ function persistCatalogIfMissing(
   }
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(catalog, null, 2), 'utf8');
-  logEvent?.('initialized empty visual asset catalog on disk');
+  fs.writeFileSync(filePath, JSON.stringify(catalog, null, 2), "utf8");
+  logEvent?.("initialized empty visual asset catalog on disk");
 }
 
 function createImportedAssetFilename(filePath: string): string {
   const fileBuffer = fs.readFileSync(filePath);
-  const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+  const hash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
   const extension = path.extname(filePath).toLowerCase();
 
   return `${hash}${extension}`;
@@ -192,7 +190,7 @@ function isManagedAssetPath(
 
   return (
     relativePath.length > 0 &&
-    !relativePath.startsWith('..') &&
+    !relativePath.startsWith("..") &&
     !path.isAbsolute(relativePath)
   );
 }
@@ -235,9 +233,13 @@ export class VisualAssetStore {
 
       if (!fs.existsSync(importedFilePath)) {
         fs.copyFileSync(filePath, importedFilePath);
-        this.logEvent?.(`imported asset source=${filePath} target=${importedFilePath}`);
+        this.logEvent?.(
+          `imported asset source=${filePath} target=${importedFilePath}`,
+        );
       } else {
-        this.logEvent?.(`reused imported asset source=${filePath} target=${importedFilePath}`);
+        this.logEvent?.(
+          `reused imported asset source=${filePath} target=${importedFilePath}`,
+        );
       }
 
       return [
@@ -258,7 +260,7 @@ export class VisualAssetStore {
     fs.writeFileSync(
       this.filePath,
       JSON.stringify(sanitizedCatalog, null, 2),
-      'utf8',
+      "utf8",
     );
     this.catalog = sanitizedCatalog;
     this.pruneUnusedImportedAssets(previousCatalog, sanitizedCatalog);
@@ -307,8 +309,10 @@ export class VisualAssetStore {
         fs.unlinkSync(asset.path);
         this.logEvent?.(`removed unused imported asset path=${asset.path}`);
       } catch (error) {
-        if (error instanceof Error && error.name !== 'ENOENT') {
-          this.logEvent?.(`failed to remove unused imported asset path=${asset.path} error=${error.message}`);
+        if (error instanceof Error && error.name !== "ENOENT") {
+          this.logEvent?.(
+            `failed to remove unused imported asset path=${asset.path} error=${error.message}`,
+          );
         }
       }
     }

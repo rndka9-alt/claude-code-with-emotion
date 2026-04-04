@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
-import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
+import { useEffect, useState } from "react";
+import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
 
 export function useAssistantStatusBridge(
   sessionId: string,
   fallbackSnapshot: AssistantStatusSnapshot,
 ): AssistantStatusSnapshot {
   const bridge = window.claudeApp?.assistantStatus;
-  const [snapshot, setSnapshot] = useState<AssistantStatusSnapshot>(
-    fallbackSnapshot,
-  );
+  const [snapshot, setSnapshot] =
+    useState<AssistantStatusSnapshot>(fallbackSnapshot);
 
   useEffect(() => {
     if (bridge === undefined) {

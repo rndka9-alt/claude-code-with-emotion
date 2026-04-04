@@ -1,10 +1,10 @@
-import type { AppThemeBridge } from './app-theme-bridge';
-import type { AssistantStatusBridge } from './assistant-status';
-import type { RuntimeDiagnosticPayload } from './diagnostics';
-import type { LinksBridge } from './links-bridge';
-import type { VisualMcpSetupBridge } from './mcp-setup-bridge';
-import type { TerminalBridge } from './terminal-bridge';
-import type { VisualAssetBridge } from './visual-assets-bridge';
+import type { AppThemeBridge } from "./app-theme-bridge";
+import type { AssistantStatusBridge } from "./assistant-status";
+import type { RuntimeDiagnosticPayload } from "./diagnostics";
+import type { LinksBridge } from "./links-bridge";
+import type { VisualMcpSetupBridge } from "./mcp-setup-bridge";
+import type { TerminalBridge } from "./terminal-bridge";
+import type { VisualAssetBridge } from "./visual-assets-bridge";
 
 export interface DiagnosticsBridge {
   onRuntimeEvent: (

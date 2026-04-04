@@ -1,10 +1,10 @@
-import { useEffect, type Dispatch } from 'react';
-import type { WorkspaceAction, WorkspaceState } from './model';
+import { useEffect, type Dispatch } from "react";
+import type { WorkspaceAction, WorkspaceState } from "./model";
 import {
   getSessionNavigationDirection,
   shouldCreateSessionShortcut,
   shouldUseCloseSessionShortcut,
-} from './terminal-keyboard';
+} from "./terminal-keyboard";
 
 export function useWorkspaceKeyboardShortcuts(
   state: WorkspaceState,
@@ -14,7 +14,7 @@ export function useWorkspaceKeyboardShortcuts(
     const onKeyDown = (event: KeyboardEvent) => {
       if (shouldCreateSessionShortcut(event)) {
         event.preventDefault();
-        dispatch({ type: 'createTab', nowMs: Date.now() });
+        dispatch({ type: "createTab", nowMs: Date.now() });
         return;
       }
 
@@ -35,7 +35,7 @@ export function useWorkspaceKeyboardShortcuts(
 
         event.preventDefault();
         const nextTabIndex =
-          navigationDirection === 'previous'
+          navigationDirection === "previous"
             ? (activeTabIndex - 1 + state.tabs.length) % state.tabs.length
             : (activeTabIndex + 1) % state.tabs.length;
         const nextTab = state.tabs[nextTabIndex];
@@ -45,7 +45,7 @@ export function useWorkspaceKeyboardShortcuts(
         }
 
         dispatch({
-          type: 'activateTab',
+          type: "activateTab",
           tabId: nextTab.id,
           nowMs: Date.now(),
         });
@@ -74,17 +74,17 @@ export function useWorkspaceKeyboardShortcuts(
       }
 
       dispatch({
-        type: 'closeTab',
+        type: "closeTab",
         tabId: activeTab.id,
         nowMs: Date.now(),
-        reason: 'manual',
+        reason: "manual",
       });
     };
 
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, [dispatch, state.activeTabId, state.tabs]);
 }

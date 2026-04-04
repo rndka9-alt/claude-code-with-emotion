@@ -1,26 +1,26 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const { resolveVisualMcpRuntime } = require('./lib/claude-visual-mcp-state');
+const fs = require("node:fs");
+const { resolveVisualMcpRuntime } = require("./lib/claude-visual-mcp-state");
 
 function appendTrace(message) {
   const traceFilePath = resolveVisualMcpRuntime().traceFilePath;
 
-  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+  if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
     return;
   }
 
   const line = `[${new Date().toISOString()}] [claude-visual-state-helper] ${message}\n`;
 
   try {
-    fs.appendFileSync(traceFilePath, line, 'utf8');
+    fs.appendFileSync(traceFilePath, line, "utf8");
   } catch {
     // Ignore trace write failures inside the terminal helper.
   }
 }
 
 function parseArgs(argv) {
-  if (argv.length === 1 && argv[0].trim().startsWith('{')) {
+  if (argv.length === 1 && argv[0].trim().startsWith("{")) {
     return JSON.parse(argv[0]);
   }
 
@@ -29,11 +29,11 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
 
-    if (typeof key !== 'string' || !key.startsWith('--')) {
+    if (typeof key !== "string" || !key.startsWith("--")) {
       continue;
     }
 
-    if (key === '--clear-line') {
+    if (key === "--clear-line") {
       result.line = null;
       continue;
     }
@@ -44,10 +44,10 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (key === '--emotion') {
-      result.emotion = value === 'neutral' ? null : value;
+    if (key === "--emotion") {
+      result.emotion = value === "neutral" ? null : value;
       index += 1;
-    } else if (key === '--line') {
+    } else if (key === "--line") {
       result.line = value;
       index += 1;
     }
@@ -59,10 +59,8 @@ function parseArgs(argv) {
 async function main() {
   const overlayFilePath = resolveVisualMcpRuntime().visualOverlayFilePath;
 
-  if (typeof overlayFilePath !== 'string' || overlayFilePath.length === 0) {
-    console.error(
-      'CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE must be set.',
-    );
+  if (typeof overlayFilePath !== "string" || overlayFilePath.length === 0) {
+    console.error("CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE must be set.");
     process.exit(1);
   }
 
@@ -70,20 +68,20 @@ async function main() {
 
   if (
     payload === null ||
-    typeof payload !== 'object' ||
+    typeof payload !== "object" ||
     (payload.emotion === undefined && payload.line === undefined)
   ) {
     console.error(
-      'Usage: claude-visual-state --emotion <emotion> [--line <line>] [--clear-line]',
+      "Usage: claude-visual-state --emotion <emotion> [--line <line>] [--clear-line]",
     );
     process.exit(1);
   }
 
   appendTrace(
-    `writing visual overlay emotion=${payload.emotion ?? 'none'} line=${payload.line ?? ''}`,
+    `writing visual overlay emotion=${payload.emotion ?? "none"} line=${payload.line ?? ""}`,
   );
 
-  fs.writeFileSync(overlayFilePath, JSON.stringify(payload), 'utf8');
+  fs.writeFileSync(overlayFilePath, JSON.stringify(payload), "utf8");
 }
 
 void main().catch((error) => {

@@ -5,5 +5,5 @@ export interface LinksBridge {
 export const LINKS_CHANNELS: {
   openExternal: string;
 } = {
-  openExternal: 'links:open-external',
+  openExternal: "links:open-external",
 };

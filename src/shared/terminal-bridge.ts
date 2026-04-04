@@ -46,8 +46,8 @@ export interface TerminalBridge {
   sendInput: (request: TerminalInputRequest) => Promise<void>;
   resizeSession: (request: TerminalResizeRequest) => Promise<void>;
   closeSession: (request: TerminalCloseRequest) => Promise<void>;
-  onOutput: (listener: (event: TerminalOutputEvent) => void) => (() => void);
-  onExit: (listener: (event: TerminalExitEvent) => void) => (() => void);
+  onOutput: (listener: (event: TerminalOutputEvent) => void) => () => void;
+  onExit: (listener: (event: TerminalExitEvent) => void) => () => void;
 }
 
 export const TERMINAL_CHANNELS: {
@@ -58,10 +58,10 @@ export const TERMINAL_CHANNELS: {
   output: string;
   exit: string;
 } = {
-  bootstrap: 'terminal:bootstrap',
-  input: 'terminal:input',
-  resize: 'terminal:resize',
-  close: 'terminal:close',
-  output: 'terminal:output',
-  exit: 'terminal:exit',
+  bootstrap: "terminal:bootstrap",
+  input: "terminal:input",
+  resize: "terminal:resize",
+  close: "terminal:close",
+  output: "terminal:output",
+  exit: "terminal:exit",
 };

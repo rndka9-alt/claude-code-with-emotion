@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 
-const { accessSync, constants } = require('node:fs');
-const { join } = require('node:path');
-const { spawnSync } = require('node:child_process');
-const { createVisualToolUsagePrompt } = require('./lib/claude-session-prompts');
+const { accessSync, constants } = require("node:fs");
+const { join } = require("node:path");
+const { spawnSync } = require("node:child_process");
+const { createVisualToolUsagePrompt } = require("./lib/claude-session-prompts");
 
 function appendTrace(message) {
   const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
 
-  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+  if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
     return;
   }
 
   const line = `[${new Date().toISOString()}] [claude-wrapper] ${message}\n`;
 
   try {
-    require('node:fs').appendFileSync(traceFilePath, line, 'utf8');
+    require("node:fs").appendFileSync(traceFilePath, line, "utf8");
   } catch {
     // Ignore trace write failures inside the wrapper.
   }
@@ -31,14 +31,14 @@ function isExecutable(pathname) {
 }
 
 function resolveClaudeBinary(pathValue) {
-  const segments = typeof pathValue === 'string' ? pathValue.split(':') : [];
+  const segments = typeof pathValue === "string" ? pathValue.split(":") : [];
 
   for (const segment of segments) {
     if (segment.length === 0) {
       continue;
     }
 
-    const candidate = join(segment, 'claude');
+    const candidate = join(segment, "claude");
 
     if (isExecutable(candidate)) {
       return candidate;
@@ -49,15 +49,15 @@ function resolveClaudeBinary(pathValue) {
 }
 
 function publishStatus(args) {
-  const statusResult = spawnSync('claude-status', args, {
-    stdio: 'ignore',
+  const statusResult = spawnSync("claude-status", args, {
+    stdio: "ignore",
   });
 
   if (statusResult.status === 0) {
     return;
   }
 
-  if (typeof statusResult.error?.message === 'string') {
+  if (typeof statusResult.error?.message === "string") {
     process.stderr.write(`${statusResult.error.message}\n`);
   }
 }
@@ -70,91 +70,91 @@ function main() {
   const realClaude = resolveClaudeBinary(originalPath);
 
   if (realClaude === null) {
-    appendTrace('failed to resolve real Claude binary');
+    appendTrace("failed to resolve real Claude binary");
     process.stderr.write(
-      'Unable to locate the real `claude` binary on CLAUDE_WITH_EMOTION_ORIGINAL_PATH.\n',
+      "Unable to locate the real `claude` binary on CLAUDE_WITH_EMOTION_ORIGINAL_PATH.\n",
     );
     process.exit(1);
   }
 
   appendTrace(`launching Claude binary ${realClaude}`);
   publishStatus([
-    '--state',
-    'working',
-    '--line',
-    'Claude 세션 실행 중이에요...!',
-    '--activity',
-    'Claude 세션 시작하는 중',
-    '--task',
-    'Running Claude in the active terminal',
-    '--intensity',
-    'medium',
+    "--state",
+    "working",
+    "--line",
+    "Claude 세션 실행 중이에요...!",
+    "--activity",
+    "Claude 세션 시작하는 중",
+    "--task",
+    "Running Claude in the active terminal",
+    "--intensity",
+    "medium",
   ]);
 
   const runtimeArgs = [];
 
   if (
-    typeof hooksSettingsFilePath === 'string' &&
+    typeof hooksSettingsFilePath === "string" &&
     hooksSettingsFilePath.length > 0
   ) {
-    runtimeArgs.push('--settings', hooksSettingsFilePath);
+    runtimeArgs.push("--settings", hooksSettingsFilePath);
   }
 
   if (visualToolUsagePrompt.trim().length > 0) {
-    runtimeArgs.push('--append-system-prompt', visualToolUsagePrompt);
+    runtimeArgs.push("--append-system-prompt", visualToolUsagePrompt);
   }
 
   const claudeArgs = [...runtimeArgs, ...process.argv.slice(2)];
 
   appendTrace(
-    `starting Claude with ${claudeArgs.length} argv entries hooks=${typeof hooksSettingsFilePath === 'string' && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : 'none'} visualMcp=user-scope visualPrompt=${visualToolUsagePrompt.trim().length > 0 ? 'present' : 'none'}`,
+    `starting Claude with ${claudeArgs.length} argv entries hooks=${typeof hooksSettingsFilePath === "string" && hooksSettingsFilePath.length > 0 ? hooksSettingsFilePath : "none"} visualMcp=user-scope visualPrompt=${visualToolUsagePrompt.trim().length > 0 ? "present" : "none"}`,
   );
 
   const child = spawnSync(realClaude, claudeArgs, {
-    stdio: 'inherit',
+    stdio: "inherit",
     env: {
       ...process.env,
-      PATH: originalPath ?? process.env.PATH ?? '',
+      PATH: originalPath ?? process.env.PATH ?? "",
     },
   });
 
   appendTrace(
-    `Claude finished status=${child.status ?? 'null'} signal=${child.signal ?? 'null'} error=${child.error instanceof Error ? child.error.message : 'none'}`,
+    `Claude finished status=${child.status ?? "null"} signal=${child.signal ?? "null"} error=${child.error instanceof Error ? child.error.message : "none"}`,
   );
 
   if (child.status === 0) {
     publishStatus([
-      '--state',
-      'disconnected',
-      '--line',
-      'Claude 세션이 종료돼서 지금은 미연결 상태예요...!',
-      '--activity',
-      '연결 대기 중',
-      '--task',
-      'Waiting for the next Claude run',
-      '--intensity',
-      'low',
+      "--state",
+      "disconnected",
+      "--line",
+      "Claude 세션이 종료돼서 지금은 미연결 상태예요...!",
+      "--activity",
+      "연결 대기 중",
+      "--task",
+      "Waiting for the next Claude run",
+      "--intensity",
+      "low",
     ]);
   } else {
     publishStatus([
-      '--state',
-      'error',
-      '--line',
-      'Claude 세션이 에러로 끝낫어요...!',
-      '--activity',
-      '세션 복구가 필요한 상태',
-      '--task',
-      'Claude command exited with an error',
-      '--intensity',
-      'high',
+      "--state",
+      "error",
+      "--line",
+      "Claude 세션이 에러로 끝낫어요...!",
+      "--activity",
+      "세션 복구가 필요한 상태",
+      "--task",
+      "Claude command exited with an error",
+      "--intensity",
+      "high",
     ]);
   }
 
-  if (typeof child.status === 'number') {
+  if (typeof child.status === "number") {
     process.exit(child.status);
   }
 
-  if (typeof child.signal === 'string') {
+  if (typeof child.signal === "string") {
     process.kill(process.pid, child.signal);
     return;
   }

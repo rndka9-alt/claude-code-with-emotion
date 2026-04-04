@@ -1,6 +1,6 @@
-import type { AssistantSemanticState } from '../../../shared/assistant-status';
+import type { AssistantSemanticState } from "../../../shared/assistant-status";
 
-export type SessionLifecycle = 'bootstrapping' | 'ready';
+export type SessionLifecycle = "bootstrapping" | "ready";
 
 const IMMEDIATE_EXIT_RELAUNCH_WINDOW_MS = 5_000;
 
@@ -29,18 +29,28 @@ export interface WorkspaceState {
 }
 
 export type WorkspaceAction =
-  | { type: 'activateTab'; tabId: string; nowMs: number }
-  | { type: 'createTab'; nowMs: number }
-  | { type: 'closeTab'; tabId: string; nowMs: number; reason: 'manual' | 'exit' }
+  | { type: "activateTab"; tabId: string; nowMs: number }
+  | { type: "createTab"; nowMs: number }
   | {
-      type: 'updateTabTitle';
+      type: "closeTab";
+      tabId: string;
+      nowMs: number;
+      reason: "manual" | "exit";
+    }
+  | {
+      type: "updateTabTitle";
       tabId: string;
       title: string;
       nowMs: number;
-      source: 'manual' | 'terminal';
+      source: "manual" | "terminal";
     }
-  | { type: 'reorderTab'; tabId: string; destinationIndex: number; nowMs: number }
-  | { type: 'resizePane'; index: number; deltaRatio: number };
+  | {
+      type: "reorderTab";
+      tabId: string;
+      destinationIndex: number;
+      nowMs: number;
+    }
+  | { type: "resizePane"; index: number; deltaRatio: number };
 
 const MIN_PANE_SIZE = 0.18;
 
@@ -55,11 +65,11 @@ function createSessionTitle(tabNumber: number): string {
 function resolveDefaultSessionCwd(): string {
   const workspaceCwd = window.claudeApp?.workspaceCwd;
 
-  if (typeof workspaceCwd === 'string' && workspaceCwd.length > 0) {
+  if (typeof workspaceCwd === "string" && workspaceCwd.length > 0) {
     return workspaceCwd;
   }
 
-  return '/tmp';
+  return "/tmp";
 }
 
 function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
@@ -67,13 +77,16 @@ function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
     id: `session-${tabNumber}`,
     title: createSessionTitle(tabNumber),
     cwd: resolveDefaultSessionCwd(),
-    command: '',
-    lifecycle: 'bootstrapping',
+    command: "",
+    lifecycle: "bootstrapping",
     createdAtMs: nowMs,
   };
 }
 
-function createRecoverySessionTab(tabNumber: number, nowMs: number): SessionTab {
+function createRecoverySessionTab(
+  tabNumber: number,
+  nowMs: number,
+): SessionTab {
   return createSessionTab(tabNumber, nowMs);
 }
 
@@ -102,22 +115,22 @@ function createBalancedPaneSizes(count: number): number[] {
 }
 
 function createClosedTabAssistantStatus(
-  reason: 'manual' | 'exit',
+  reason: "manual" | "exit",
   closedTabTitle: string,
   nowMs: number,
 ): AssistantStatus {
-  if (reason === 'exit') {
+  if (reason === "exit") {
     return createAssistantStatus(
-      'waiting',
-      '터미널이 종료돼서 탭도 같이 닫앗어요...!',
+      "waiting",
+      "터미널이 종료돼서 탭도 같이 닫앗어요...!",
       `Closed "${closedTabTitle}" after the shell exited`,
       nowMs,
     );
   }
 
   return createAssistantStatus(
-    'happy',
-    '탭 하나 정리햇어요. 꽤 깔끔하죠...!',
+    "happy",
+    "탭 하나 정리햇어요. 꽤 깔끔하죠...!",
     `Closed "${closedTabTitle}"`,
     nowMs,
   );
@@ -127,7 +140,7 @@ function closeTabState(
   state: WorkspaceState,
   tabId: string,
   nowMs: number,
-  reason: 'manual' | 'exit',
+  reason: "manual" | "exit",
 ): WorkspaceState {
   const tabIndex = state.tabs.findIndex((tab) => tab.id === tabId);
 
@@ -145,16 +158,16 @@ function closeTabState(
 
   if (remainingTabs.length === 0) {
     const shouldPauseAutoLaunch =
-      reason === 'exit' &&
+      reason === "exit" &&
       nowMs - closedTab.createdAtMs < IMMEDIATE_EXIT_RELAUNCH_WINDOW_MS;
     const replacementTab = shouldPauseAutoLaunch
       ? createRecoverySessionTab(state.nextTabNumber, nowMs)
       : createSessionTab(state.nextTabNumber, nowMs);
     const replacementLine = shouldPauseAutoLaunch
-      ? '세션이 너무 빨리 종료돼서 Claude 자동 재실행은 멈춰뒀어요...!'
-      : reason === 'exit'
-        ? '마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!'
-        : '마지막 탭을 닫아서 새 세션 하나 열어뒀어요...!';
+      ? "세션이 너무 빨리 종료돼서 Claude 자동 재실행은 멈춰뒀어요...!"
+      : reason === "exit"
+        ? "마지막 세션이 종료돼서 새 탭을 바로 준비햇어요...!"
+        : "마지막 탭을 닫아서 새 세션 하나 열어뒀어요...!";
 
     return {
       tabs: [replacementTab],
@@ -162,7 +175,7 @@ function closeTabState(
       activeTabId: replacementTab.id,
       nextTabNumber: state.nextTabNumber + 1,
       assistantStatus: createAssistantStatus(
-        shouldPauseAutoLaunch ? 'error' : 'waiting',
+        shouldPauseAutoLaunch ? "error" : "waiting",
         replacementLine,
         shouldPauseAutoLaunch
           ? `Paused Claude auto-launch for "${replacementTab.title}"`
@@ -175,9 +188,9 @@ function closeTabState(
   const nextActiveTabId =
     state.activeTabId !== tabId
       ? state.activeTabId
-      : remainingTabs[Math.max(0, tabIndex - 1)]?.id ?? remainingTabs[0]?.id;
+      : (remainingTabs[Math.max(0, tabIndex - 1)]?.id ?? remainingTabs[0]?.id);
 
-  if (typeof nextActiveTabId !== 'string') {
+  if (typeof nextActiveTabId !== "string") {
     return state;
   }
 
@@ -203,8 +216,8 @@ export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
     activeTabId: firstTab.id,
     nextTabNumber: 2,
     assistantStatus: createAssistantStatus(
-      'working',
-      '새 세션 하나만 먼저 열어뒀어요...!',
+      "working",
+      "새 세션 하나만 먼저 열어뒀어요...!",
       `Bootstrapping "${firstTab.title}"`,
       nowMs,
     ),
@@ -288,7 +301,7 @@ export function resizePaneSizes(
 
 function activateTabState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: 'activateTab' }>,
+  action: Extract<WorkspaceAction, { type: "activateTab" }>,
 ): WorkspaceState {
   const nextActiveTab = state.tabs.find((tab) => tab.id === action.tabId);
 
@@ -300,8 +313,8 @@ function activateTabState(
     ...state,
     activeTabId: nextActiveTab.id,
     assistantStatus: createAssistantStatus(
-      'working',
-      '세션 전환 완료. 흐름 안 놓쳣어요...!',
+      "working",
+      "세션 전환 완료. 흐름 안 놓쳣어요...!",
       `Reviewing "${nextActiveTab.title}"`,
       action.nowMs,
     ),
@@ -310,7 +323,7 @@ function activateTabState(
 
 function updateTabTitleState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: 'updateTabTitle' }>,
+  action: Extract<WorkspaceAction, { type: "updateTabTitle" }>,
 ): WorkspaceState {
   const normalizedTitle = action.title.trim();
 
@@ -330,10 +343,10 @@ function updateTabTitleState(
       tab.id === action.tabId ? { ...tab, title: normalizedTitle } : tab,
     ),
     assistantStatus: createAssistantStatus(
-      action.source === 'manual' ? 'happy' : 'working',
-      action.source === 'manual'
-        ? '탭 이름 바꿧어요. 더 알아보기 쉬워요...!'
-        : '터미널 타이틀을 탭 이름으로 동기화햇어요...!',
+      action.source === "manual" ? "happy" : "working",
+      action.source === "manual"
+        ? "탭 이름 바꿧어요. 더 알아보기 쉬워요...!"
+        : "터미널 타이틀을 탭 이름으로 동기화햇어요...!",
       `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
       action.nowMs,
     ),
@@ -342,7 +355,7 @@ function updateTabTitleState(
 
 function reorderTabState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: 'reorderTab' }>,
+  action: Extract<WorkspaceAction, { type: "reorderTab" }>,
 ): WorkspaceState {
   const fromIndex = state.tabs.findIndex((tab) => tab.id === action.tabId);
 
@@ -377,8 +390,8 @@ function reorderTabState(
     ...state,
     tabs: reorderedTabs,
     assistantStatus: createAssistantStatus(
-      'working',
-      '탭 순서 바꿔놨어요. 동선이 좀 더 편해질 거예요...!',
+      "working",
+      "탭 순서 바꿔놨어요. 동선이 좀 더 편해질 거예요...!",
       `Moved "${movedTab.title}"`,
       action.nowMs,
     ),
@@ -387,7 +400,7 @@ function reorderTabState(
 
 function createTabState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: 'createTab' }>,
+  action: Extract<WorkspaceAction, { type: "createTab" }>,
 ): WorkspaceState {
   const nextTab = createSessionTab(state.nextTabNumber, action.nowMs);
   const nextTabs = [...state.tabs, nextTab];
@@ -398,8 +411,8 @@ function createTabState(
     activeTabId: nextTab.id,
     nextTabNumber: state.nextTabNumber + 1,
     assistantStatus: createAssistantStatus(
-      'happy',
-      '새 탭 하나 추가햇어요. 멀티세션 기분 좋다...!',
+      "happy",
+      "새 탭 하나 추가햇어요. 멀티세션 기분 좋다...!",
       `Bootstrapping "${nextTab.title}"`,
       action.nowMs,
     ),
@@ -410,11 +423,11 @@ export function workspaceReducer(
   state: WorkspaceState,
   action: WorkspaceAction,
 ): WorkspaceState {
-  if (action.type === 'activateTab') {
+  if (action.type === "activateTab") {
     return activateTabState(state, action);
   }
 
-  if (action.type === 'resizePane') {
+  if (action.type === "resizePane") {
     return {
       ...state,
       paneSizes: resizePaneSizes(
@@ -425,15 +438,15 @@ export function workspaceReducer(
     };
   }
 
-  if (action.type === 'closeTab') {
+  if (action.type === "closeTab") {
     return closeTabState(state, action.tabId, action.nowMs, action.reason);
   }
 
-  if (action.type === 'updateTabTitle') {
+  if (action.type === "updateTabTitle") {
     return updateTabTitleState(state, action);
   }
 
-  if (action.type === 'reorderTab') {
+  if (action.type === "reorderTab") {
     return reorderTabState(state, action);
   }
 

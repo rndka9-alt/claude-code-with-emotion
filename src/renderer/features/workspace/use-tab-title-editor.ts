@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 export interface TabTitleEditorState {
   draftTitle: string;
@@ -14,7 +14,7 @@ export function useTabTitleEditor(
   onRenameTab: (tabId: string, title: string) => void,
 ): TabTitleEditorState {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
+  const [draftTitle, setDraftTitle] = useState("");
   const editInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {

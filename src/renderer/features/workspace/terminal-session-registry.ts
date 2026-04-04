@@ -1,8 +1,8 @@
-import { Terminal } from '@xterm/xterm';
-import type { TerminalOutputEvent } from '../../../shared/terminal-bridge';
-import { DEFAULT_TERMINAL_HISTORY_LINES } from '../../../shared/terminal-history';
-import { APP_THEME_FALLBACKS } from '../../../shared/theme';
-import type { SessionTab } from './model';
+import { Terminal } from "@xterm/xterm";
+import type { TerminalOutputEvent } from "../../../shared/terminal-bridge";
+import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../../shared/terminal-history";
+import { APP_THEME_FALLBACKS } from "../../../shared/theme";
+import type { SessionTab } from "./model";
 
 interface TerminalSize {
   cols: number;
@@ -37,13 +37,10 @@ export interface TerminalSessionController {
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
-function readNestedNumber(
-  value: unknown,
-  keys: string[],
-): number | null {
+function readNestedNumber(value: unknown, keys: string[]): number | null {
   let current: unknown = value;
 
   for (const key of keys) {
@@ -54,7 +51,7 @@ function readNestedNumber(
     current = current[key];
   }
 
-  return typeof current === 'number' && Number.isFinite(current)
+  return typeof current === "number" && Number.isFinite(current)
     ? current
     : null;
 }
@@ -70,20 +67,20 @@ function measureTerminalSize(
   terminal: Terminal,
   host: HTMLDivElement,
 ): TerminalSize | null {
-  const core = Reflect.get(terminal, '_core');
+  const core = Reflect.get(terminal, "_core");
   const cellWidth = readNestedNumber(core, [
-    '_renderService',
-    'dimensions',
-    'css',
-    'cell',
-    'width',
+    "_renderService",
+    "dimensions",
+    "css",
+    "cell",
+    "width",
   ]);
   const cellHeight = readNestedNumber(core, [
-    '_renderService',
-    'dimensions',
-    'css',
-    'cell',
-    'height',
+    "_renderService",
+    "dimensions",
+    "css",
+    "cell",
+    "height",
   ]);
 
   if (
@@ -98,7 +95,7 @@ function measureTerminalSize(
   const scrollBarWidth =
     terminal.options.scrollback === 0
       ? 0
-      : readNestedNumber(core, ['viewport', 'scrollBarWidth']) ?? 0;
+      : (readNestedNumber(core, ["viewport", "scrollBarWidth"]) ?? 0);
   const cols = Math.max(
     2,
     Math.floor((host.clientWidth - scrollBarWidth) / cellWidth),
@@ -131,7 +128,7 @@ function fitTerminalViewport(
     return nextSize;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : 'Unknown terminal fit error';
+      error instanceof Error ? error.message : "Unknown terminal fit error";
 
     console.warn(
       `Skipped terminal fit for ${sessionId} during ${reason}: ${message}`,
@@ -151,17 +148,17 @@ function scheduleTask(callback: () => void, delayMs: number): ScheduledTask {
 }
 
 function createParkingLot(): HTMLDivElement {
-  const parkingLot = document.createElement('div');
+  const parkingLot = document.createElement("div");
 
-  parkingLot.setAttribute('aria-hidden', 'true');
-  parkingLot.dataset.terminalParkingLot = 'true';
-  parkingLot.style.position = 'fixed';
-  parkingLot.style.left = '-10000px';
-  parkingLot.style.top = '0';
-  parkingLot.style.width = '1px';
-  parkingLot.style.height = '1px';
-  parkingLot.style.overflow = 'hidden';
-  parkingLot.style.pointerEvents = 'none';
+  parkingLot.setAttribute("aria-hidden", "true");
+  parkingLot.dataset.terminalParkingLot = "true";
+  parkingLot.style.position = "fixed";
+  parkingLot.style.left = "-10000px";
+  parkingLot.style.top = "0";
+  parkingLot.style.width = "1px";
+  parkingLot.style.height = "1px";
+  parkingLot.style.overflow = "hidden";
+  parkingLot.style.pointerEvents = "none";
 
   document.body.append(parkingLot);
 
@@ -169,11 +166,11 @@ function createParkingLot(): HTMLDivElement {
 }
 
 function createTerminalContainer(): HTMLDivElement {
-  const container = document.createElement('div');
+  const container = document.createElement("div");
 
-  container.className = 'terminal-surface__instance';
-  container.style.width = '100%';
-  container.style.height = '100%';
+  container.className = "terminal-surface__instance";
+  container.style.width = "100%";
+  container.style.height = "100%";
 
   return container;
 }
@@ -182,23 +179,28 @@ function isExternalBrowserHref(href: string): boolean {
   try {
     const protocol = new URL(href).protocol;
 
-    return protocol === 'http:' || protocol === 'https:' || protocol === 'vscode:';
+    return (
+      protocol === "http:" || protocol === "https:" || protocol === "vscode:"
+    );
   } catch {
     return false;
   }
 }
 
 export function handleTerminalExternalBrowserClick(
-  event: Pick<MouseEvent, 'defaultPrevented' | 'preventDefault' | 'target'>,
+  event: Pick<MouseEvent, "defaultPrevented" | "preventDefault" | "target">,
   openExternal: ((url: string) => Promise<void>) | undefined,
 ): void {
   if (event.defaultPrevented || !(event.target instanceof Element)) {
     return;
   }
 
-  const anchor = event.target.closest('a[href]');
+  const anchor = event.target.closest("a[href]");
 
-  if (!(anchor instanceof HTMLAnchorElement) || !isExternalBrowserHref(anchor.href)) {
+  if (
+    !(anchor instanceof HTMLAnchorElement) ||
+    !isExternalBrowserHref(anchor.href)
+  ) {
     return;
   }
 
@@ -210,7 +212,10 @@ const terminalSessionControllers = new Map<string, TerminalSessionController>();
 let terminalParkingLot: HTMLDivElement | null = null;
 
 function getParkingLot(): HTMLDivElement {
-  if (terminalParkingLot === null || !document.body.contains(terminalParkingLot)) {
+  if (
+    terminalParkingLot === null ||
+    !document.body.contains(terminalParkingLot)
+  ) {
     terminalParkingLot = createParkingLot();
   }
 
@@ -227,23 +232,23 @@ function readThemeVariable(name: string, fallback: string): string {
 function createTerminalTheme() {
   return {
     background: readThemeVariable(
-      '--color-surface-terminal-theme',
+      "--color-surface-terminal-theme",
       terminalThemeFallbacks.background,
     ),
     foreground: readThemeVariable(
-      '--color-terminal-foreground',
+      "--color-terminal-foreground",
       terminalThemeFallbacks.foreground,
     ),
     brightBlue: readThemeVariable(
-      '--color-terminal-bright-blue',
+      "--color-terminal-bright-blue",
       terminalThemeFallbacks.brightBlue,
     ),
     blue: readThemeVariable(
-      '--color-terminal-blue',
+      "--color-terminal-blue",
       terminalThemeFallbacks.blue,
     ),
     green: readThemeVariable(
-      '--color-terminal-green',
+      "--color-terminal-green",
       terminalThemeFallbacks.green,
     ),
   };
@@ -283,7 +288,10 @@ function createTerminalSessionController(
 
       const text = line.translateToString();
       const links: Array<{
-        range: { start: { x: number; y: number }; end: { x: number; y: number } };
+        range: {
+          start: { x: number; y: number };
+          end: { x: number; y: number };
+        };
         text: string;
         activate: (_event: MouseEvent, linkText: string) => void;
       }> = [];
@@ -316,7 +324,8 @@ function createTerminalSessionController(
   let disposed = false;
   let host: HTMLDivElement | null = null;
   let restoredOutputVersion = 0;
-  let titleChangeHandler: ((tabId: string, title: string) => void) | null = null;
+  let titleChangeHandler: ((tabId: string, title: string) => void) | null =
+    null;
 
   const focusTerminal = (): void => {
     terminal.focus();
@@ -415,7 +424,7 @@ function createTerminalSessionController(
       })
       .catch((error: unknown) => {
         const message =
-          error instanceof Error ? error.message : 'Unknown bootstrap error';
+          error instanceof Error ? error.message : "Unknown bootstrap error";
 
         bootstrapCompleted = true;
         bufferedOutputEvents.length = 0;
@@ -479,15 +488,15 @@ function createTerminalSessionController(
       }
 
       host = nextHost;
-      host.addEventListener('click', handleTerminalLinkClick, true);
-      host.addEventListener('mousedown', focusTerminal);
-      host.addEventListener('touchstart', focusTerminal, { passive: true });
-      requestFit('attach');
+      host.addEventListener("click", handleTerminalLinkClick, true);
+      host.addEventListener("mousedown", focusTerminal);
+      host.addEventListener("touchstart", focusTerminal, { passive: true });
+      requestFit("attach");
 
       if (bridge === undefined) {
         terminal.write(
           `No preload bridge detected for ${session.title}\r\n` +
-            'The xterm surface is mounted, but Electron IPC is unavailable.\r\n',
+            "The xterm surface is mounted, but Electron IPC is unavailable.\r\n",
         );
       }
     },
@@ -496,9 +505,9 @@ function createTerminalSessionController(
         return;
       }
 
-      host.removeEventListener('click', handleTerminalLinkClick, true);
-      host.removeEventListener('mousedown', focusTerminal);
-      host.removeEventListener('touchstart', focusTerminal);
+      host.removeEventListener("click", handleTerminalLinkClick, true);
+      host.removeEventListener("mousedown", focusTerminal);
+      host.removeEventListener("touchstart", focusTerminal);
       getParkingLot().append(container);
       host = null;
     },

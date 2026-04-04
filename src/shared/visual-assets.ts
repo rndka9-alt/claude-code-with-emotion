@@ -3,12 +3,12 @@ import {
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
-} from './visual-presets';
+} from "./visual-presets";
 
 export interface VisualAssetRecord {
   id: string;
   isDefault?: boolean;
-  kind: 'image';
+  kind: "image";
   label: string;
   path: string;
 }
@@ -39,7 +39,7 @@ export interface VisualAssetResolutionRequest {
 export interface VisualAssetResolution {
   asset: VisualAssetRecord;
   mapping: VisualAssetMapping | null;
-  match: 'default' | 'emotion' | 'state' | 'state-and-emotion';
+  match: "default" | "emotion" | "state" | "state-and-emotion";
 }
 
 export interface AvailableVisualOptions {
@@ -68,7 +68,7 @@ function findAssetRecord(
 function resolveFromMapping(
   catalog: VisualAssetCatalog,
   matcher: (mapping: VisualAssetMapping) => boolean,
-  match: VisualAssetResolution['match'],
+  match: VisualAssetResolution["match"],
 ): VisualAssetResolution | null {
   for (const mapping of catalog.mappings) {
     if (!matcher(mapping)) {
@@ -124,7 +124,7 @@ export function resolveVisualAsset(
       catalog,
       (mapping) =>
         mapping.state === request.state && mapping.emotion === request.emotion,
-      'state-and-emotion',
+      "state-and-emotion",
     );
 
     if (exactMatch !== null) {
@@ -136,7 +136,7 @@ export function resolveVisualAsset(
     catalog,
     (mapping) =>
       mapping.state === request.state && mapping.emotion === undefined,
-    'state',
+    "state",
   );
 
   if (stateOnlyMatch !== null) {
@@ -148,7 +148,7 @@ export function resolveVisualAsset(
       catalog,
       (mapping) =>
         mapping.state === undefined && mapping.emotion === request.emotion,
-      'emotion',
+      "emotion",
     );
 
     if (emotionOnlyMatch !== null) {
@@ -165,7 +165,7 @@ export function resolveVisualAsset(
   return {
     asset: defaultAsset,
     mapping: null,
-    match: 'default',
+    match: "default",
   };
 }
 
@@ -173,7 +173,9 @@ export function resolveVisualStateLine(
   catalog: VisualAssetCatalog,
   state: VisualStatePresetId,
 ): string | null {
-  const mapping = catalog.stateLines.find((candidate) => candidate.state === state);
+  const mapping = catalog.stateLines.find(
+    (candidate) => candidate.state === state,
+  );
 
   if (mapping === undefined) {
     return null;

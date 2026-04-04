@@ -3,33 +3,29 @@ import {
   ipcRenderer,
   webUtils,
   type IpcRendererEvent,
-} from 'electron';
-import type { ClaudeAppApi } from '../shared/electron-api';
-import {
-  APP_THEME_CHANNELS,
-} from '../shared/app-theme-bridge';
-import type { AppThemeSelection } from '../shared/theme';
+} from "electron";
+import type { ClaudeAppApi } from "../shared/electron-api";
+import { APP_THEME_CHANNELS } from "../shared/app-theme-bridge";
+import type { AppThemeSelection } from "../shared/theme";
 import {
   ASSISTANT_STATUS_CHANNELS,
   type AssistantStatusSnapshotEvent,
   type AssistantStatusSnapshot,
-} from '../shared/assistant-status';
+} from "../shared/assistant-status";
 import {
   DIAGNOSTICS_CHANNELS,
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
-} from '../shared/diagnostics';
-import { LINKS_CHANNELS } from '../shared/links-bridge';
-import { MCP_SETUP_CHANNELS } from '../shared/mcp-setup-bridge';
+} from "../shared/diagnostics";
+import { LINKS_CHANNELS } from "../shared/links-bridge";
+import { MCP_SETUP_CHANNELS } from "../shared/mcp-setup-bridge";
 import {
   TERMINAL_CHANNELS,
   type TerminalExitEvent,
   type TerminalOutputEvent,
-} from '../shared/terminal-bridge';
-import {
-  VISUAL_ASSET_CHANNELS,
-} from '../shared/visual-assets-bridge';
-import type { VisualAssetCatalog } from '../shared/visual-assets';
+} from "../shared/terminal-bridge";
+import { VISUAL_ASSET_CHANNELS } from "../shared/visual-assets-bridge";
+import type { VisualAssetCatalog } from "../shared/visual-assets";
 
 const claudeAppApi: ClaudeAppApi = {
   appVersion: process.versions.electron,
@@ -73,7 +69,10 @@ const claudeAppApi: ClaudeAppApi = {
       ipcRenderer.on(ASSISTANT_STATUS_CHANNELS.snapshot, subscription);
 
       return () => {
-        ipcRenderer.removeListener(ASSISTANT_STATUS_CHANNELS.snapshot, subscription);
+        ipcRenderer.removeListener(
+          ASSISTANT_STATUS_CHANNELS.snapshot,
+          subscription,
+        );
       };
     },
   },
@@ -89,7 +88,10 @@ const claudeAppApi: ClaudeAppApi = {
       ipcRenderer.on(DIAGNOSTICS_CHANNELS.runtimeEvent, subscription);
 
       return () => {
-        ipcRenderer.removeListener(DIAGNOSTICS_CHANNELS.runtimeEvent, subscription);
+        ipcRenderer.removeListener(
+          DIAGNOSTICS_CHANNELS.runtimeEvent,
+          subscription,
+        );
       };
     },
   },
@@ -195,7 +197,7 @@ function emitRendererDiagnostic(payload: RendererDiagnosticPayload): void {
 }
 
 function emitUnhandledRendererDiagnostic(
-  type: RendererDiagnosticPayload['type'],
+  type: RendererDiagnosticPayload["type"],
   message: string,
   stack?: string,
 ): void {
@@ -204,40 +206,43 @@ function emitUnhandledRendererDiagnostic(
     message,
   };
 
-  if (typeof stack === 'string' && stack.length > 0) {
+  if (typeof stack === "string" && stack.length > 0) {
     payload.stack = stack;
   }
 
   emitRendererDiagnostic(payload);
 }
 
-window.addEventListener('error', (event: ErrorEvent) => {
+window.addEventListener("error", (event: ErrorEvent) => {
   const locationSuffix =
-    typeof event.filename === 'string' && event.filename.length > 0
+    typeof event.filename === "string" && event.filename.length > 0
       ? ` @ ${event.filename}:${event.lineno}:${event.colno}`
-      : '';
+      : "";
 
   emitUnhandledRendererDiagnostic(
-    'window-error',
+    "window-error",
     `${event.message}${locationSuffix}`,
     event.error instanceof Error ? event.error.stack : undefined,
   );
 });
 
-window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-  const reason = event.reason;
-  const message =
-    reason instanceof Error
-      ? reason.message
-      : typeof reason === 'string'
-        ? reason
-        : JSON.stringify(reason);
+window.addEventListener(
+  "unhandledrejection",
+  (event: PromiseRejectionEvent) => {
+    const reason = event.reason;
+    const message =
+      reason instanceof Error
+        ? reason.message
+        : typeof reason === "string"
+          ? reason
+          : JSON.stringify(reason);
 
-  emitUnhandledRendererDiagnostic(
-    'unhandled-rejection',
-    message,
-    reason instanceof Error ? reason.stack : undefined,
-  );
-});
+    emitUnhandledRendererDiagnostic(
+      "unhandled-rejection",
+      message,
+      reason instanceof Error ? reason.stack : undefined,
+    );
+  },
+);
 
-contextBridge.exposeInMainWorld('claudeApp', claudeAppApi);
+contextBridge.exposeInMainWorld("claudeApp", claudeAppApi);

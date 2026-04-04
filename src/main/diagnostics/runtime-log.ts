@@ -1,6 +1,6 @@
-import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
-import path from 'node:path';
-import type { RuntimeDiagnosticPayload } from '../../shared/diagnostics';
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import type { RuntimeDiagnosticPayload } from "../../shared/diagnostics";
 
 export interface RuntimeLog {
   readonly filePath: string;
@@ -16,10 +16,10 @@ export function resolveRuntimeLogPath(
   isPackaged: boolean,
 ): string {
   if (isPackaged) {
-    return path.join(userDataPath, 'logs', 'electron-runtime.log');
+    return path.join(userDataPath, "logs", "electron-runtime.log");
   }
 
-  return path.join(appPath, '.runtime-logs', 'electron-dev.log');
+  return path.join(appPath, ".runtime-logs", "electron-dev.log");
 }
 
 export function formatRuntimeLogLine(
@@ -40,7 +40,7 @@ function ensureLogDirExists(filePath: string): void {
 
 function stringifyError(error: unknown): string {
   if (error instanceof Error) {
-    if (typeof error.stack === 'string' && error.stack.length > 0) {
+    if (typeof error.stack === "string" && error.stack.length > 0) {
       return error.stack;
     }
 
@@ -74,7 +74,11 @@ export function createRuntimeLog(
     write: (scope, message) => {
       const now = new Date();
 
-      appendFileSync(filePath, formatRuntimeLogLine(scope, message, now), 'utf8');
+      appendFileSync(
+        filePath,
+        formatRuntimeLogLine(scope, message, now),
+        "utf8",
+      );
       emitRuntimeLogListener(listener, scope, message, now);
     },
     writeError: (scope, error) => {
@@ -84,7 +88,7 @@ export function createRuntimeLog(
       appendFileSync(
         filePath,
         formatRuntimeLogLine(scope, message, now),
-        'utf8',
+        "utf8",
       );
       emitRuntimeLogListener(listener, scope, message, now);
     },

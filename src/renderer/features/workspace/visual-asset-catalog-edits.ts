@@ -2,14 +2,14 @@ import {
   type VisualAssetCatalog,
   type VisualAssetMapping,
   type VisualAssetRecord,
-} from '../../../shared/visual-assets';
+} from "../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
-} from '../../../shared/visual-presets';
-import type { VisualAssetPickerFile } from '../../../shared/visual-assets-bridge';
+} from "../../../shared/visual-presets";
+import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
 
 interface AutoVisualAssetAssignment {
   emotion?: VisualEmotionPresetId;
@@ -27,9 +27,9 @@ function normalizeVisualAssetFilenameToken(value: string): string {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[_\-\s]+/g, ' ')
-    .replace(/[^a-z0-9 ]+/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[_\-\s]+/g, " ")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -59,7 +59,7 @@ const stateFilenameAliasMap = createPresetAliasMap(
 );
 
 const emotionFilenameAliasMap = createPresetAliasMap(
-  EMOTION_PRESETS.filter((preset) => preset.id !== 'neutral').map((preset) => {
+  EMOTION_PRESETS.filter((preset) => preset.id !== "neutral").map((preset) => {
     return {
       id: preset.id,
       label: preset.label,
@@ -71,7 +71,7 @@ function parseVisualAssetFilenameAssignment(
   label: string,
 ): AutoVisualAssetAssignment | null {
   const segments = label
-    .replace(visualAssetFilenameExtensionPattern, '')
+    .replace(visualAssetFilenameExtensionPattern, "")
     .split(/__+/)
     .map((segment) => normalizeVisualAssetFilenameToken(segment))
     .filter((segment) => segment.length > 0);
@@ -85,7 +85,7 @@ function parseVisualAssetFilenameAssignment(
   let isDefault = false;
 
   for (const segment of segments) {
-    if (segment === 'default') {
+    if (segment === "default") {
       isDefault = true;
       continue;
     }
@@ -216,7 +216,7 @@ export function mergePickedVisualAssets(
       ...nextAssets,
       {
         id: nextAssetId,
-        kind: 'image',
+        kind: "image",
         label: file.label,
         path: file.path,
       },

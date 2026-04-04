@@ -1,33 +1,33 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 type ClaudeHookEvent =
-  | 'SessionStart'
-  | 'UserPromptSubmit'
-  | 'PermissionRequest'
-  | 'PermissionDenied'
-  | 'PreToolUse'
-  | 'PostToolUse'
-  | 'PostToolUseFailure'
-  | 'Notification'
-  | 'Elicitation'
-  | 'ElicitationResult'
-  | 'SubagentStart'
-  | 'SubagentStop'
-  | 'TeammateIdle'
-  | 'TaskCompleted'
-  | 'Stop'
-  | 'StopFailure'
-  | 'SessionEnd';
+  | "SessionStart"
+  | "UserPromptSubmit"
+  | "PermissionRequest"
+  | "PermissionDenied"
+  | "PreToolUse"
+  | "PostToolUse"
+  | "PostToolUseFailure"
+  | "Notification"
+  | "Elicitation"
+  | "ElicitationResult"
+  | "SubagentStart"
+  | "SubagentStop"
+  | "TeammateIdle"
+  | "TaskCompleted"
+  | "Stop"
+  | "StopFailure"
+  | "SessionEnd";
 
 interface ClaudeHookCommandConfig {
-  type: 'command';
+  type: "command";
   command: string;
 }
 
 interface ClaudeHookMatcherConfig {
-  matcher: '';
+  matcher: "";
   hooks: ClaudeHookCommandConfig[];
 }
 
@@ -47,8 +47,8 @@ function quoteForShell(value: string): string {
 function getHooksSettingsDir(homeDir: string): string {
   return path.join(
     os.tmpdir(),
-    'claude-code-with-emotion-hooks',
-    Buffer.from(homeDir).toString('hex'),
+    "claude-code-with-emotion-hooks",
+    Buffer.from(homeDir).toString("hex"),
   );
 }
 
@@ -56,7 +56,7 @@ export function buildClaudeHookCommand(
   helperBinDir: string,
   eventName: ClaudeHookEvent,
 ): string {
-  const hookScriptPath = path.join(helperBinDir, 'claude-session-hook');
+  const hookScriptPath = path.join(helperBinDir, "claude-session-hook");
 
   return `${quoteForShell(hookScriptPath)} ${quoteForShell(eventName)}`;
 }
@@ -65,33 +65,33 @@ export function createClaudeHooksSettings(
   helperBinDir: string,
 ): ClaudeHooksSettings {
   const events: ClaudeHookEvent[] = [
-    'SessionStart',
-    'UserPromptSubmit',
-    'PermissionRequest',
-    'PermissionDenied',
-    'PreToolUse',
-    'PostToolUse',
-    'PostToolUseFailure',
-    'Notification',
-    'Elicitation',
-    'ElicitationResult',
-    'SubagentStart',
-    'SubagentStop',
-    'TeammateIdle',
-    'TaskCompleted',
-    'Stop',
-    'StopFailure',
-    'SessionEnd',
+    "SessionStart",
+    "UserPromptSubmit",
+    "PermissionRequest",
+    "PermissionDenied",
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "Notification",
+    "Elicitation",
+    "ElicitationResult",
+    "SubagentStart",
+    "SubagentStop",
+    "TeammateIdle",
+    "TaskCompleted",
+    "Stop",
+    "StopFailure",
+    "SessionEnd",
   ];
   const hooks: Partial<Record<ClaudeHookEvent, ClaudeHookMatcherConfig[]>> = {};
 
   for (const eventName of events) {
     hooks[eventName] = [
       {
-        matcher: '',
+        matcher: "",
         hooks: [
           {
-            type: 'command',
+            type: "command",
             command: buildClaudeHookCommand(helperBinDir, eventName),
           },
         ],
@@ -99,12 +99,12 @@ export function createClaudeHooksSettings(
     ];
   }
 
-  const visualMcpServerName = 'claude-code-with-emotion-visuals';
+  const visualMcpServerName = "claude-code-with-emotion-visuals";
   const visualMcpToolNames = [
-    'get_available_visual_options',
-    'set_visual_emotion',
-    'set_visual_line',
-    'clear_visual_line',
+    "get_available_visual_options",
+    "set_visual_emotion",
+    "set_visual_line",
+    "clear_visual_line",
   ];
 
   return {
@@ -140,7 +140,7 @@ export function ensureClaudeHooksSettingsFile(
   homeDir: string,
 ): string {
   const settingsDir = getHooksSettingsDir(homeDir);
-  const settingsFilePath = path.join(settingsDir, 'settings.json');
+  const settingsFilePath = path.join(settingsDir, "settings.json");
   const settingsJson = JSON.stringify(
     createClaudeHooksSettings(helperBinDir),
     null,
@@ -148,7 +148,7 @@ export function ensureClaudeHooksSettingsFile(
   );
 
   fs.mkdirSync(settingsDir, { recursive: true });
-  fs.writeFileSync(settingsFilePath, settingsJson, 'utf8');
+  fs.writeFileSync(settingsFilePath, settingsJson, "utf8");
 
   return settingsFilePath;
 }

@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react';
-import type { AssistantStatusSnapshot } from '../../../shared/assistant-status';
-import type { AppThemeId, AppThemeOption } from '../../../shared/theme';
-import type { VisualMcpSetupStatus } from '../../../shared/mcp-setup-bridge';
+import { useEffect, useState } from "react";
+import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import type { AppThemeId, AppThemeOption } from "../../../shared/theme";
+import type { VisualMcpSetupStatus } from "../../../shared/mcp-setup-bridge";
 import type {
   VisualEmotionPresetId,
   VisualStatePresetId,
-} from '../../../shared/visual-presets';
-import type { VisualAssetPickerFile } from '../../../shared/visual-assets-bridge';
-import { getActiveTab, getVisibleTabs } from './model';
-import { formatStatusPanelLine } from './status-panel-line';
-import { resolveStatusPanelVisual } from './status-panel-visual';
-import { useAssistantStatusBridge } from './use-assistant-status-bridge';
-import { useAppTheme } from './use-app-theme';
-import { useVisualAssetCatalog } from './use-visual-asset-catalog';
-import { useWorkspaceState } from './use-workspace-state';
+} from "../../../shared/visual-presets";
+import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
+import { getActiveTab, getVisibleTabs } from "./model";
+import { formatStatusPanelLine } from "./status-panel-line";
+import { resolveStatusPanelVisual } from "./status-panel-visual";
+import { useAssistantStatusBridge } from "./use-assistant-status-bridge";
+import { useAppTheme } from "./use-app-theme";
+import { useVisualAssetCatalog } from "./use-visual-asset-catalog";
+import { useWorkspaceState } from "./use-workspace-state";
 import {
   mergePickedVisualAssets,
   removeVisualAsset,
@@ -22,14 +22,17 @@ import {
   setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
   setVisualAssetStateMapping,
-} from './visual-asset-catalog-edits';
+} from "./visual-asset-catalog-edits";
 
 const MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY =
-  'claude-code-with-emotion:mcp-setup-prompt-dismissed';
+  "claude-code-with-emotion:mcp-setup-prompt-dismissed";
 
 function readMcpSetupPromptDismissedPreference(): boolean {
   try {
-    return window.localStorage.getItem(MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY) === 'true';
+    return (
+      window.localStorage.getItem(MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY) ===
+      "true"
+    );
   } catch {
     return false;
   }
@@ -40,7 +43,7 @@ function persistMcpSetupPromptDismissedPreference(isDismissed: boolean): void {
     if (isDismissed) {
       window.localStorage.setItem(
         MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY,
-        'true',
+        "true",
       );
       return;
     }
@@ -72,7 +75,7 @@ function shouldRestoreTerminalFocus(activeElement: Element | null): boolean {
     return false;
   }
 
-  return !['INPUT', 'SELECT', 'TEXTAREA'].includes(activeElement.tagName);
+  return !["INPUT", "SELECT", "TEXTAREA"].includes(activeElement.tagName);
 }
 
 export interface WorkspaceScreenViewModel {
@@ -105,7 +108,7 @@ export interface WorkspaceScreenViewModel {
   setStateLine: (statePreset: VisualStatePresetId, line: string) => void;
   statusLine: string;
   statusVisual: ReturnType<typeof resolveStatusPanelVisual>;
-  tabs: ReturnType<typeof useWorkspaceState>['state']['tabs'];
+  tabs: ReturnType<typeof useWorkspaceState>["state"]["tabs"];
   toggleEmotion: (
     assetId: string,
     emotion: VisualEmotionPresetId,
@@ -125,9 +128,9 @@ export interface WorkspaceScreenViewModel {
   updateTabTitle: (
     tabId: string,
     title: string,
-    source: 'manual' | 'terminal',
+    source: "manual" | "terminal",
   ) => void;
-  visualAssetCatalog: ReturnType<typeof useVisualAssetCatalog>['catalog'];
+  visualAssetCatalog: ReturnType<typeof useVisualAssetCatalog>["catalog"];
   visibleTabs: ReturnType<typeof getVisibleTabs>;
 }
 
@@ -141,36 +144,33 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     resizePane,
     updateTabTitle,
   } = useWorkspaceState();
-  const {
-    currentThemeId,
-    setThemeId,
-    themeOptions,
-  } = useAppTheme();
+  const { currentThemeId, setThemeId, themeOptions } = useAppTheme();
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [isMcpSetupPromptDismissed, setIsMcpSetupPromptDismissed] = useState(() => {
-    return readMcpSetupPromptDismissedPreference();
-  });
+  const [isMcpSetupPromptDismissed, setIsMcpSetupPromptDismissed] = useState(
+    () => {
+      return readMcpSetupPromptDismissedPreference();
+    },
+  );
   const [isInstallingVisualMcp, setIsInstallingVisualMcp] = useState(false);
   const [mcpSetupError, setMcpSetupError] = useState<string | null>(null);
-  const [mcpSetupStatus, setMcpSetupStatus] = useState<VisualMcpSetupStatus | null>(
-    null,
-  );
+  const [mcpSetupStatus, setMcpSetupStatus] =
+    useState<VisualMcpSetupStatus | null>(null);
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
   const activeTab = getActiveTab(state);
   const visibleTabs = getVisibleTabs(state);
   const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
-    activityLabel: '작업중',
+    activityLabel: "작업중",
     emotion: null,
     overlayLine: null,
     state: state.assistantStatus.visualState,
     line: state.assistantStatus.line,
     currentTask: state.assistantStatus.currentTask,
     updatedAtMs: state.assistantStatus.statusSinceMs,
-    intensity: 'medium',
-    source: 'workspace',
+    intensity: "medium",
+    source: "workspace",
   };
   const assistantSnapshot = useAssistantStatusBridge(
-    activeTab?.id ?? 'session-1',
+    activeTab?.id ?? "session-1",
     fallbackAssistantSnapshot,
   );
   const {
@@ -207,7 +207,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       if (
         activeTab === null ||
         isSettingsDialogOpen ||
-        document.visibilityState === 'hidden' ||
+        document.visibilityState === "hidden" ||
         !shouldRestoreTerminalFocus(document.activeElement)
       ) {
         return;
@@ -221,7 +221,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         pendingRestoreTimerId = null;
 
         if (
-          document.visibilityState === 'hidden' ||
+          document.visibilityState === "hidden" ||
           !shouldRestoreTerminalFocus(document.activeElement)
         ) {
           return;
@@ -231,10 +231,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       }, 0);
     };
 
-    window.addEventListener('focus', requestTerminalFocusRestore);
+    window.addEventListener("focus", requestTerminalFocusRestore);
 
     return () => {
-      window.removeEventListener('focus', requestTerminalFocusRestore);
+      window.removeEventListener("focus", requestTerminalFocusRestore);
 
       if (pendingRestoreTimerId !== null) {
         window.clearTimeout(pendingRestoreTimerId);
@@ -275,7 +275,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
 
     void terminalsBridge.sendInput({
       sessionId: activeTab.id,
-      data: '\u0015claude\r',
+      data: "\u0015claude\r",
     });
     setTerminalFocusRequestKey((current) => current + 1);
   };
@@ -296,7 +296,9 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       })
       .catch((error: unknown) => {
         setMcpSetupError(
-          error instanceof Error ? error.message : 'Visual MCP 설치에 실패했습니다.',
+          error instanceof Error
+            ? error.message
+            : "Visual MCP 설치에 실패했습니다.",
         );
       })
       .finally(() => {

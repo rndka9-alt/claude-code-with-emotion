@@ -10,7 +10,7 @@ export interface VisualMcpSetupBridge {
 }
 
 export const MCP_SETUP_CHANNELS = {
-  getStatus: 'mcp-setup:get-status',
-  install: 'mcp-setup:install',
-  remove: 'mcp-setup:remove',
+  getStatus: "mcp-setup:get-status",
+  install: "mcp-setup:install",
+  remove: "mcp-setup:remove",
 } as const;

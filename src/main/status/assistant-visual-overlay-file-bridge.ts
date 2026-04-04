@@ -1,21 +1,40 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 import type {
   AssistantEmotionalState,
   AssistantVisualOverlayUpdate,
-} from '../../shared/assistant-status';
-import { AssistantStatusStore } from './assistant-status-store';
+} from "../../shared/assistant-status";
+import { AssistantStatusStore } from "./assistant-status-store";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 const EMOTIONAL_STATES: ReadonlySet<string> = new Set<AssistantEmotionalState>([
-  'angry', 'annoyed', 'bored', 'confused', 'contemptuous',
-  'crying', 'curious', 'dumbfounded', 'embarrassed', 'excited',
-  'exhausted', 'happy', 'laughing', 'nervous', 'neutral',
-  'proud', 'sad', 'scared', 'serious', 'shy',
-  'smile', 'smirk', 'smug', 'surprised',
+  "angry",
+  "annoyed",
+  "bored",
+  "confused",
+  "contemptuous",
+  "crying",
+  "curious",
+  "dumbfounded",
+  "embarrassed",
+  "excited",
+  "exhausted",
+  "happy",
+  "laughing",
+  "nervous",
+  "neutral",
+  "proud",
+  "sad",
+  "scared",
+  "serious",
+  "shy",
+  "smile",
+  "smirk",
+  "smug",
+  "surprised",
 ]);
 
 function isEmotionalState(value: string): value is AssistantEmotionalState {
@@ -36,8 +55,8 @@ function parseAssistantVisualOverlayUpdate(
   if (emotion !== undefined) {
     if (emotion === null) {
       update.emotion = null;
-    } else if (typeof emotion === 'string' && isEmotionalState(emotion)) {
-      update.emotion = emotion === 'neutral' ? null : emotion;
+    } else if (typeof emotion === "string" && isEmotionalState(emotion)) {
+      update.emotion = emotion === "neutral" ? null : emotion;
     } else {
       return null;
     }
@@ -46,7 +65,7 @@ function parseAssistantVisualOverlayUpdate(
   if (line !== undefined) {
     if (line === null) {
       update.line = null;
-    } else if (typeof line === 'string') {
+    } else if (typeof line === "string") {
       update.line = line;
     } else {
       return null;
@@ -70,13 +89,13 @@ export class AssistantVisualOverlayFileBridge {
     fs.mkdirSync(path.dirname(this.overlayFilePath), { recursive: true });
 
     if (!fs.existsSync(this.overlayFilePath)) {
-      fs.writeFileSync(this.overlayFilePath, '', 'utf8');
+      fs.writeFileSync(this.overlayFilePath, "", "utf8");
     }
 
     this.logEvent?.(`watch start path=${this.overlayFilePath}`);
 
     this.watcher = fs.watch(this.overlayFilePath, () => {
-      this.logEvent?.('watch event received');
+      this.logEvent?.("watch event received");
       this.scheduleRead();
     });
   }
@@ -103,10 +122,10 @@ export class AssistantVisualOverlayFileBridge {
   }
 
   private readOverlayFile(): void {
-    const fileContents = fs.readFileSync(this.overlayFilePath, 'utf8').trim();
+    const fileContents = fs.readFileSync(this.overlayFilePath, "utf8").trim();
 
     if (fileContents.length === 0) {
-      this.logEvent?.('read ignored empty payload');
+      this.logEvent?.("read ignored empty payload");
       return;
     }
 
@@ -118,14 +137,16 @@ export class AssistantVisualOverlayFileBridge {
 
       if (update !== null) {
         this.logEvent?.(
-          `parsed overlay emotion=${update.emotion ?? 'none'} line=${update.line ?? ''}`,
+          `parsed overlay emotion=${update.emotion ?? "none"} line=${update.line ?? ""}`,
         );
-        this.statusStore.applyVisualOverlay(update, 'assistant-visual-overlay');
+        this.statusStore.applyVisualOverlay(update, "assistant-visual-overlay");
       } else {
-        this.logEvent?.('parsed payload but it did not match AssistantVisualOverlayUpdate');
+        this.logEvent?.(
+          "parsed payload but it did not match AssistantVisualOverlayUpdate",
+        );
       }
     } catch {
-      this.logEvent?.('malformed assistant-visual-overlay payload ignored');
+      this.logEvent?.("malformed assistant-visual-overlay payload ignored");
     }
   }
 }

@@ -3,7 +3,7 @@ import {
   type AssistantStatusSnapshot,
   type AssistantStatusUpdate,
   type AssistantVisualOverlayUpdate,
-} from '../../shared/assistant-status';
+} from "../../shared/assistant-status";
 
 type SnapshotListener = (snapshot: AssistantStatusSnapshot) => void;
 
@@ -76,16 +76,14 @@ export class AssistantStatusStore {
     source: string,
   ): AssistantStatusSnapshot {
     return {
-      activityLabel:
-        update.activityLabel ?? this.currentSnapshot.activityLabel,
+      activityLabel: update.activityLabel ?? this.currentSnapshot.activityLabel,
       emotion: update.emotion ?? this.currentSnapshot.emotion,
       overlayLine: this.currentSnapshot.overlayLine,
       state: update.state,
       line: update.line,
-      currentTask:
-        update.currentTask ?? this.currentSnapshot.currentTask,
+      currentTask: update.currentTask ?? this.currentSnapshot.currentTask,
       updatedAtMs: Date.now(),
-      intensity: update.intensity ?? 'medium',
+      intensity: update.intensity ?? "medium",
       source,
     };
   }

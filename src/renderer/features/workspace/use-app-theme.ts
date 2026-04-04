@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import {
   APP_THEME_OPTIONS,
   APP_THEME_VARIABLE_NAMES,
@@ -7,8 +7,8 @@ import {
   type AppThemeId,
   type AppThemeOption,
   type AppThemeSelection,
-} from '../../../shared/theme';
-import { syncAllTerminalThemes } from './terminal-session-registry';
+} from "../../../shared/theme";
+import { syncAllTerminalThemes } from "./terminal-session-registry";
 
 export interface AppThemeViewModel {
   currentThemeId: AppThemeId;

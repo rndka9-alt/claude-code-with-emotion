@@ -1,22 +1,22 @@
-import { useEffect, useState, type ReactElement } from 'react';
-import { ImagePlus, X } from 'lucide-react';
-import type { VisualAssetCatalog } from '../../../shared/visual-assets';
+import { useEffect, useState, type ReactElement } from "react";
+import { ImagePlus, X } from "lucide-react";
+import type { VisualAssetCatalog } from "../../../shared/visual-assets";
 import type {
   VisualEmotionPresetId,
   VisualStatePresetId,
-} from '../../../shared/visual-presets';
-import type { AppThemeId, AppThemeOption } from '../../../shared/theme';
-import { EmotionSection } from './visual-asset-manager/EmotionSection';
-import { GeneralSection } from './visual-asset-manager/GeneralSection';
+} from "../../../shared/visual-presets";
+import type { AppThemeId, AppThemeOption } from "../../../shared/theme";
+import { EmotionSection } from "./visual-asset-manager/EmotionSection";
+import { GeneralSection } from "./visual-asset-manager/GeneralSection";
 import {
   getManagerTabClassName,
   managerActionButtonClassName,
   managerIconButtonClassName,
   managerIconClassName,
   managerSectionCopyClassName,
-} from './visual-asset-manager/shared';
-import { StatusLinesSection } from './visual-asset-manager/StatusLinesSection';
-import { ThemeSection } from './visual-asset-manager/ThemeSection';
+} from "./visual-asset-manager/shared";
+import { StatusLinesSection } from "./visual-asset-manager/StatusLinesSection";
+import { ThemeSection } from "./visual-asset-manager/ThemeSection";
 
 interface VisualAssetManagerDialogProps {
   availableThemes: AppThemeOption[];
@@ -51,7 +51,7 @@ interface VisualAssetManagerDialogProps {
   ) => void;
 }
 
-type VisualAssetManagerTabId = 'general' | 'theme' | 'assets' | 'messages';
+type VisualAssetManagerTabId = "general" | "theme" | "assets" | "messages";
 
 export function VisualAssetManagerDialog({
   availableThemes,
@@ -72,19 +72,20 @@ export function VisualAssetManagerDialog({
   onToggleState,
   onToggleStateEmotion,
 }: VisualAssetManagerDialogProps): ReactElement {
-  const [activeTab, setActiveTab] = useState<VisualAssetManagerTabId>('general');
+  const [activeTab, setActiveTab] =
+    useState<VisualAssetManagerTabId>("general");
 
   useEffect(() => {
     const handleWindowKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleWindowKeyDown);
+    window.addEventListener("keydown", handleWindowKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleWindowKeyDown);
+      window.removeEventListener("keydown", handleWindowKeyDown);
     };
   }, [onClose]);
 
@@ -114,13 +115,16 @@ export function VisualAssetManagerDialog({
           </div>
 
           <div className="flex items-center gap-2.5">
-            {activeTab === 'assets' ? (
+            {activeTab === "assets" ? (
               <button
                 className={managerActionButtonClassName}
                 onClick={onPickFiles}
                 type="button"
               >
-                <ImagePlus aria-hidden="true" className={managerIconClassName} />
+                <ImagePlus
+                  aria-hidden="true"
+                  className={managerIconClassName}
+                />
                 Add Images
               </button>
             ) : null}
@@ -144,11 +148,11 @@ export function VisualAssetManagerDialog({
           >
             <button
               aria-controls="general-settings-panel"
-              aria-selected={activeTab === 'general'}
-              className={getManagerTabClassName(activeTab === 'general')}
+              aria-selected={activeTab === "general"}
+              className={getManagerTabClassName(activeTab === "general")}
               id="general-settings-tab"
               onClick={() => {
-                setActiveTab('general');
+                setActiveTab("general");
               }}
               role="tab"
               type="button"
@@ -157,11 +161,11 @@ export function VisualAssetManagerDialog({
             </button>
             <button
               aria-controls="theme-settings-panel"
-              aria-selected={activeTab === 'theme'}
-              className={getManagerTabClassName(activeTab === 'theme')}
+              aria-selected={activeTab === "theme"}
+              className={getManagerTabClassName(activeTab === "theme")}
               id="theme-settings-tab"
               onClick={() => {
-                setActiveTab('theme');
+                setActiveTab("theme");
               }}
               role="tab"
               type="button"
@@ -170,11 +174,11 @@ export function VisualAssetManagerDialog({
             </button>
             <button
               aria-controls="visual-assets-panel"
-              aria-selected={activeTab === 'assets'}
-              className={getManagerTabClassName(activeTab === 'assets')}
+              aria-selected={activeTab === "assets"}
+              className={getManagerTabClassName(activeTab === "assets")}
               id="visual-assets-tab"
               onClick={() => {
-                setActiveTab('assets');
+                setActiveTab("assets");
               }}
               role="tab"
               type="button"
@@ -183,11 +187,11 @@ export function VisualAssetManagerDialog({
             </button>
             <button
               aria-controls="situation-messages-panel"
-              aria-selected={activeTab === 'messages'}
-              className={getManagerTabClassName(activeTab === 'messages')}
+              aria-selected={activeTab === "messages"}
+              className={getManagerTabClassName(activeTab === "messages")}
               id="situation-messages-tab"
               onClick={() => {
-                setActiveTab('messages');
+                setActiveTab("messages");
               }}
               role="tab"
               type="button"
@@ -198,7 +202,7 @@ export function VisualAssetManagerDialog({
 
           <section
             aria-labelledby="general-settings-tab"
-            hidden={activeTab !== 'general'}
+            hidden={activeTab !== "general"}
             id="general-settings-panel"
             role="tabpanel"
           >
@@ -212,7 +216,7 @@ export function VisualAssetManagerDialog({
 
           <section
             aria-labelledby="theme-settings-tab"
-            hidden={activeTab !== 'theme'}
+            hidden={activeTab !== "theme"}
             id="theme-settings-panel"
             role="tabpanel"
           >
@@ -225,7 +229,7 @@ export function VisualAssetManagerDialog({
 
           <section
             aria-labelledby="visual-assets-tab"
-            hidden={activeTab !== 'assets'}
+            hidden={activeTab !== "assets"}
             id="visual-assets-panel"
             role="tabpanel"
           >
@@ -242,7 +246,7 @@ export function VisualAssetManagerDialog({
 
           <section
             aria-labelledby="situation-messages-tab"
-            hidden={activeTab !== 'messages'}
+            hidden={activeTab !== "messages"}
             id="situation-messages-panel"
             role="tabpanel"
           >

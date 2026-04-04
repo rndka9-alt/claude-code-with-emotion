@@ -1,8 +1,8 @@
-import { type CSSProperties, type ReactElement, useEffect } from 'react';
-import { Plus, X } from 'lucide-react';
-import type { SessionTab } from './model';
-import { useTabDragReorder } from './use-tab-drag-reorder';
-import { useTabTitleEditor } from './use-tab-title-editor';
+import { type CSSProperties, type ReactElement, useEffect } from "react";
+import { Plus, X } from "lucide-react";
+import type { SessionTab } from "./model";
+import { useTabDragReorder } from "./use-tab-drag-reorder";
+import { useTabTitleEditor } from "./use-tab-title-editor";
 
 interface TabBarProps {
   activeTabId: string;
@@ -15,9 +15,9 @@ interface TabBarProps {
 }
 
 type TabToneStyle = CSSProperties & {
-  '--tab-background': string;
-  '--tab-border': string;
-  '--tab-foreground': string;
+  "--tab-background": string;
+  "--tab-border": string;
+  "--tab-foreground": string;
 };
 
 export function TabBar({
@@ -30,7 +30,7 @@ export function TabBar({
   onReorderTab,
 }: TabBarProps): ReactElement {
   const createButtonClassName =
-    'ml-0.5 inline-flex h-[26px] w-[26px] flex-none items-center justify-center self-center border border-border-subtle bg-transparent text-tab-create-foreground transition-colors duration-150 hover:border-border-create-hover hover:bg-surface-create-hover hover:text-text-highlight';
+    "ml-0.5 inline-flex h-[26px] w-[26px] flex-none items-center justify-center self-center border border-border-subtle bg-transparent text-tab-create-foreground transition-colors duration-150 hover:border-border-create-hover hover:bg-surface-create-hover hover:text-text-highlight";
   const {
     draftTitle,
     editInputRef,
@@ -59,9 +59,15 @@ export function TabBar({
     const stripRect = strip.getBoundingClientRect();
 
     if (tabRect.right > stripRect.right) {
-      strip.scrollTo({ left: strip.scrollLeft + tabRect.right - stripRect.right, behavior: 'smooth' });
+      strip.scrollTo({
+        left: strip.scrollLeft + tabRect.right - stripRect.right,
+        behavior: "smooth",
+      });
     } else if (tabRect.left < stripRect.left) {
-      strip.scrollTo({ left: strip.scrollLeft - (stripRect.left - tabRect.left), behavior: 'smooth' });
+      strip.scrollTo({
+        left: strip.scrollLeft - (stripRect.left - tabRect.left),
+        behavior: "smooth",
+      });
     }
   }, [activeTabId]);
 
@@ -80,29 +86,29 @@ export function TabBar({
           const isDragging = tab.id === draggingTabId;
           const isDropIndicatorTarget = tab.id === dropIndicatorTabId;
           const tabToneStyle: TabToneStyle = {
-            '--tab-background': isActive
-              ? 'var(--color-tab-background-active)'
-              : 'var(--color-tab-background)',
-            '--tab-border': isActive
-              ? 'var(--color-tab-border-active)'
-              : 'var(--color-tab-border)',
-            '--tab-foreground': isActive
-              ? 'var(--color-tab-foreground-active)'
-              : 'var(--color-tab-foreground)',
+            "--tab-background": isActive
+              ? "var(--color-tab-background-active)"
+              : "var(--color-tab-background)",
+            "--tab-border": isActive
+              ? "var(--color-tab-border-active)"
+              : "var(--color-tab-border)",
+            "--tab-foreground": isActive
+              ? "var(--color-tab-foreground-active)"
+              : "var(--color-tab-foreground)",
           };
           const tabChipClassName = [
-            'group relative flex max-w-60 min-w-40 flex-none items-stretch transition-[opacity,box-shadow] duration-150',
-            'before:pointer-events-none before:absolute before:top-[5px] before:bottom-px before:w-0.5 before:bg-[var(--gradient-tab-indicator)] before:opacity-0 before:shadow-tab-indicator before:transition-opacity before:duration-150',
-            isDragging ? 'z-[2] opacity-[0.86] shadow-tab-drag' : '',
-            isDropIndicatorTarget && dropIndicatorSide === 'before'
-              ? 'before:left-[-2px] before:opacity-100'
-              : '',
-            isDropIndicatorTarget && dropIndicatorSide === 'after'
-              ? 'before:right-[-2px] before:opacity-100'
-              : '',
+            "group relative flex max-w-60 min-w-40 flex-none items-stretch transition-[opacity,box-shadow] duration-150",
+            "before:pointer-events-none before:absolute before:top-[5px] before:bottom-px before:w-0.5 before:bg-[var(--gradient-tab-indicator)] before:opacity-0 before:shadow-tab-indicator before:transition-opacity before:duration-150",
+            isDragging ? "z-[2] opacity-[0.86] shadow-tab-drag" : "",
+            isDropIndicatorTarget && dropIndicatorSide === "before"
+              ? "before:left-[-2px] before:opacity-100"
+              : "",
+            isDropIndicatorTarget && dropIndicatorSide === "after"
+              ? "before:right-[-2px] before:opacity-100"
+              : "",
           ]
             .filter((className) => className.length > 0)
-            .join(' ');
+            .join(" ");
 
           return (
             <div
@@ -153,12 +159,12 @@ export function TabBar({
                       event.stopPropagation();
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
+                      if (event.key === "Enter") {
                         event.preventDefault();
                         finishRenaming(tab.id);
                       }
 
-                      if (event.key === 'Escape') {
+                      if (event.key === "Escape") {
                         event.preventDefault();
                         setEditingTabId(null);
                       }
@@ -184,7 +190,11 @@ export function TabBar({
                 style={tabToneStyle}
                 type="button"
               >
-                <X aria-hidden="true" className="h-[11px] w-[11px]" strokeWidth={2.25} />
+                <X
+                  aria-hidden="true"
+                  className="h-[11px] w-[11px]"
+                  strokeWidth={2.25}
+                />
               </button>
             </div>
           );

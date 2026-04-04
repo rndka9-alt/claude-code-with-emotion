@@ -1,7 +1,7 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
-import type { TerminalOutputEvent } from '../../../shared/terminal-bridge';
-import { TerminalSurface } from './TerminalSurface';
-import { handleTerminalExternalBrowserClick } from './terminal-session-registry';
+import { fireEvent, render, waitFor } from "@testing-library/react";
+import type { TerminalOutputEvent } from "../../../shared/terminal-bridge";
+import { TerminalSurface } from "./TerminalSurface";
+import { handleTerminalExternalBrowserClick } from "./terminal-session-registry";
 
 const { MockTerminal, terminalInstances } = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
@@ -47,20 +47,20 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
   };
 });
 
-vi.mock('@xterm/xterm', () => {
+vi.mock("@xterm/xterm", () => {
   return {
     Terminal: MockTerminal,
   };
 });
 
-describe('TerminalSurface', () => {
+describe("TerminalSurface", () => {
   let openExternal: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     terminalInstances.length = 0;
     openExternal = vi.fn().mockResolvedValue(undefined);
 
-    Object.defineProperty(window, 'claudeApp', {
+    Object.defineProperty(window, "claudeApp", {
       configurable: true,
       value: {
         links: {
@@ -68,7 +68,7 @@ describe('TerminalSurface', () => {
         },
         terminals: {
           bootstrapSession: vi.fn().mockResolvedValue({
-            outputSnapshot: '',
+            outputSnapshot: "",
             outputVersion: 0,
           }),
           sendInput: vi.fn().mockResolvedValue(undefined),
@@ -81,12 +81,12 @@ describe('TerminalSurface', () => {
     });
   });
 
-  it('opens terminal browser links through the Electron links bridge', () => {
-    const anchor = document.createElement('a');
+  it("opens terminal browser links through the Electron links bridge", () => {
+    const anchor = document.createElement("a");
     const preventDefault = vi.fn();
 
-    anchor.href = 'http://localhost:3000';
-    anchor.textContent = 'Local app';
+    anchor.href = "http://localhost:3000";
+    anchor.textContent = "Local app";
 
     handleTerminalExternalBrowserClick(
       {
@@ -97,16 +97,16 @@ describe('TerminalSurface', () => {
       openExternal,
     );
 
-    expect(openExternal).toHaveBeenCalledWith('http://localhost:3000/');
+    expect(openExternal).toHaveBeenCalledWith("http://localhost:3000/");
     expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores non-browser terminal links for now', () => {
-    const anchor = document.createElement('a');
+  it("ignores non-browser terminal links for now", () => {
+    const anchor = document.createElement("a");
     const preventDefault = vi.fn();
 
-    anchor.href = 'intent://open/example';
-    anchor.textContent = 'Intent app';
+    anchor.href = "intent://open/example";
+    anchor.textContent = "Intent app";
 
     handleTerminalExternalBrowserClick(
       {
@@ -121,13 +121,13 @@ describe('TerminalSurface', () => {
     expect(preventDefault).not.toHaveBeenCalled();
   });
 
-  it('refocuses the terminal when the focus request key changes', () => {
+  it("refocuses the terminal when the focus request key changes", () => {
     const session = {
-      id: 'session-1',
-      title: 'new session 1 · claude-code-with-emotion',
-      cwd: '/tmp',
-      command: '',
-      lifecycle: 'bootstrapping' as const,
+      id: "session-1",
+      title: "new session 1 · claude-code-with-emotion",
+      cwd: "/tmp",
+      command: "",
+      lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
     };
     const { rerender } = render(
@@ -156,13 +156,13 @@ describe('TerminalSurface', () => {
     expect(terminal?.focus).toHaveBeenCalledTimes(2);
   });
 
-  it('focuses the terminal again when the viewport is clicked', () => {
+  it("focuses the terminal again when the viewport is clicked", () => {
     const session = {
-      id: 'session-1',
-      title: 'new session 1 · claude-code-with-emotion',
-      cwd: '/tmp',
-      command: '',
-      lifecycle: 'bootstrapping' as const,
+      id: "session-1",
+      title: "new session 1 · claude-code-with-emotion",
+      cwd: "/tmp",
+      command: "",
+      lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
     };
     const { container } = render(
@@ -175,7 +175,7 @@ describe('TerminalSurface', () => {
     );
 
     const terminal = terminalInstances[0];
-    const viewport = container.querySelector('.terminal-surface__viewport');
+    const viewport = container.querySelector(".terminal-surface__viewport");
 
     expect(terminal).toBeDefined();
     expect(viewport).not.toBeNull();
@@ -185,15 +185,15 @@ describe('TerminalSurface', () => {
     expect(terminal?.focus).toHaveBeenCalledTimes(2);
   });
 
-  it('replays the saved output snapshot and ignores duplicate live chunks', async () => {
+  it("replays the saved output snapshot and ignores duplicate live chunks", async () => {
     const outputListeners: Array<(event: TerminalOutputEvent) => void> = [];
 
-    Object.defineProperty(window, 'claudeApp', {
+    Object.defineProperty(window, "claudeApp", {
       configurable: true,
       value: {
         terminals: {
           bootstrapSession: vi.fn().mockResolvedValue({
-            outputSnapshot: 'saved output',
+            outputSnapshot: "saved output",
             outputVersion: 1,
           }),
           sendInput: vi.fn().mockResolvedValue(undefined),
@@ -214,11 +214,11 @@ describe('TerminalSurface', () => {
         isActive={true}
         onTitleChange={vi.fn()}
         session={{
-          id: 'session-1',
-          title: 'new session 1 · claude-code-with-emotion',
-          cwd: '/tmp',
-          command: '',
-          lifecycle: 'bootstrapping',
+          id: "session-1",
+          title: "new session 1 · claude-code-with-emotion",
+          cwd: "/tmp",
+          command: "",
+          lifecycle: "bootstrapping",
           createdAtMs: Date.now(),
         }}
       />,
@@ -227,7 +227,7 @@ describe('TerminalSurface', () => {
     const terminal = terminalInstances[0];
 
     await waitFor(() => {
-      expect(terminal?.write).toHaveBeenCalledWith('saved output');
+      expect(terminal?.write).toHaveBeenCalledWith("saved output");
     });
 
     const emitOutput = outputListeners[0];
@@ -235,36 +235,36 @@ describe('TerminalSurface', () => {
     expect(emitOutput).toBeDefined();
 
     if (emitOutput === undefined) {
-      throw new Error('Expected the terminal output listener to be registered');
+      throw new Error("Expected the terminal output listener to be registered");
     }
 
     emitOutput({
-      sessionId: 'session-1',
-      data: 'saved output',
+      sessionId: "session-1",
+      data: "saved output",
       outputVersion: 1,
     });
     emitOutput({
-      sessionId: 'session-1',
-      data: '\r\nnext line',
+      sessionId: "session-1",
+      data: "\r\nnext line",
       outputVersion: 2,
     });
 
     await waitFor(() => {
-      expect(terminal?.write).toHaveBeenCalledWith('\r\nnext line');
+      expect(terminal?.write).toHaveBeenCalledWith("\r\nnext line");
     });
 
     expect(
-      terminal?.write.mock.calls.filter(([value]) => value === 'saved output'),
+      terminal?.write.mock.calls.filter(([value]) => value === "saved output"),
     ).toHaveLength(1);
   });
 
-  it('reuses the same terminal instance across unmount and remount', () => {
+  it("reuses the same terminal instance across unmount and remount", () => {
     const session = {
-      id: 'session-1',
-      title: 'new session 1 · claude-code-with-emotion',
-      cwd: '/tmp',
-      command: '',
-      lifecycle: 'bootstrapping' as const,
+      id: "session-1",
+      title: "new session 1 · claude-code-with-emotion",
+      cwd: "/tmp",
+      command: "",
+      lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
     };
     const firstRender = render(

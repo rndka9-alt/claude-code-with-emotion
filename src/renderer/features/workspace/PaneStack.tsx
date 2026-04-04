@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import type { ReactElement } from 'react';
-import type { SessionTab } from './model';
-import { TerminalSurface } from './TerminalSurface';
+import { useEffect, useRef } from "react";
+import type { ReactElement } from "react";
+import type { SessionTab } from "./model";
+import { TerminalSurface } from "./TerminalSurface";
 
 interface PaneStackProps {
   paneSizes: number[];
@@ -48,12 +48,12 @@ export function PaneStack({
       dragStateRef.current = null;
     }
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
   }, [onResizePane]);
 

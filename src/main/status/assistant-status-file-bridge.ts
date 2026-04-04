@@ -1,44 +1,65 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 import type {
   AssistantEmotionalState,
   AssistantSemanticState,
   AssistantStatusUpdate,
-} from '../../shared/assistant-status';
-import { AssistantStatusStore } from './assistant-status-store';
+} from "../../shared/assistant-status";
+import { AssistantStatusStore } from "./assistant-status-store";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 function isSemanticState(value: string): value is AssistantSemanticState {
   return (
-    value === 'disconnected' ||
-    value === 'idle' ||
-    value === 'thinking' ||
-    value === 'working' ||
-    value === 'responding' ||
-    value === 'waiting' ||
-    value === 'surprised' ||
-    value === 'sad' ||
-    value === 'happy' ||
-    value === 'error'
+    value === "disconnected" ||
+    value === "idle" ||
+    value === "thinking" ||
+    value === "working" ||
+    value === "responding" ||
+    value === "waiting" ||
+    value === "surprised" ||
+    value === "sad" ||
+    value === "happy" ||
+    value === "error"
   );
 }
 
 const EMOTIONAL_STATES: ReadonlySet<string> = new Set<AssistantEmotionalState>([
-  'angry', 'annoyed', 'bored', 'confused', 'contemptuous',
-  'crying', 'curious', 'dumbfounded', 'embarrassed', 'excited',
-  'exhausted', 'happy', 'laughing', 'nervous', 'neutral',
-  'proud', 'sad', 'scared', 'serious', 'shy',
-  'smile', 'smirk', 'smug', 'surprised',
+  "angry",
+  "annoyed",
+  "bored",
+  "confused",
+  "contemptuous",
+  "crying",
+  "curious",
+  "dumbfounded",
+  "embarrassed",
+  "excited",
+  "exhausted",
+  "happy",
+  "laughing",
+  "nervous",
+  "neutral",
+  "proud",
+  "sad",
+  "scared",
+  "serious",
+  "shy",
+  "smile",
+  "smirk",
+  "smug",
+  "surprised",
 ]);
 
 function isEmotionalState(value: string): value is AssistantEmotionalState {
   return EMOTIONAL_STATES.has(value);
 }
 
-function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | null {
+function parseAssistantStatusUpdate(
+  value: unknown,
+): AssistantStatusUpdate | null {
   if (!isObjectRecord(value)) {
     return null;
   }
@@ -51,39 +72,33 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
   const intensity = value.intensity;
 
   if (
-    typeof state !== 'string' ||
+    typeof state !== "string" ||
     !isSemanticState(state) ||
-    typeof line !== 'string'
+    typeof line !== "string"
   ) {
     return null;
   }
 
   if (
     emotion !== undefined &&
-    (typeof emotion !== 'string' || !isEmotionalState(emotion))
+    (typeof emotion !== "string" || !isEmotionalState(emotion))
   ) {
     return null;
   }
 
-  if (
-    currentTask !== undefined &&
-    typeof currentTask !== 'string'
-  ) {
+  if (currentTask !== undefined && typeof currentTask !== "string") {
     return null;
   }
 
-  if (
-    activityLabel !== undefined &&
-    typeof activityLabel !== 'string'
-  ) {
+  if (activityLabel !== undefined && typeof activityLabel !== "string") {
     return null;
   }
 
   if (
     intensity !== undefined &&
-    intensity !== 'low' &&
-    intensity !== 'medium' &&
-    intensity !== 'high'
+    intensity !== "low" &&
+    intensity !== "medium" &&
+    intensity !== "high"
   ) {
     return null;
   }
@@ -93,7 +108,7 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
     line,
   };
 
-  if (emotion !== undefined && emotion !== 'neutral') {
+  if (emotion !== undefined && emotion !== "neutral") {
     update.emotion = emotion;
   }
 
@@ -126,13 +141,13 @@ export class AssistantStatusFileBridge {
     fs.mkdirSync(path.dirname(this.statusFilePath), { recursive: true });
 
     if (!fs.existsSync(this.statusFilePath)) {
-      fs.writeFileSync(this.statusFilePath, '', 'utf8');
+      fs.writeFileSync(this.statusFilePath, "", "utf8");
     }
 
     this.logEvent?.(`watch start path=${this.statusFilePath}`);
 
     this.watcher = fs.watch(this.statusFilePath, () => {
-      this.logEvent?.('watch event received');
+      this.logEvent?.("watch event received");
       this.scheduleRead();
     });
   }
@@ -159,10 +174,10 @@ export class AssistantStatusFileBridge {
   }
 
   private readStatusFile(): void {
-    const fileContents = fs.readFileSync(this.statusFilePath, 'utf8').trim();
+    const fileContents = fs.readFileSync(this.statusFilePath, "utf8").trim();
 
     if (fileContents.length === 0) {
-      this.logEvent?.('read ignored empty payload');
+      this.logEvent?.("read ignored empty payload");
       return;
     }
 
@@ -174,14 +189,16 @@ export class AssistantStatusFileBridge {
 
       if (update !== null) {
         this.logEvent?.(
-          `parsed update state=${update.state} emotion=${update.emotion ?? 'none'} line=${update.line} activity=${update.activityLabel ?? ''} task=${update.currentTask ?? ''}`,
+          `parsed update state=${update.state} emotion=${update.emotion ?? "none"} line=${update.line} activity=${update.activityLabel ?? ""} task=${update.currentTask ?? ""}`,
         );
-        this.statusStore.applyUpdate(update, 'assistant-command');
+        this.statusStore.applyUpdate(update, "assistant-command");
       } else {
-        this.logEvent?.('parsed payload but it did not match AssistantStatusUpdate');
+        this.logEvent?.(
+          "parsed payload but it did not match AssistantStatusUpdate",
+        );
       }
     } catch {
-      this.logEvent?.('malformed assistant-status payload ignored');
+      this.logEvent?.("malformed assistant-status payload ignored");
     }
   }
 }

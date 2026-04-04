@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import type { SessionTab } from './model';
-import { disposeTerminalSessionsExcept } from './terminal-session-registry';
+import { useEffect, useRef } from "react";
+import type { SessionTab } from "./model";
+import { disposeTerminalSessionsExcept } from "./terminal-session-registry";
 
 export function useTerminalSessionPruner(tabs: SessionTab[]): void {
   const previousSessionIdsRef = useRef<string[]>(tabs.map((tab) => tab.id));
@@ -11,7 +11,9 @@ export function useTerminalSessionPruner(tabs: SessionTab[]): void {
 
     if (
       previousSessionIds.length === nextSessionIds.length &&
-      previousSessionIds.every((sessionId, index) => sessionId === nextSessionIds[index])
+      previousSessionIds.every(
+        (sessionId, index) => sessionId === nextSessionIds[index],
+      )
     ) {
       return;
     }

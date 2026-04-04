@@ -1,4 +1,4 @@
-import type { MenuItemConstructorOptions } from 'electron';
+import type { MenuItemConstructorOptions } from "electron";
 
 export function createApplicationMenuTemplate(
   appName: string,
@@ -6,37 +6,37 @@ export function createApplicationMenuTemplate(
   return [
     {
       label: appName,
-      submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'quit' }],
+      submenu: [{ role: "about" }, { type: "separator" }, { role: "quit" }],
     },
     {
-      label: 'Edit',
+      label: "Edit",
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'pasteAndMatchStyle' },
-        { role: 'delete' },
-        { role: 'selectAll' },
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "pasteAndMatchStyle" },
+        { role: "delete" },
+        { role: "selectAll" },
       ],
     },
     {
-      label: 'View',
+      label: "View",
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
       ],
     },
     {
-      label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'close' }],
+      label: "Window",
+      submenu: [{ role: "minimize" }, { role: "close" }],
     },
   ];
 }

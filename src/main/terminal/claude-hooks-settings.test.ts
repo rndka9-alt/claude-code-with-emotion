@@ -1,17 +1,17 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   buildClaudeHookCommand,
   createClaudeHooksSettings,
   ensureClaudeHooksSettingsFile,
-} from './claude-hooks-settings';
+} from "./claude-hooks-settings";
 
-describe('claude hooks settings', () => {
-  it('builds absolute hook commands for Claude event hooks', () => {
+describe("claude hooks settings", () => {
+  it("builds absolute hook commands for Claude event hooks", () => {
     const command = buildClaudeHookCommand(
-      '/tmp/helper-bin',
-      'UserPromptSubmit',
+      "/tmp/helper-bin",
+      "UserPromptSubmit",
     );
 
     expect(command).toBe(
@@ -19,75 +19,75 @@ describe('claude hooks settings', () => {
     );
   });
 
-  it('creates event hook settings for the Claude session lifecycle', () => {
-    const settings = createClaudeHooksSettings('/tmp/helper-bin');
+  it("creates event hook settings for the Claude session lifecycle", () => {
+    const settings = createClaudeHooksSettings("/tmp/helper-bin");
 
     expect(settings.hooks.SessionStart[0]?.hooks[0]?.command).toContain(
-      'SessionStart',
+      "SessionStart",
     );
     expect(settings.hooks.UserPromptSubmit[0]?.hooks[0]?.command).toContain(
-      'UserPromptSubmit',
+      "UserPromptSubmit",
     );
     expect(settings.hooks.PermissionRequest[0]?.hooks[0]?.command).toContain(
-      'PermissionRequest',
+      "PermissionRequest",
     );
     expect(settings.hooks.PermissionDenied[0]?.hooks[0]?.command).toContain(
-      'PermissionDenied',
+      "PermissionDenied",
     );
     expect(settings.hooks.PreToolUse[0]?.hooks[0]?.command).toContain(
-      'PreToolUse',
+      "PreToolUse",
     );
     expect(settings.hooks.PostToolUse[0]?.hooks[0]?.command).toContain(
-      'PostToolUse',
+      "PostToolUse",
     );
     expect(settings.hooks.PostToolUseFailure[0]?.hooks[0]?.command).toContain(
-      'PostToolUseFailure',
+      "PostToolUseFailure",
     );
     expect(settings.hooks.Notification[0]?.hooks[0]?.command).toContain(
-      'Notification',
+      "Notification",
     );
     expect(settings.hooks.Elicitation[0]?.hooks[0]?.command).toContain(
-      'Elicitation',
+      "Elicitation",
     );
     expect(settings.hooks.ElicitationResult[0]?.hooks[0]?.command).toContain(
-      'ElicitationResult',
+      "ElicitationResult",
     );
     expect(settings.hooks.SubagentStart[0]?.hooks[0]?.command).toContain(
-      'SubagentStart',
+      "SubagentStart",
     );
     expect(settings.hooks.SubagentStop[0]?.hooks[0]?.command).toContain(
-      'SubagentStop',
+      "SubagentStop",
     );
     expect(settings.hooks.TeammateIdle[0]?.hooks[0]?.command).toContain(
-      'TeammateIdle',
+      "TeammateIdle",
     );
     expect(settings.hooks.TaskCompleted[0]?.hooks[0]?.command).toContain(
-      'TaskCompleted',
+      "TaskCompleted",
     );
-    expect(settings.hooks.Stop[0]?.hooks[0]?.command).toContain('Stop');
+    expect(settings.hooks.Stop[0]?.hooks[0]?.command).toContain("Stop");
     expect(settings.hooks.StopFailure[0]?.hooks[0]?.command).toContain(
-      'StopFailure',
+      "StopFailure",
     );
     expect(settings.hooks.SessionEnd[0]?.hooks[0]?.command).toContain(
-      'SessionEnd',
+      "SessionEnd",
     );
   });
 
-  it('writes a reusable settings file for the current user home', () => {
+  it("writes a reusable settings file for the current user home", () => {
     const tempHome = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'claude-with-emotion-hooks-home-'),
+      path.join(os.tmpdir(), "claude-with-emotion-hooks-home-"),
     );
 
     try {
       const settingsFilePath = ensureClaudeHooksSettingsFile(
-        '/tmp/helper-bin',
+        "/tmp/helper-bin",
         tempHome,
       );
-      const settingsFile = fs.readFileSync(settingsFilePath, 'utf8');
+      const settingsFile = fs.readFileSync(settingsFilePath, "utf8");
 
       expect(settingsFile).toContain('"SessionStart"');
-      expect(settingsFile).toContain('claude-session-hook');
-      expect(settingsFile).toContain('UserPromptSubmit');
+      expect(settingsFile).toContain("claude-session-hook");
+      expect(settingsFile).toContain("UserPromptSubmit");
     } finally {
       fs.rmSync(tempHome, { recursive: true, force: true });
     }

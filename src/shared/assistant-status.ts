@@ -1,42 +1,42 @@
 export type AssistantSemanticState =
-  | 'disconnected'
-  | 'idle'
-  | 'thinking'
-  | 'working'
-  | 'responding'
-  | 'waiting'
-  | 'surprised'
-  | 'sad'
-  | 'happy'
-  | 'error';
+  | "disconnected"
+  | "idle"
+  | "thinking"
+  | "working"
+  | "responding"
+  | "waiting"
+  | "surprised"
+  | "sad"
+  | "happy"
+  | "error";
 
 export type AssistantEmotionalState =
-  | 'angry'
-  | 'annoyed'
-  | 'bored'
-  | 'confused'
-  | 'contemptuous'
-  | 'crying'
-  | 'curious'
-  | 'dumbfounded'
-  | 'embarrassed'
-  | 'excited'
-  | 'exhausted'
-  | 'happy'
-  | 'laughing'
-  | 'nervous'
-  | 'neutral'
-  | 'proud'
-  | 'sad'
-  | 'scared'
-  | 'serious'
-  | 'shy'
-  | 'smile'
-  | 'smirk'
-  | 'smug'
-  | 'surprised';
+  | "angry"
+  | "annoyed"
+  | "bored"
+  | "confused"
+  | "contemptuous"
+  | "crying"
+  | "curious"
+  | "dumbfounded"
+  | "embarrassed"
+  | "excited"
+  | "exhausted"
+  | "happy"
+  | "laughing"
+  | "nervous"
+  | "neutral"
+  | "proud"
+  | "sad"
+  | "scared"
+  | "serious"
+  | "shy"
+  | "smile"
+  | "smirk"
+  | "smug"
+  | "surprised";
 
-export type AssistantStatusIntensity = 'low' | 'medium' | 'high';
+export type AssistantStatusIntensity = "low" | "medium" | "high";
 
 export interface AssistantStatusUpdate {
   activityLabel?: string;
@@ -76,7 +76,7 @@ export interface AssistantStatusBridge {
   onSnapshot: (
     request: AssistantStatusSnapshotRequest,
     listener: (snapshot: AssistantStatusSnapshot) => void,
-  ) => (() => void);
+  ) => () => void;
 }
 
 export interface AssistantStatusSnapshotRequest {
@@ -92,22 +92,22 @@ export const ASSISTANT_STATUS_CHANNELS: {
   getSnapshot: string;
   snapshot: string;
 } = {
-  getSnapshot: 'assistant-status:get-snapshot',
-  snapshot: 'assistant-status:snapshot',
+  getSnapshot: "assistant-status:get-snapshot",
+  snapshot: "assistant-status:snapshot",
 };
 
 export function createDefaultAssistantStatusSnapshot(
   nowMs: number,
 ): AssistantStatusSnapshot {
   return {
-    activityLabel: '연결 대기 중',
+    activityLabel: "연결 대기 중",
     emotion: null,
     overlayLine: null,
-    state: 'disconnected',
-    line: 'Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!',
-    currentTask: 'Waiting for Claude to start',
+    state: "disconnected",
+    line: "Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!",
+    currentTask: "Waiting for Claude to start",
     updatedAtMs: nowMs,
-    intensity: 'low',
-    source: 'app',
+    intensity: "low",
+    source: "app",
   };
 }

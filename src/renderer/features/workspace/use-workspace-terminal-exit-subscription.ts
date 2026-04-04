@@ -1,5 +1,5 @@
-import { useEffect, type Dispatch } from 'react';
-import type { WorkspaceAction } from './model';
+import { useEffect, type Dispatch } from "react";
+import type { WorkspaceAction } from "./model";
 
 export function useWorkspaceTerminalExitSubscription(
   dispatch: Dispatch<WorkspaceAction>,
@@ -13,10 +13,10 @@ export function useWorkspaceTerminalExitSubscription(
 
     return terminalsBridge.onExit((event) => {
       dispatch({
-        type: 'closeTab',
+        type: "closeTab",
         tabId: event.sessionId,
         nowMs: Date.now(),
-        reason: 'exit',
+        reason: "exit",
       });
     });
   }, [dispatch]);

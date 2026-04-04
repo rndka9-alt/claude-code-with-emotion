@@ -7,64 +7,57 @@ import {
   screen,
   shell,
   type IpcMainEvent,
-} from 'electron';
-import fs from 'node:fs';
-import path from 'node:path';
-import { createApplicationMenuTemplate } from './application-menu';
+} from "electron";
+import fs from "node:fs";
+import path from "node:path";
+import { createApplicationMenuTemplate } from "./application-menu";
 import {
   createRuntimeLog,
   resolveRuntimeLogPath,
   type RuntimeLog,
-} from './diagnostics/runtime-log';
-import { AssistantVisualOverlayFileBridge } from './status/assistant-visual-overlay-file-bridge';
-import { AssistantStatusFileBridge } from './status/assistant-status-file-bridge';
-import { AssistantStatusStore } from './status/assistant-status-store';
-import { ensureNodePtySpawnHelpersExecutable } from './terminal/node-pty-runtime';
-import { createTerminalSessionManager } from './terminal/session-manager';
-import { VisualAssetStore } from './visual-assets/visual-asset-store';
+} from "./diagnostics/runtime-log";
+import { AssistantVisualOverlayFileBridge } from "./status/assistant-visual-overlay-file-bridge";
+import { AssistantStatusFileBridge } from "./status/assistant-status-file-bridge";
+import { AssistantStatusStore } from "./status/assistant-status-store";
+import { ensureNodePtySpawnHelpersExecutable } from "./terminal/node-pty-runtime";
+import { createTerminalSessionManager } from "./terminal/session-manager";
+import { VisualAssetStore } from "./visual-assets/visual-asset-store";
 import {
   WindowBoundsStore,
   type WindowBounds,
-} from './window/window-bounds-store';
-import {
-  APP_THEME_CHANNELS,
-} from '../shared/app-theme-bridge';
+} from "./window/window-bounds-store";
+import { APP_THEME_CHANNELS } from "../shared/app-theme-bridge";
 import {
   ASSISTANT_STATUS_CHANNELS,
   createDefaultAssistantStatusSnapshot,
   type AssistantStatusSnapshot,
   type AssistantStatusSnapshotEvent,
   type AssistantStatusSnapshotRequest,
-} from '../shared/assistant-status';
+} from "../shared/assistant-status";
 import {
   DIAGNOSTICS_CHANNELS,
   RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX,
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
-} from '../shared/diagnostics';
-import { LINKS_CHANNELS } from '../shared/links-bridge';
-import { MCP_SETUP_CHANNELS } from '../shared/mcp-setup-bridge';
+} from "../shared/diagnostics";
+import { LINKS_CHANNELS } from "../shared/links-bridge";
+import { MCP_SETUP_CHANNELS } from "../shared/mcp-setup-bridge";
 import {
   TERMINAL_CHANNELS,
   type TerminalBootstrapRequest,
   type TerminalCloseRequest,
   type TerminalInputRequest,
   type TerminalResizeRequest,
-} from '../shared/terminal-bridge';
-import {
-  VISUAL_ASSET_CHANNELS,
-} from '../shared/visual-assets-bridge';
-import type { VisualAssetCatalog } from '../shared/visual-assets';
-import {
-  getAppThemeDefinition,
-  type AppThemeSelection,
-} from '../shared/theme';
-import { ThemeStore } from './theme/theme-store';
+} from "../shared/terminal-bridge";
+import { VISUAL_ASSET_CHANNELS } from "../shared/visual-assets-bridge";
+import type { VisualAssetCatalog } from "../shared/visual-assets";
+import { getAppThemeDefinition, type AppThemeSelection } from "../shared/theme";
+import { ThemeStore } from "./theme/theme-store";
 import {
   getVisualMcpSetupStatus,
   installVisualMcpUserSetup,
   removeVisualMcpUserSetup,
-} from './terminal/claude-mcp-user-setup';
+} from "./terminal/claude-mcp-user-setup";
 
 const WINDOW_SIZE = {
   width: 920,
@@ -72,7 +65,7 @@ const WINDOW_SIZE = {
   minWidth: 640,
   minHeight: 520,
 };
-const EXTERNAL_BROWSER_PROTOCOLS = new Set(['http:', 'https:', 'vscode:']);
+const EXTERNAL_BROWSER_PROTOCOLS = new Set(["http:", "https:", "vscode:"]);
 
 function isExternalBrowserUrl(url: string): boolean {
   try {
@@ -85,23 +78,21 @@ function isExternalBrowserUrl(url: string): boolean {
 }
 
 function getRendererEntry():
-  | { kind: 'url'; value: string }
-  | { kind: 'file'; value: string } {
+  | { kind: "url"; value: string }
+  | { kind: "file"; value: string } {
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 
-  if (typeof devServerUrl === 'string' && devServerUrl.length > 0) {
-    return { kind: 'url', value: devServerUrl };
+  if (typeof devServerUrl === "string" && devServerUrl.length > 0) {
+    return { kind: "url", value: devServerUrl };
   }
 
   return {
-    kind: 'file',
-    value: path.join(__dirname, '../renderer/index.html'),
+    kind: "file",
+    value: path.join(__dirname, "../renderer/index.html"),
   };
 }
 
-function resolveInitialWindowBounds(
-  savedBounds: WindowBounds | null,
-): {
+function resolveInitialWindowBounds(savedBounds: WindowBounds | null): {
   width: number;
   height: number;
   x?: number;
@@ -112,7 +103,10 @@ function resolveInitialWindowBounds(
   }
 
   const width = Math.max(WINDOW_SIZE.minWidth, Math.round(savedBounds.width));
-  const height = Math.max(WINDOW_SIZE.minHeight, Math.round(savedBounds.height));
+  const height = Math.max(
+    WINDOW_SIZE.minHeight,
+    Math.round(savedBounds.height),
+  );
 
   // 저장된 좌표가 음수 sentinel(최초 저장 전 상태)이면 OS 가 중앙 배치하도록 맡긴다
   if (savedBounds.x < 0 || savedBounds.y < 0) {
@@ -150,7 +144,7 @@ function createMainWindow(
   themeSelection: AppThemeSelection,
   boundsStore: WindowBoundsStore,
 ): BrowserWindow {
-  const preloadPath = path.join(__dirname, '../preload/index.js');
+  const preloadPath = path.join(__dirname, "../preload/index.js");
   const themeDefinition = getAppThemeDefinition(themeSelection.themeId);
   const initialBounds = resolveInitialWindowBounds(boundsStore.getBounds());
   const mainWindow = new BrowserWindow({
@@ -159,7 +153,7 @@ function createMainWindow(
     minHeight: WINDOW_SIZE.minHeight,
     show: false,
     backgroundColor: themeDefinition.windowBackground,
-    title: 'Claude Code With Emotion',
+    title: "Claude Code With Emotion",
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -183,19 +177,19 @@ function createMainWindow(
     boundsStore.save({ x, y, width, height });
   };
 
-  mainWindow.on('resized', persistBounds);
-  mainWindow.on('moved', persistBounds);
-  mainWindow.on('close', persistBounds);
+  mainWindow.on("resized", persistBounds);
+  mainWindow.on("moved", persistBounds);
+  mainWindow.on("close", persistBounds);
 
   const rendererEntry = getRendererEntry();
 
-  if (rendererEntry.kind === 'url') {
+  if (rendererEntry.kind === "url") {
     void mainWindow.loadURL(rendererEntry.value);
   } else {
     void mainWindow.loadFile(rendererEntry.value);
   }
 
-  mainWindow.once('ready-to-show', () => {
+  mainWindow.once("ready-to-show", () => {
     mainWindow.show();
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -203,9 +197,9 @@ function createMainWindow(
       void shell.openExternal(url);
     }
 
-    return { action: 'deny' };
+    return { action: "deny" };
   });
-  mainWindow.webContents.on('will-navigate', (event, url) => {
+  mainWindow.webContents.on("will-navigate", (event, url) => {
     if (!isExternalBrowserUrl(url)) {
       return;
     }
@@ -232,39 +226,39 @@ function attachWindowDiagnostics(
   runtimeLog: RuntimeLog,
 ): void {
   mainWindow.webContents.on(
-    'console-message',
+    "console-message",
     (_event, level, message, line, sourceId) => {
       if (message.startsWith(RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX)) {
         return;
       }
 
       runtimeLog.write(
-        'renderer-console',
+        "renderer-console",
         `level=${level} source=${sourceId}:${line} message=${message}`,
       );
     },
   );
   mainWindow.webContents.on(
-    'did-fail-load',
+    "did-fail-load",
     (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
       runtimeLog.write(
-        'window-load',
+        "window-load",
         `did-fail-load code=${errorCode} description=${errorDescription} url=${validatedUrl} mainFrame=${isMainFrame}`,
       );
     },
   );
-  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
     runtimeLog.write(
-      'window-process',
+      "window-process",
       `render-process-gone reason=${details.reason} exitCode=${details.exitCode}`,
     );
   });
-  mainWindow.webContents.on('did-finish-load', () => {
-    runtimeLog.write('window-load', 'did-finish-load');
+  mainWindow.webContents.on("did-finish-load", () => {
+    runtimeLog.write("window-load", "did-finish-load");
 
     if (!app.isPackaged) {
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
-      runtimeLog.write('window-load', 'opened devtools automatically');
+      mainWindow.webContents.openDevTools({ mode: "detach" });
+      runtimeLog.write("window-load", "opened devtools automatically");
     }
   });
 }
@@ -275,32 +269,38 @@ function registerTerminalBridge(
   themeStore: ThemeStore,
 ): void {
   const assistantStatusTraceFilePath = runtimeLog.filePath;
-  const assistantStatusHelperBinDir = path.join(app.getAppPath(), 'bin');
+  const assistantStatusHelperBinDir = path.join(app.getAppPath(), "bin");
   const visualAssetCatalogFilePath = path.join(
-    app.getPath('userData'),
-    'visual-assets.json',
+    app.getPath("userData"),
+    "visual-assets.json",
   );
   const visualMcpStateFilePath = path.join(
-    app.getPath('userData'),
-    'assistant-visual-mcp.json',
+    app.getPath("userData"),
+    "assistant-visual-mcp.json",
   );
-  const appThemeFilePath = path.join(app.getPath('userData'), 'app-theme.json');
+  const appThemeFilePath = path.join(app.getPath("userData"), "app-theme.json");
   const visualAssetLibraryDirPath = path.join(
-    app.getPath('userData'),
-    'visual-assets',
+    app.getPath("userData"),
+    "visual-assets",
   );
   const terminalOutputRootDir = path.join(
-    app.getPath('userData'),
-    'terminal-output',
+    app.getPath("userData"),
+    "terminal-output",
   );
   const sessionStatusStores = new Map<string, AssistantStatusStore>();
   const sessionStatusFileBridges = new Map<string, AssistantStatusFileBridge>();
-  const sessionOverlayFileBridges = new Map<string, AssistantVisualOverlayFileBridge>();
+  const sessionOverlayFileBridges = new Map<
+    string,
+    AssistantVisualOverlayFileBridge
+  >();
   const sessionStatusUnsubscribes = new Map<string, () => void>();
-  const sessionStatusRootDir = path.join(app.getPath('userData'), 'assistant-status');
+  const sessionStatusRootDir = path.join(
+    app.getPath("userData"),
+    "assistant-status",
+  );
   const sessionOverlayRootDir = path.join(
-    app.getPath('userData'),
-    'assistant-visual-overlay',
+    app.getPath("userData"),
+    "assistant-visual-overlay",
   );
   const resolveStatusFilePath = (sessionId: string): string =>
     path.join(sessionStatusRootDir, `${sessionId}.json`);
@@ -319,7 +319,7 @@ function registerTerminalBridge(
     fs.writeFileSync(
       visualMcpStateFilePath,
       JSON.stringify(nextState, null, 2),
-      'utf8',
+      "utf8",
     );
   };
   const ensureSessionStatusBridges = (sessionId: string): void => {
@@ -333,7 +333,10 @@ function registerTerminalBridge(
       statusFilePath,
       statusStore,
       (message) => {
-        runtimeLog.write('assistant-status-file', `session=${sessionId} ${message}`);
+        runtimeLog.write(
+          "assistant-status-file",
+          `session=${sessionId} ${message}`,
+        );
       },
     );
     const overlayFileBridge = new AssistantVisualOverlayFileBridge(
@@ -341,15 +344,20 @@ function registerTerminalBridge(
       statusStore,
       (message) => {
         runtimeLog.write(
-          'assistant-visual-overlay',
+          "assistant-visual-overlay",
           `session=${sessionId} ${message}`,
         );
       },
     );
-    const unsubscribe = statusStore.subscribe((snapshot: AssistantStatusSnapshot) => {
-      const payload: AssistantStatusSnapshotEvent = { sessionId, snapshot };
-      mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, payload);
-    });
+    const unsubscribe = statusStore.subscribe(
+      (snapshot: AssistantStatusSnapshot) => {
+        const payload: AssistantStatusSnapshotEvent = { sessionId, snapshot };
+        mainWindow.webContents.send(
+          ASSISTANT_STATUS_CHANNELS.snapshot,
+          payload,
+        );
+      },
+    );
 
     sessionStatusStores.set(sessionId, statusStore);
     sessionStatusFileBridges.set(sessionId, statusFileBridge);
@@ -378,14 +386,13 @@ function registerTerminalBridge(
     },
     (sessionId, event) => {
       runtimeLog.write(
-        'terminal',
+        "terminal",
         `exit session=${sessionId} code=${event.exitCode} signal=${event.signal}`,
       );
       // 터미널 종료 시 MCP가 설정한 오버레이 한마디를 즉시 클리어
-      sessionStatusStores.get(sessionId)?.applyVisualOverlay(
-        { line: null },
-        'session-exit',
-      );
+      sessionStatusStores
+        .get(sessionId)
+        ?.applyVisualOverlay({ line: null }, "session-exit");
       mainWindow.webContents.send(TERMINAL_CHANNELS.exit, {
         sessionId,
         exitCode: event.exitCode,
@@ -401,27 +408,27 @@ function registerTerminalBridge(
     visualAssetCatalogFilePath,
     visualAssetLibraryDirPath,
     (message) => {
-      runtimeLog.write('visual-assets', message);
+      runtimeLog.write("visual-assets", message);
     },
   );
   const unsubscribeVisualAssets = visualAssetStore.subscribe((catalog) => {
     runtimeLog.write(
-      'visual-assets',
+      "visual-assets",
       `snapshot assets=${catalog.assets.length} mappings=${catalog.mappings.length}`,
     );
     mainWindow.webContents.send(VISUAL_ASSET_CHANNELS.catalog, catalog);
   });
 
   runtimeLog.write(
-    'visual-assets',
+    "visual-assets",
     `watching catalog file ${visualAssetCatalogFilePath}`,
   );
-  runtimeLog.write('app-theme', `watching theme file ${appThemeFilePath}`);
+  runtimeLog.write("app-theme", `watching theme file ${appThemeFilePath}`);
 
   const unsubscribeTheme = themeStore.subscribe((selection) => {
     const nextTheme = getAppThemeDefinition(selection.themeId);
 
-    runtimeLog.write('app-theme', `snapshot theme=${selection.themeId}`);
+    runtimeLog.write("app-theme", `snapshot theme=${selection.themeId}`);
     mainWindow.setBackgroundColor(nextTheme.windowBackground);
     mainWindow.webContents.send(APP_THEME_CHANNELS.selection, selection);
   });
@@ -461,11 +468,11 @@ function registerTerminalBridge(
     VISUAL_ASSET_CHANNELS.importFiles,
     (_event, filePaths: ReadonlyArray<string>) => {
       const nextFilePaths = filePaths.filter((filePath) => {
-        return typeof filePath === 'string' && filePath.length > 0;
+        return typeof filePath === "string" && filePath.length > 0;
       });
 
       runtimeLog.write(
-        'visual-assets',
+        "visual-assets",
         `import requested files=${nextFilePaths.length}`,
       );
 
@@ -490,23 +497,23 @@ function registerTerminalBridge(
   );
   ipcMain.handle(VISUAL_ASSET_CHANNELS.pickFiles, async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      buttonLabel: 'Choose Images',
+      buttonLabel: "Choose Images",
       filters: [
         {
-          name: 'Images',
-          extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],
+          name: "Images",
+          extensions: ["png", "jpg", "jpeg", "gif", "webp"],
         },
       ],
-      properties: ['openFile', 'multiSelections'],
+      properties: ["openFile", "multiSelections"],
     });
 
     if (result.canceled) {
-      runtimeLog.write('visual-assets', 'picker canceled');
+      runtimeLog.write("visual-assets", "picker canceled");
       return [];
     }
 
     runtimeLog.write(
-      'visual-assets',
+      "visual-assets",
       `picker selected files=${result.filePaths.length}`,
     );
 
@@ -523,7 +530,7 @@ function registerTerminalBridge(
     TERMINAL_CHANNELS.bootstrap,
     async (_event, request: TerminalBootstrapRequest) => {
       runtimeLog.write(
-        'terminal',
+        "terminal",
         `bootstrap session=${request.sessionId} cwd=${request.cwd} command=${request.command} cols=${request.cols} rows=${request.rows}`,
       );
       ensureSessionStatusBridges(request.sessionId);
@@ -537,10 +544,10 @@ function registerTerminalBridge(
         );
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : 'Unknown terminal error';
+          error instanceof Error ? error.message : "Unknown terminal error";
 
         runtimeLog.write(
-          'terminal-error',
+          "terminal-error",
           `bootstrap failed for ${request.sessionId}: ${message}`,
         );
         throw error;
@@ -565,7 +572,7 @@ function registerTerminalBridge(
   ipcMain.handle(
     TERMINAL_CHANNELS.close,
     (_event, request: TerminalCloseRequest) => {
-      runtimeLog.write('terminal', `close session=${request.sessionId}`);
+      runtimeLog.write("terminal", `close session=${request.sessionId}`);
       terminalSessionManager.closeSession(request);
       disposeSessionStatusBridges(request.sessionId);
     },
@@ -576,19 +583,19 @@ function registerTerminalBridge(
     payload: RendererDiagnosticPayload,
   ) => {
     const stackSuffix =
-      typeof payload.stack === 'string' && payload.stack.length > 0
+      typeof payload.stack === "string" && payload.stack.length > 0
         ? `\n${payload.stack}`
-        : '';
+        : "";
 
     runtimeLog.write(
-      'renderer-event',
+      "renderer-event",
       `${payload.type}: ${payload.message}${stackSuffix}`,
     );
   };
 
   ipcMain.on(DIAGNOSTICS_CHANNELS.rendererEvent, rendererDiagnosticListener);
 
-  mainWindow.on('closed', () => {
+  mainWindow.on("closed", () => {
     unsubscribeTheme();
     unsubscribeVisualAssets();
     for (const sessionId of [...sessionStatusStores.keys()]) {
@@ -622,7 +629,7 @@ void app.whenReady().then(() => {
   const runtimeLog = createRuntimeLog(
     resolveRuntimeLogPath(
       app.getAppPath(),
-      app.getPath('userData'),
+      app.getPath("userData"),
       app.isPackaged,
     ),
     (payload: RuntimeDiagnosticPayload) => {
@@ -632,20 +639,22 @@ void app.whenReady().then(() => {
     },
   );
 
-  runtimeLog.write('app', `runtime log ready at ${runtimeLog.filePath}`);
-  process.on('uncaughtException', (error) => {
-    runtimeLog.writeError('process', error);
+  runtimeLog.write("app", `runtime log ready at ${runtimeLog.filePath}`);
+  process.on("uncaughtException", (error) => {
+    runtimeLog.writeError("process", error);
   });
-  process.on('unhandledRejection', (reason) => {
-    runtimeLog.writeError('process', reason);
+  process.on("unhandledRejection", (reason) => {
+    runtimeLog.writeError("process", reason);
   });
-  app.on('child-process-gone', (_event, details) => {
+  app.on("child-process-gone", (_event, details) => {
     runtimeLog.write(
-      'app-child-process',
+      "app-child-process",
       `type=${details.type} reason=${details.reason} exitCode=${details.exitCode}`,
     );
   });
-  const nodePtyPackageRoot = path.dirname(require.resolve('node-pty/package.json'));
+  const nodePtyPackageRoot = path.dirname(
+    require.resolve("node-pty/package.json"),
+  );
   const helperPreflight = ensureNodePtySpawnHelpersExecutable(
     nodePtyPackageRoot,
     process.platform,
@@ -654,35 +663,38 @@ void app.whenReady().then(() => {
 
   if (helperPreflight.foundHelperPaths.length === 0) {
     runtimeLog.write(
-      'terminal-helper',
+      "terminal-helper",
       `no node-pty spawn-helper found under ${nodePtyPackageRoot}`,
     );
   } else {
     runtimeLog.write(
-      'terminal-helper',
-      `spawn-helper paths=${helperPreflight.foundHelperPaths.join(', ')} updated=${helperPreflight.updatedHelperPaths.length}`,
+      "terminal-helper",
+      `spawn-helper paths=${helperPreflight.foundHelperPaths.join(", ")} updated=${helperPreflight.updatedHelperPaths.length}`,
     );
   }
 
   const themeStore = new ThemeStore(
-    path.join(app.getPath('userData'), 'app-theme.json'),
+    path.join(app.getPath("userData"), "app-theme.json"),
     (message) => {
-      runtimeLog.write('app-theme', message);
+      runtimeLog.write("app-theme", message);
     },
   );
   const windowBoundsStore = new WindowBoundsStore(
-    path.join(app.getPath('userData'), 'window-bounds.json'),
+    path.join(app.getPath("userData"), "window-bounds.json"),
     (message) => {
-      runtimeLog.write('window-bounds', message);
+      runtimeLog.write("window-bounds", message);
     },
   );
   installApplicationMenu();
-  const mainWindow = createMainWindow(themeStore.getSelection(), windowBoundsStore);
+  const mainWindow = createMainWindow(
+    themeStore.getSelection(),
+    windowBoundsStore,
+  );
 
   attachWindowDiagnostics(mainWindow, runtimeLog);
   registerTerminalBridge(mainWindow, runtimeLog, themeStore);
 
-  app.on('activate', () => {
+  app.on("activate", () => {
     if (!hasOpenWindows()) {
       const nextMainWindow = createMainWindow(
         themeStore.getSelection(),
@@ -695,8 +707,8 @@ void app.whenReady().then(() => {
   });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     app.quit();
   }
 });

@@ -3,22 +3,22 @@ import {
   type ChangeEvent,
   type DragEvent,
   type ReactElement,
-} from 'react';
-import { Trash2 } from 'lucide-react';
-import type { VisualAssetCatalog } from '../../../../shared/visual-assets';
+} from "react";
+import { Trash2 } from "lucide-react";
+import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
-} from '../../../../shared/visual-presets';
-import { createStatusPanelAssetUrl } from '../status-panel-visual';
+} from "../../../../shared/visual-presets";
+import { createStatusPanelAssetUrl } from "../status-panel-visual";
 import {
   managerChipClassName,
   managerIconButtonClassName,
   managerIconClassName,
   managerSectionCopyClassName,
-} from './shared';
+} from "./shared";
 
 interface EmotionSectionProps {
   catalog: VisualAssetCatalog;
@@ -110,7 +110,10 @@ export function EmotionSection({
   const handleAssetDragLeave = (event: DragEvent<HTMLDivElement>): void => {
     const nextTarget = event.relatedTarget;
 
-    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+    if (
+      nextTarget instanceof Node &&
+      event.currentTarget.contains(nextTarget)
+    ) {
       return;
     }
 
@@ -139,11 +142,11 @@ export function EmotionSection({
       <div
         aria-label="Image drop zone"
         className={[
-          'mb-4 border border-dashed px-4 py-3 transition-colors duration-150',
+          "mb-4 border border-dashed px-4 py-3 transition-colors duration-150",
           isAssetDropActive
-            ? 'border-border-strong bg-surface-elevated-active'
-            : 'border-border-soft bg-surface-elevated',
-        ].join(' ')}
+            ? "border-border-strong bg-surface-elevated-active"
+            : "border-border-soft bg-surface-elevated",
+        ].join(" ")}
         onDragEnter={(event) => {
           event.preventDefault();
           setIsAssetDropActive(true);
@@ -159,7 +162,7 @@ export function EmotionSection({
           이미지를 여기로 여러 장 드래그해서 바로 가져올 수 있어요.
         </p>
         <p className={managerSectionCopyClassName}>
-          자동 매칭 규칙: <code>working.png</code>, <code>happy.png</code>,{' '}
+          자동 매칭 규칙: <code>working.png</code>, <code>happy.png</code>,{" "}
           <code>working__happy.png</code>, <code>default__fallback.png</code>
         </p>
       </div>
@@ -279,7 +282,7 @@ export function EmotionSection({
                       <h4 className="m-0">Emotion Presets</h4>
                       <div className="flex flex-wrap gap-2">
                         {EMOTION_PRESETS.map((preset) => {
-                          if (preset.id === 'neutral') {
+                          if (preset.id === "neutral") {
                             return null;
                           }
 
@@ -321,11 +324,12 @@ export function EmotionSection({
                     <div className="flex flex-col gap-2">
                       <h4 className="m-0">Exact State + Emotion</h4>
                       <p className={managerSectionCopyClassName}>
-                        이건 state-only, emotion-only보다 먼저 잡혀요. 진짜 전용 표정 카드예요...!
+                        이건 state-only, emotion-only보다 먼저 잡혀요. 진짜 전용
+                        표정 카드예요...!
                       </p>
                       <div className="flex flex-col gap-2.5">
                         {EMOTION_PRESETS.map((emotionPreset) => {
-                          if (emotionPreset.id === 'neutral') {
+                          if (emotionPreset.id === "neutral") {
                             return null;
                           }
 

@@ -1,5 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { App } from './App';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { App } from "./App";
 
 const { MockTerminal, terminalInstances } = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
@@ -45,23 +51,23 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
   };
 });
 
-vi.mock('@xterm/xterm', () => {
+vi.mock("@xterm/xterm", () => {
   return {
     Terminal: MockTerminal,
   };
 });
 
-describe('App focus restoration', () => {
+describe("App focus restoration", () => {
   beforeEach(() => {
     terminalInstances.length = 0;
 
-    Object.defineProperty(window, 'claudeApp', {
+    Object.defineProperty(window, "claudeApp", {
       configurable: true,
       value: {
-        workspaceCwd: '/tmp',
+        workspaceCwd: "/tmp",
         terminals: {
           bootstrapSession: vi.fn().mockResolvedValue({
-            outputSnapshot: '',
+            outputSnapshot: "",
             outputVersion: 0,
           }),
           sendInput: vi.fn().mockResolvedValue(undefined),
@@ -74,7 +80,7 @@ describe('App focus restoration', () => {
     });
   });
 
-  it('refocuses the terminal after the window regains focus', async () => {
+  it("refocuses the terminal after the window regains focus", async () => {
     render(<App />);
 
     const terminal = terminalInstances[0];
@@ -82,8 +88,8 @@ describe('App focus restoration', () => {
     expect(terminal).toBeDefined();
     expect(terminal?.focus).toHaveBeenCalledTimes(1);
 
-    const statusPanelToggle = screen.getByRole('button', {
-      name: 'Collapse assistant status panel',
+    const statusPanelToggle = screen.getByRole("button", {
+      name: "Collapse assistant status panel",
     });
 
     statusPanelToggle.focus();
@@ -99,18 +105,18 @@ describe('App focus restoration', () => {
     expect(terminal?.focus).toHaveBeenCalledTimes(2);
   });
 
-  it('does not steal focus from text inputs when the window regains focus', async () => {
+  it("does not steal focus from text inputs when the window regains focus", async () => {
     render(<App />);
 
     const terminal = terminalInstances[0];
-    const sessionTab = screen.getByRole('tab', {
-      name: 'new session 1 · claude-code-with-emotion',
+    const sessionTab = screen.getByRole("tab", {
+      name: "new session 1 · claude-code-with-emotion",
     });
 
     fireEvent.doubleClick(sessionTab);
 
-    const titleEditor = await screen.findByRole('textbox', {
-      name: 'new session 1 · claude-code-with-emotion title editor',
+    const titleEditor = await screen.findByRole("textbox", {
+      name: "new session 1 · claude-code-with-emotion title editor",
     });
 
     await waitFor(() => {

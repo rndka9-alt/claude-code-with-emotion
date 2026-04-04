@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
+const fs = require("node:fs");
 
 function appendTrace(message) {
   const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
 
-  if (typeof traceFilePath !== 'string' || traceFilePath.length === 0) {
+  if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
     return;
   }
 
   const line = `[${new Date().toISOString()}] [claude-status-helper] ${message}\n`;
 
   try {
-    fs.appendFileSync(traceFilePath, line, 'utf8');
+    fs.appendFileSync(traceFilePath, line, "utf8");
   } catch {
     // Ignore trace write failures inside the terminal helper.
   }
 }
 
 function parseArgs(argv) {
-  if (argv.length === 1 && argv[0].trim().startsWith('{')) {
+  if (argv.length === 1 && argv[0].trim().startsWith("{")) {
     return JSON.parse(argv[0]);
   }
 
@@ -29,21 +29,25 @@ function parseArgs(argv) {
     const key = argv[index];
     const value = argv[index + 1];
 
-    if (typeof key !== 'string' || !key.startsWith('--') || value === undefined) {
+    if (
+      typeof key !== "string" ||
+      !key.startsWith("--") ||
+      value === undefined
+    ) {
       continue;
     }
 
-    if (key === '--state') {
+    if (key === "--state") {
       result.state = value;
-    } else if (key === '--emotion') {
+    } else if (key === "--emotion") {
       result.emotion = value;
-    } else if (key === '--line') {
+    } else if (key === "--line") {
       result.line = value;
-    } else if (key === '--task') {
+    } else if (key === "--task") {
       result.currentTask = value;
-    } else if (key === '--activity') {
+    } else if (key === "--activity") {
       result.activityLabel = value;
-    } else if (key === '--intensity') {
+    } else if (key === "--intensity") {
       result.intensity = value;
     }
   }
@@ -63,9 +67,9 @@ function collectAvailableVisualOptions(catalog) {
 
   for (const mapping of catalog.mappings) {
     if (
-      typeof mapping === 'object' &&
+      typeof mapping === "object" &&
       mapping !== null &&
-      typeof mapping.state === 'string' &&
+      typeof mapping.state === "string" &&
       !seenStates.has(mapping.state)
     ) {
       seenStates.add(mapping.state);
@@ -73,10 +77,10 @@ function collectAvailableVisualOptions(catalog) {
     }
 
     if (
-      typeof mapping === 'object' &&
+      typeof mapping === "object" &&
       mapping !== null &&
-      typeof mapping.emotion === 'string' &&
-      mapping.emotion !== 'neutral' &&
+      typeof mapping.emotion === "string" &&
+      mapping.emotion !== "neutral" &&
       !seenEmotions.has(mapping.emotion)
     ) {
       seenEmotions.add(mapping.emotion);
@@ -91,15 +95,16 @@ function collectAvailableVisualOptions(catalog) {
 }
 
 function printAvailableVisualOptions() {
-  const catalogFilePath = process.env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE;
+  const catalogFilePath =
+    process.env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE;
 
-  if (typeof catalogFilePath !== 'string' || catalogFilePath.length === 0) {
+  if (typeof catalogFilePath !== "string" || catalogFilePath.length === 0) {
     process.stdout.write('{"states":[],"emotions":[]}\n');
     return;
   }
 
   try {
-    const text = fs.readFileSync(catalogFilePath, 'utf8');
+    const text = fs.readFileSync(catalogFilePath, "utf8");
     const parsed = JSON.parse(text);
 
     process.stdout.write(
@@ -111,29 +116,31 @@ function printAvailableVisualOptions() {
 }
 
 function main() {
-  if (process.argv.includes('--list-visual-options')) {
+  if (process.argv.includes("--list-visual-options")) {
     printAvailableVisualOptions();
     return;
   }
 
   const statusFilePath = process.env.CLAUDE_WITH_EMOTION_STATUS_FILE;
 
-  if (typeof statusFilePath !== 'string' || statusFilePath.length === 0) {
-    console.error('CLAUDE_WITH_EMOTION_STATUS_FILE is not set.');
+  if (typeof statusFilePath !== "string" || statusFilePath.length === 0) {
+    console.error("CLAUDE_WITH_EMOTION_STATUS_FILE is not set.");
     process.exit(1);
   }
 
   const payload = parseArgs(process.argv.slice(2));
 
-  if (typeof payload.state !== 'string' || typeof payload.line !== 'string') {
-    console.error('Usage: claude-status --state <state> [--emotion <emotion>] --line <line> [--task <task>] [--intensity <low|medium|high>] [--list-visual-options]');
+  if (typeof payload.state !== "string" || typeof payload.line !== "string") {
+    console.error(
+      "Usage: claude-status --state <state> [--emotion <emotion>] --line <line> [--task <task>] [--intensity <low|medium|high>] [--list-visual-options]",
+    );
     process.exit(1);
   }
 
   appendTrace(
-    `writing status state=${payload.state} emotion=${payload.emotion ?? 'none'} line=${payload.line} activity=${payload.activityLabel ?? ''} task=${payload.currentTask ?? ''}`,
+    `writing status state=${payload.state} emotion=${payload.emotion ?? "none"} line=${payload.line} activity=${payload.activityLabel ?? ""} task=${payload.currentTask ?? ""}`,
   );
-  fs.writeFileSync(statusFilePath, JSON.stringify(payload), 'utf8');
+  fs.writeFileSync(statusFilePath, JSON.stringify(payload), "utf8");
 }
 
 main();

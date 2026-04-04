@@ -1,7 +1,7 @@
 import type {
   AvailableVisualOptions,
   VisualAssetCatalog,
-} from './visual-assets';
+} from "./visual-assets";
 
 export interface VisualAssetPickerFile {
   label: string;
@@ -32,12 +32,12 @@ export const VISUAL_ASSET_CHANNELS: {
   printAvailableOptions: string;
   saveCatalog: string;
 } = {
-  availableOptions: 'visual-assets:available-options',
-  catalog: 'visual-assets:catalog',
-  getAvailableOptions: 'visual-assets:get-catalog-options',
-  getCatalog: 'visual-assets:get-catalog',
-  importFiles: 'visual-assets:import-files',
-  pickFiles: 'visual-assets:pick-files',
-  printAvailableOptions: 'visual-assets:print-available-options',
-  saveCatalog: 'visual-assets:save-catalog',
+  availableOptions: "visual-assets:available-options",
+  catalog: "visual-assets:catalog",
+  getAvailableOptions: "visual-assets:get-catalog-options",
+  getCatalog: "visual-assets:get-catalog",
+  importFiles: "visual-assets:import-files",
+  pickFiles: "visual-assets:pick-files",
+  printAvailableOptions: "visual-assets:print-available-options",
+  saveCatalog: "visual-assets:save-catalog",
 };

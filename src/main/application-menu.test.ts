@@ -1,5 +1,5 @@
-import type { MenuItemConstructorOptions } from 'electron';
-import { createApplicationMenuTemplate } from './application-menu';
+import type { MenuItemConstructorOptions } from "electron";
+import { createApplicationMenuTemplate } from "./application-menu";
 
 function getSubmenuItems(
   item: MenuItemConstructorOptions | undefined,
@@ -17,14 +17,14 @@ function getSubmenuItems(
   return [];
 }
 
-describe('createApplicationMenuTemplate', () => {
-  it('adds a native Edit menu with copy and paste roles', () => {
-    const template = createApplicationMenuTemplate('Claude Code With Emotion');
-    const editMenu = template.find((item) => item.label === 'Edit');
+describe("createApplicationMenuTemplate", () => {
+  it("adds a native Edit menu with copy and paste roles", () => {
+    const template = createApplicationMenuTemplate("Claude Code With Emotion");
+    const editMenu = template.find((item) => item.label === "Edit");
     const editRoles = getSubmenuItems(editMenu).map((item) => item.role);
 
-    expect(editRoles).toContain('copy');
-    expect(editRoles).toContain('paste');
-    expect(editRoles).toContain('selectAll');
+    expect(editRoles).toContain("copy");
+    expect(editRoles).toContain("paste");
+    expect(editRoles).toContain("selectAll");
   });
 });

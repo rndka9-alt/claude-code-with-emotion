@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import type { ReactElement } from 'react';
-import type { SessionTab } from './model';
-import { getTerminalSessionController } from './terminal-session-registry';
+import { useEffect, useRef } from "react";
+import type { ReactElement } from "react";
+import type { SessionTab } from "./model";
+import { getTerminalSessionController } from "./terminal-session-registry";
 
 interface TerminalSurfaceProps {
   focusRequestKey: number;
@@ -11,14 +11,14 @@ interface TerminalSurfaceProps {
 }
 
 function supportsXtermRuntime(): boolean {
-  if (typeof window.matchMedia !== 'function') {
+  if (typeof window.matchMedia !== "function") {
     return false;
   }
 
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
 
   try {
-    return canvas.getContext('2d') !== null;
+    return canvas.getContext("2d") !== null;
   } catch {
     return false;
   }
@@ -41,7 +41,7 @@ export function TerminalSurface({
 
     if (!supportsXtermRuntime()) {
       host.textContent =
-        'Terminal preview unavailable in this environment. The typed preload bridge is still wired.';
+        "Terminal preview unavailable in this environment. The typed preload bridge is still wired.";
 
       return;
     }
@@ -51,11 +51,11 @@ export function TerminalSurface({
     controller.attach(host, onTitleChange);
 
     const resizeObserver = new ResizeObserver(() => {
-      controller.requestFit('resize');
+      controller.requestFit("resize");
     });
 
     resizeObserver.observe(host);
-    controller.requestFit('initial-open');
+    controller.requestFit("initial-open");
 
     return () => {
       resizeObserver.disconnect();
@@ -68,7 +68,9 @@ export function TerminalSurface({
       return;
     }
 
-    getTerminalSessionController(session).updateTitleChangeHandler(onTitleChange);
+    getTerminalSessionController(session).updateTitleChangeHandler(
+      onTitleChange,
+    );
   }, [onTitleChange, session.id]);
 
   useEffect(() => {

@@ -1,21 +1,21 @@
-import { spawnSync } from 'node:child_process';
-import path from 'node:path';
-import type { VisualMcpSetupStatus } from '../../shared/mcp-setup-bridge';
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import type { VisualMcpSetupStatus } from "../../shared/mcp-setup-bridge";
 
-const VISUAL_MCP_SERVER_NAME = 'claude-code-with-emotion-visuals';
+const VISUAL_MCP_SERVER_NAME = "claude-code-with-emotion-visuals";
 
 function resolveClaudeBinary(pathValue: string | undefined): string | null {
-  const segments = typeof pathValue === 'string' ? pathValue.split(':') : [];
+  const segments = typeof pathValue === "string" ? pathValue.split(":") : [];
 
   for (const segment of segments) {
     if (segment.length === 0) {
       continue;
     }
 
-    const candidate = path.join(segment, 'claude');
-    const check = spawnSync(candidate, ['--version'], {
-      encoding: 'utf8',
-      stdio: 'ignore',
+    const candidate = path.join(segment, "claude");
+    const check = spawnSync(candidate, ["--version"], {
+      encoding: "utf8",
+      stdio: "ignore",
     });
 
     if (check.status === 0) {
@@ -33,18 +33,16 @@ function createBaseStatus(stateFilePath: string): VisualMcpSetupStatus {
   };
 }
 
-function readSpawnOutput(
-  value: string | Buffer | null | undefined,
-): string {
-  if (typeof value === 'string') {
+function readSpawnOutput(value: string | Buffer | null | undefined): string {
+  if (typeof value === "string") {
     return value;
   }
 
   if (value instanceof Buffer) {
-    return value.toString('utf8');
+    return value.toString("utf8");
   }
 
-  return '';
+  return "";
 }
 
 function createUserScopedVisualMcpJson(
@@ -52,10 +50,10 @@ function createUserScopedVisualMcpJson(
   stateFilePath: string,
 ): string {
   return JSON.stringify({
-    command: path.join(helperBinDir, 'claude-visual-mcp'),
+    command: path.join(helperBinDir, "claude-visual-mcp"),
     args: [],
     env: {
-      PATH: process.env.PATH ?? '',
+      PATH: process.env.PATH ?? "",
       CLAUDE_WITH_EMOTION_VISUAL_MCP_STATE_FILE: stateFilePath,
     },
   });
@@ -71,7 +69,7 @@ function runClaudeMcpCommand(
   }
 
   return spawnSync(realClaude, args, {
-    encoding: 'utf8',
+    encoding: "utf8",
     env: process.env,
   });
 }
@@ -80,7 +78,7 @@ export function getVisualMcpSetupStatus(
   stateFilePath: string,
 ): VisualMcpSetupStatus {
   const status = createBaseStatus(stateFilePath);
-  const result = runClaudeMcpCommand(['mcp', 'get', VISUAL_MCP_SERVER_NAME]);
+  const result = runClaudeMcpCommand(["mcp", "get", VISUAL_MCP_SERVER_NAME]);
 
   if (result === null) {
     return status;
@@ -101,10 +99,10 @@ export function installVisualMcpUserSetup(
   stateFilePath: string,
 ): VisualMcpSetupStatus {
   const result = runClaudeMcpCommand([
-    'mcp',
-    'add-json',
-    '--scope',
-    'user',
+    "mcp",
+    "add-json",
+    "--scope",
+    "user",
     VISUAL_MCP_SERVER_NAME,
     createUserScopedVisualMcpJson(helperBinDir, stateFilePath),
   ]);
@@ -113,7 +111,7 @@ export function installVisualMcpUserSetup(
     throw new Error(
       readSpawnOutput(result?.stderr).trim() ||
         readSpawnOutput(result?.stdout).trim() ||
-        'Failed to install visual MCP setup.',
+        "Failed to install visual MCP setup.",
     );
   }
 
@@ -124,10 +122,10 @@ export function removeVisualMcpUserSetup(
   stateFilePath: string,
 ): VisualMcpSetupStatus {
   const result = runClaudeMcpCommand([
-    'mcp',
-    'remove',
-    '--scope',
-    'user',
+    "mcp",
+    "remove",
+    "--scope",
+    "user",
     VISUAL_MCP_SERVER_NAME,
   ]);
 
@@ -138,8 +136,8 @@ export function removeVisualMcpUserSetup(
   if (result.status !== 0) {
     const output = `${readSpawnOutput(result.stdout)}${readSpawnOutput(result.stderr)}`;
 
-    if (!output.includes('No MCP server found')) {
-      throw new Error(output.trim() || 'Failed to remove visual MCP setup.');
+    if (!output.includes("No MCP server found")) {
+      throw new Error(output.trim() || "Failed to remove visual MCP setup.");
     }
   }
 
