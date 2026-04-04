@@ -99,13 +99,13 @@ export function StatusPanel({
       </button>
 
       <div
-        className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)]"
+        className="group relative flex aspect-square w-32 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)]"
         style={avatarStyle}
       >
         {statusVisual === null ? (
           <div
             aria-hidden="true"
-            className={`status-panel__avatar-orb h-16 w-16 bg-avatar-orb shadow-avatar-orb transition-[transform,opacity,box-shadow] duration-150 max-[900px]:h-[52px] max-[900px]:w-[52px] ${orbClassNameByIntensity[assistantStatus.intensity]}`}
+            className={`status-panel__avatar-orb h-20 w-20 bg-avatar-orb shadow-avatar-orb transition-[transform,opacity,box-shadow] duration-150 ${orbClassNameByIntensity[assistantStatus.intensity]}`}
           />
         ) : (
           <img
