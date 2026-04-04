@@ -115,7 +115,7 @@ export function StatusPanel({
   return (
     <aside
       aria-label="Assistant status panel"
-      className="relative grid min-h-32 flex-none grid-cols-[112px_minmax(0,1fr)] items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28 max-[900px]:grid-cols-[88px_minmax(0,1fr)]"
+      className="relative flex min-h-32 flex-none items-center gap-[18px] border border-[var(--color-border-panel)] bg-[var(--color-surface-panel)] px-5 py-4 max-[900px]:min-h-28"
     >
       <button
         aria-label="Open settings"
@@ -130,7 +130,7 @@ export function StatusPanel({
       {isDisconnected ? (
         <button
           aria-label="실행하기"
-          className="group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px] cursor-pointer transition-[background-color,transform] duration-150 hover:bg-[var(--color-surface-launch-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-panel)]"
+          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px] cursor-pointer transition-[background-color,transform] duration-150 hover:bg-[var(--color-surface-launch-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-panel)]"
           onClick={onLaunchClaude}
           style={avatarStyle}
           title="실행하기"
@@ -140,14 +140,14 @@ export function StatusPanel({
         </button>
       ) : (
         <div
-          className="group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]"
+          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]"
           style={avatarStyle}
         >
           {avatarContent}
         </div>
       )}
 
-      <div className="flex min-w-0 flex-col justify-center gap-3">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
         <p className="m-0 whitespace-pre-line text-[1.08rem] text-[var(--color-text-highlight)]">
           {overlayMainText !== null ? (
             <>
