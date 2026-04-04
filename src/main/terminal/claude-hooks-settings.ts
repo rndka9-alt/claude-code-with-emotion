@@ -31,8 +31,13 @@ interface ClaudeHookMatcherConfig {
   hooks: ClaudeHookCommandConfig[];
 }
 
+interface ClaudePermissionsConfig {
+  allow: string[];
+}
+
 interface ClaudeHooksSettings {
   hooks: Record<ClaudeHookEvent, ClaudeHookMatcherConfig[]>;
+  permissions: ClaudePermissionsConfig;
 }
 
 function quoteForShell(value: string): string {
@@ -94,7 +99,20 @@ export function createClaudeHooksSettings(
     ];
   }
 
+  const visualMcpServerName = 'claude-code-with-emotion-visuals';
+  const visualMcpToolNames = [
+    'get_available_visual_options',
+    'set_visual_emotion',
+    'set_visual_line',
+    'clear_visual_line',
+  ];
+
   return {
+    permissions: {
+      allow: visualMcpToolNames.map(
+        (tool) => `mcp__${visualMcpServerName}__${tool}`,
+      ),
+    },
     hooks: {
       SessionStart: hooks.SessionStart ?? [],
       UserPromptSubmit: hooks.UserPromptSubmit ?? [],
