@@ -611,6 +611,35 @@ function publishStatus(update) {
   }
 }
 
+// /clear 로 Claude CLI 가 재시작대도 메인 프로세스의 overlay 스토어는 그대로 살아 잇어서
+// 이전 세션의 한마디가 다음 세션 패널에 그대로 남는다. 세션 경계(SessionStart) 에서
+// overlay 파일에 {"line": null} 을 찍어 스토어의 visualOverlay.line 을 비워준다.
+function clearVisualOverlayLine() {
+  const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
+  const visualStateCommand =
+    typeof helperBinDir === "string" && helperBinDir.length > 0
+      ? join(helperBinDir, "claude-visual-state")
+      : "claude-visual-state";
+
+  const result = spawnSync(visualStateCommand, ["--clear-line"], {
+    stdio: "ignore",
+  });
+
+  if (result.status === 0) {
+    return;
+  }
+
+  if (typeof result.error?.message === "string") {
+    appendTrace(
+      `claude-visual-state invocation failed command=${visualStateCommand} error=${result.error.message}`,
+    );
+  } else {
+    appendTrace(
+      `claude-visual-state invocation failed command=${visualStateCommand} status=${result.status}`,
+    );
+  }
+}
+
 function main() {
   const eventName = process.argv[2];
 
@@ -632,6 +661,10 @@ function main() {
     `hook-state pendingPermission=${getPendingPermission(nextHookState) === null ? "none" : "active"} lastEvent=${typeof nextHookState.lastEvent === "string" ? nextHookState.lastEvent : "none"}`,
   );
   writeHookState(nextHookState);
+
+  if (eventName === "SessionStart") {
+    clearVisualOverlayLine();
+  }
 
   if (update === null) {
     appendTrace(`no status update mapped for event=${eventName}`);

@@ -7,11 +7,13 @@ interface HookInvocationResult {
   hookStateFilePath: string;
   statusFilePath: string;
   traceFilePath: string;
+  overlayFilePath: string;
 }
 
 interface HookInvocationOptions {
   hookStateFilePath?: string;
   statusFilePath?: string;
+  overlayFilePath?: string;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -35,6 +37,12 @@ function invokeHook(
   );
   const hookStateFilePath =
     options?.hookStateFilePath ?? `${statusFilePath}.hook-state.json`;
+  const overlayFilePath =
+    options?.overlayFilePath ??
+    path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "claude-hook-overlay-")),
+      "overlay.json",
+    );
   const helperBinDir = path.resolve(process.cwd(), "bin");
   const result = spawnSync("node", ["./bin/claude-session-hook", eventName], {
     cwd: process.cwd(),
@@ -44,6 +52,7 @@ function invokeHook(
       CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
       CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: helperBinDir,
       CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: hookStateFilePath,
+      CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
     },
     input: JSON.stringify(payload),
     encoding: "utf8",
@@ -59,6 +68,7 @@ function invokeHook(
     hookStateFilePath,
     statusFilePath,
     traceFilePath,
+    overlayFilePath,
   };
 }
 
@@ -157,6 +167,31 @@ describe("claude-session-hook", () => {
       "권한 승인 없이 넘어와서 새 입력을 읽는 중이에요...!",
     );
     expect(status.currentTask).toBe("Prompt: 흐음.. 다시 정리해줘");
+  });
+
+  it("clears the visual overlay line on SessionStart", () => {
+    // /clear 로 Claude CLI 가 재시작댈 때 이전 세션의 한마디가 남는 버그 방지:
+    // SessionStart 훅이 overlay 파일에 {"line": null} 을 찍어 스토어의
+    // visualOverlay.line 을 비워야 한다.
+    const result = invokeHook("SessionStart", {});
+    const overlayPayload: unknown = JSON.parse(
+      fs.readFileSync(result.overlayFilePath, "utf8"),
+    );
+
+    expect(overlayPayload).toEqual({ line: null });
+
+    const status = readStatusFile(result.statusFilePath);
+    expect(status.state).toBe("waiting");
+    expect(status.line).toBe("Claude 연결 완료! 다음 입력을 기다리고 잇어요...!");
+  });
+
+  it("does not touch the overlay file for non-SessionStart events", () => {
+    const result = invokeHook("UserPromptSubmit", {
+      prompt: "룩앳미",
+    });
+
+    // claude-visual-state 가 호출댄 적이 읍스니 overlay 파일은 생성되지 않아야 한다.
+    expect(fs.existsSync(result.overlayFilePath)).toBe(false);
   });
 
   it("infers a soft permission cancel when the session closes first", () => {
