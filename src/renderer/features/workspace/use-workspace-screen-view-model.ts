@@ -85,7 +85,7 @@ export interface WorkspaceScreenViewModel {
   currentThemeId: AppThemeId;
   createTab: () => void;
   dismissMcpSetupPrompt: () => void;
-  dropVisualAssets: (filePaths: ReadonlyArray<string>) => void;
+  dropVisualAssets: (files: ReadonlyArray<File>) => void;
   handleLaunchClaude: () => void;
   isMcpSetupPromptDismissed: boolean;
   isInstallingVisualMcp: boolean;
@@ -319,7 +319,23 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       setIsMcpSetupPromptDismissed(true);
       persistMcpSetupPromptDismissedPreference(true);
     },
-    dropVisualAssets: (filePaths) => {
+    dropVisualAssets: (files) => {
+      // webUtils.getPathForFile는 드랍·파일시스템 출처가 아닌 File에 대해 빈 문자열을 돌려주므로 그런 건 걸러냄
+      const bridge = window.claudeApp?.visualAssets;
+
+      if (bridge === undefined) {
+        return;
+      }
+
+      const filePaths = files.flatMap((file) => {
+        const resolvedPath = bridge.getPathForFile(file);
+        return resolvedPath.length > 0 ? [resolvedPath] : [];
+      });
+
+      if (filePaths.length === 0) {
+        return;
+      }
+
       importVisualAssets(importVisualAssetFiles(filePaths));
     },
     handleLaunchClaude,

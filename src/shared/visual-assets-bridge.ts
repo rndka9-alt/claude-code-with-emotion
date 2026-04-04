@@ -11,6 +11,8 @@ export interface VisualAssetPickerFile {
 export interface VisualAssetBridge {
   getAvailableOptions: () => Promise<AvailableVisualOptions>;
   getCatalog: () => Promise<VisualAssetCatalog>;
+  // Electron 32+는 File.path 속성을 지웟으므로 renderer에서 드랍된 File의 절대경로를 알아내려면 webUtils.getPathForFile 경유가 필수
+  getPathForFile: (file: File) => string;
   importFiles: (
     filePaths: ReadonlyArray<string>,
   ) => Promise<VisualAssetPickerFile[]>;

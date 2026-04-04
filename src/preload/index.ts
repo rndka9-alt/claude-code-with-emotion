@@ -1,4 +1,9 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import {
+  contextBridge,
+  ipcRenderer,
+  webUtils,
+  type IpcRendererEvent,
+} from 'electron';
 import type { ClaudeAppApi } from '../shared/electron-api';
 import {
   APP_THEME_CHANNELS,
@@ -152,6 +157,9 @@ const claudeAppApi: ClaudeAppApi = {
     },
     getCatalog: () => {
       return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.getCatalog);
+    },
+    getPathForFile: (file) => {
+      return webUtils.getPathForFile(file);
     },
     importFiles: (filePaths) => {
       return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.importFiles, filePaths);

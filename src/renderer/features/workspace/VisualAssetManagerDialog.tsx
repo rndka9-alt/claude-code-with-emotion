@@ -30,7 +30,7 @@ interface VisualAssetManagerDialogProps {
   mcpSetupError: string | null;
   mcpSetupInstalled: boolean;
   onClose: () => void;
-  onDropFiles: (filePaths: ReadonlyArray<string>) => void;
+  onDropFiles: (files: ReadonlyArray<File>) => void;
   onInstallVisualMcp: () => void;
   onPickFiles: () => void;
   onRemoveAsset: (assetId: string) => void;
@@ -56,9 +56,6 @@ interface VisualAssetManagerDialogProps {
 }
 
 type VisualAssetManagerTabId = 'general' | 'theme' | 'assets' | 'messages';
-type DroppedVisualAssetFile = File & {
-  path?: string;
-};
 
 const managerIconClassName = 'h-3.5 w-3.5';
 const managerActionButtonClassName =
@@ -73,19 +70,11 @@ const managerInputClassName =
   'w-full border border-[var(--color-border-soft)] bg-[var(--color-surface-elevated)] px-3 py-2.5 text-[var(--color-text-tooltip)] outline-none transition-colors duration-150 focus:border-[var(--color-border-strong)]';
 const visualAssetDropPathPattern = /\.(png|jpe?g|gif|webp)$/i;
 
-function getDroppedVisualAssetPaths(files: FileList | null): string[] {
-  return Array.from(files ?? []).flatMap((file) => {
-    const candidatePath = (file as DroppedVisualAssetFile).path;
-
-    if (
-      typeof candidatePath !== 'string' ||
-      candidatePath.length === 0 ||
-      !visualAssetDropPathPattern.test(candidatePath)
-    ) {
-      return [];
-    }
-
-    return [candidatePath];
+function getDroppedVisualAssetFiles(files: FileList | null): File[] {
+  return Array.from(files ?? []).filter((file) => {
+    // Electron 32+에서 File.path가 사라졋어서 경로는 더 이상 여기서 체크 못 해요
+    // 대신 드랍된 파일명 확장자만 보고 이미지인지 거르고, 실제 경로 해석은 상위 호출자에게 맡김
+    return visualAssetDropPathPattern.test(file.name);
   });
 }
 
@@ -271,10 +260,10 @@ export function VisualAssetManagerDialog({
     event.preventDefault();
     setIsAssetDropActive(false);
 
-    const filePaths = getDroppedVisualAssetPaths(event.dataTransfer.files);
+    const droppedFiles = getDroppedVisualAssetFiles(event.dataTransfer.files);
 
-    if (filePaths.length > 0) {
-      onDropFiles(filePaths);
+    if (droppedFiles.length > 0) {
+      onDropFiles(droppedFiles);
     }
   };
 

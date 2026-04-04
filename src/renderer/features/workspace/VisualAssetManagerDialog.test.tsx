@@ -64,14 +64,10 @@ describe('VisualAssetManagerDialog', () => {
     ).toBeInTheDocument();
   });
 
-  it('imports dropped image paths from the asset drop zone', () => {
+  it('imports dropped image files from the asset drop zone', () => {
     const onDropFiles = vi.fn();
     const droppedFile = new File(['image'], 'working__happy.png', {
       type: 'image/png',
-    });
-
-    Object.defineProperty(droppedFile, 'path', {
-      value: '/tmp/working__happy.png',
     });
 
     render(
@@ -108,7 +104,7 @@ describe('VisualAssetManagerDialog', () => {
       },
     });
 
-    expect(onDropFiles).toHaveBeenCalledWith(['/tmp/working__happy.png']);
+    expect(onDropFiles).toHaveBeenCalledWith([droppedFile]);
   });
 
   it('closes when Escape is pressed or the dim overlay is clicked', () => {
