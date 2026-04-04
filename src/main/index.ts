@@ -307,6 +307,11 @@ function registerTerminalBridge(
         'terminal',
         `exit session=${sessionId} code=${event.exitCode} signal=${event.signal}`,
       );
+      // 터미널 종료 시 MCP가 설정한 오버레이 한마디를 즉시 클리어
+      sessionStatusStores.get(sessionId)?.applyVisualOverlay(
+        { line: null },
+        'session-exit',
+      );
       mainWindow.webContents.send(TERMINAL_CHANNELS.exit, {
         sessionId,
         exitCode: event.exitCode,
