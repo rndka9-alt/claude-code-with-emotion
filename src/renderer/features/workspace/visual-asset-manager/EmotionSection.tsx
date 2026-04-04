@@ -228,150 +228,159 @@ export function EmotionSection({
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <h4 className="m-0">State Presets</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {STATE_PRESETS.map((preset) => {
-                        const inputId = `${stateMappingIdPrefix}-${preset.id}`;
+                  <details className="group flex flex-col gap-[14px]">
+                    <summary className="flex cursor-pointer list-none items-center justify-between border border-border-soft bg-surface-elevated px-3 py-2 text-sm text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight [&::-webkit-details-marker]:hidden">
+                      <span>매핑 설정</span>
+                      <span className="text-xs text-text-subtle transition-transform duration-150 group-open:rotate-180">
+                        ▾
+                      </span>
+                    </summary>
 
-                        return (
-                          <label
-                            className={managerChipClassName}
-                            htmlFor={inputId}
-                            key={preset.id}
-                            title={preset.description}
-                          >
-                            <input
-                              checked={assetHasStateMapping(
-                                catalog,
-                                asset.id,
-                                preset.id,
-                              )}
-                              className="accent-terminal-blue"
-                              id={inputId}
-                              onChange={(
-                                event: ChangeEvent<HTMLInputElement>,
-                              ) => {
-                                onToggleState(
+                    <div className="flex flex-col gap-2">
+                      <h4 className="m-0">State Presets</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {STATE_PRESETS.map((preset) => {
+                          const inputId = `${stateMappingIdPrefix}-${preset.id}`;
+
+                          return (
+                            <label
+                              className={managerChipClassName}
+                              htmlFor={inputId}
+                              key={preset.id}
+                              title={preset.description}
+                            >
+                              <input
+                                checked={assetHasStateMapping(
+                                  catalog,
                                   asset.id,
                                   preset.id,
-                                  event.currentTarget.checked,
-                                );
-                              }}
-                              type="checkbox"
-                            />
-                            <span>{preset.label}</span>
-                          </label>
-                        );
-                      })}
+                                )}
+                                className="accent-terminal-blue"
+                                id={inputId}
+                                onChange={(
+                                  event: ChangeEvent<HTMLInputElement>,
+                                ) => {
+                                  onToggleState(
+                                    asset.id,
+                                    preset.id,
+                                    event.currentTarget.checked,
+                                  );
+                                }}
+                                type="checkbox"
+                              />
+                              <span>{preset.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col gap-2">
-                    <h4 className="m-0">Emotion Presets</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {EMOTION_PRESETS.map((preset) => {
-                        if (preset.id === 'neutral') {
-                          return null;
-                        }
+                    <div className="flex flex-col gap-2">
+                      <h4 className="m-0">Emotion Presets</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {EMOTION_PRESETS.map((preset) => {
+                          if (preset.id === 'neutral') {
+                            return null;
+                          }
 
-                        const inputId = `${emotionMappingIdPrefix}-${preset.id}`;
+                          const inputId = `${emotionMappingIdPrefix}-${preset.id}`;
 
-                        return (
-                          <label
-                            className={managerChipClassName}
-                            htmlFor={inputId}
-                            key={preset.id}
-                            title={preset.description}
-                          >
-                            <input
-                              checked={assetHasEmotionMapping(
-                                catalog,
-                                asset.id,
-                                preset.id,
-                              )}
-                              className="accent-terminal-blue"
-                              id={inputId}
-                              onChange={(
-                                event: ChangeEvent<HTMLInputElement>,
-                              ) => {
-                                onToggleEmotion(
+                          return (
+                            <label
+                              className={managerChipClassName}
+                              htmlFor={inputId}
+                              key={preset.id}
+                              title={preset.description}
+                            >
+                              <input
+                                checked={assetHasEmotionMapping(
+                                  catalog,
                                   asset.id,
                                   preset.id,
-                                  event.currentTarget.checked,
-                                );
-                              }}
-                              type="checkbox"
-                            />
-                            <span>{preset.label}</span>
-                          </label>
-                        );
-                      })}
+                                )}
+                                className="accent-terminal-blue"
+                                id={inputId}
+                                onChange={(
+                                  event: ChangeEvent<HTMLInputElement>,
+                                ) => {
+                                  onToggleEmotion(
+                                    asset.id,
+                                    preset.id,
+                                    event.currentTarget.checked,
+                                  );
+                                }}
+                                type="checkbox"
+                              />
+                              <span>{preset.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col gap-2">
-                    <h4 className="m-0">Exact State + Emotion</h4>
-                    <p className={managerSectionCopyClassName}>
-                      이건 state-only, emotion-only보다 먼저 잡혀요. 진짜 전용 표정 카드예요...!
-                    </p>
-                    <div className="flex flex-col gap-2.5">
-                      {EMOTION_PRESETS.map((emotionPreset) => {
-                        if (emotionPreset.id === 'neutral') {
-                          return null;
-                        }
+                    <div className="flex flex-col gap-2">
+                      <h4 className="m-0">Exact State + Emotion</h4>
+                      <p className={managerSectionCopyClassName}>
+                        이건 state-only, emotion-only보다 먼저 잡혀요. 진짜 전용 표정 카드예요...!
+                      </p>
+                      <div className="flex flex-col gap-2.5">
+                        {EMOTION_PRESETS.map((emotionPreset) => {
+                          if (emotionPreset.id === 'neutral') {
+                            return null;
+                          }
 
-                        return (
-                          <div
-                            className="grid items-start gap-2.5 min-[901px]:grid-cols-[92px_minmax(0,1fr)]"
-                            key={emotionPreset.id}
-                          >
-                            <div className="pt-1.5 text-xs text-text-soft">
-                              {emotionPreset.label}
-                            </div>
+                          return (
+                            <div
+                              className="grid items-start gap-2.5 min-[901px]:grid-cols-[92px_minmax(0,1fr)]"
+                              key={emotionPreset.id}
+                            >
+                              <div className="pt-1.5 text-xs text-text-soft">
+                                {emotionPreset.label}
+                              </div>
 
-                            <div className="flex flex-wrap gap-2">
-                              {STATE_PRESETS.map((statePreset) => {
-                                const inputId = `${pairMappingIdPrefix}-${statePreset.id}-${emotionPreset.id}`;
+                              <div className="flex flex-wrap gap-2">
+                                {STATE_PRESETS.map((statePreset) => {
+                                  const inputId = `${pairMappingIdPrefix}-${statePreset.id}-${emotionPreset.id}`;
 
-                                return (
-                                  <label
-                                    className={`${managerChipClassName} text-xs`}
-                                    htmlFor={inputId}
-                                    key={`${statePreset.id}-${emotionPreset.id}`}
-                                    title={`${statePreset.label} + ${emotionPreset.label}`}
-                                  >
-                                    <input
-                                      checked={assetHasStateEmotionMapping(
-                                        catalog,
-                                        asset.id,
-                                        statePreset.id,
-                                        emotionPreset.id,
-                                      )}
-                                      className="accent-terminal-blue"
-                                      id={inputId}
-                                      onChange={(
-                                        event: ChangeEvent<HTMLInputElement>,
-                                      ) => {
-                                        onToggleStateEmotion(
+                                  return (
+                                    <label
+                                      className={`${managerChipClassName} text-xs`}
+                                      htmlFor={inputId}
+                                      key={`${statePreset.id}-${emotionPreset.id}`}
+                                      title={`${statePreset.label} + ${emotionPreset.label}`}
+                                    >
+                                      <input
+                                        checked={assetHasStateEmotionMapping(
+                                          catalog,
                                           asset.id,
                                           statePreset.id,
                                           emotionPreset.id,
-                                          event.currentTarget.checked,
-                                        );
-                                      }}
-                                      type="checkbox"
-                                    />
-                                    <span>{statePreset.label}</span>
-                                  </label>
-                                );
-                              })}
+                                        )}
+                                        className="accent-terminal-blue"
+                                        id={inputId}
+                                        onChange={(
+                                          event: ChangeEvent<HTMLInputElement>,
+                                        ) => {
+                                          onToggleStateEmotion(
+                                            asset.id,
+                                            statePreset.id,
+                                            emotionPreset.id,
+                                            event.currentTarget.checked,
+                                          );
+                                        }}
+                                        type="checkbox"
+                                      />
+                                      <span>{statePreset.label}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  </details>
                 </div>
               </li>
             );
