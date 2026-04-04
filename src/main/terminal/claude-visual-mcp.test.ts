@@ -13,7 +13,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function readSetVisualEmotionEnum(response: JsonRpcMessage): string[] {
+function readSetVisualOverlayEmotionEnum(response: JsonRpcMessage): string[] {
   if (!isObjectRecord(response.result)) {
     throw new Error("Expected MCP tools/list result to be an object");
   }
@@ -24,19 +24,19 @@ function readSetVisualEmotionEnum(response: JsonRpcMessage): string[] {
     throw new Error("Expected MCP tools/list result to contain tools");
   }
 
-  const setVisualEmotionTool = tools.find((tool) => {
+  const setVisualOverlayTool = tools.find((tool) => {
     return (
       isObjectRecord(tool) &&
       typeof tool.name === "string" &&
-      tool.name === "set_visual_emotion"
+      tool.name === "set_visual_overlay"
     );
   });
 
-  if (!isObjectRecord(setVisualEmotionTool)) {
-    throw new Error("Expected set_visual_emotion tool definition");
+  if (!isObjectRecord(setVisualOverlayTool)) {
+    throw new Error("Expected set_visual_overlay tool definition");
   }
 
-  const inputSchema = setVisualEmotionTool.inputSchema;
+  const inputSchema = setVisualOverlayTool.inputSchema;
 
   if (!isObjectRecord(inputSchema) || !isObjectRecord(inputSchema.properties)) {
     throw new Error("Expected input schema properties");
@@ -48,7 +48,9 @@ function readSetVisualEmotionEnum(response: JsonRpcMessage): string[] {
     !isObjectRecord(emotionProperty) ||
     !Array.isArray(emotionProperty.enum)
   ) {
-    throw new Error("Expected emotion enum on set_visual_emotion input schema");
+    throw new Error(
+      "Expected emotion enum on set_visual_overlay input schema",
+    );
   }
 
   return emotionProperty.enum.filter((value): value is string => {
@@ -238,21 +240,19 @@ describe("claude-visual-mcp", () => {
       throw new Error("Expected a tools/list response");
     }
 
-    expect(readSetVisualEmotionEnum(toolsListResponse)).toEqual([
+    expect(readSetVisualOverlayEmotionEnum(toolsListResponse)).toEqual([
       "neutral",
       "sad",
     ]);
     expect(readToolNames(toolsListResponse)).toEqual(
       expect.arrayContaining([
         "get_available_visual_options",
-        "set_visual_emotion",
-        "set_visual_line",
-        "clear_visual_line",
+        "set_visual_overlay",
       ]),
     );
   });
 
-  it("writes an emotion overlay through the tool call", async () => {
+  it("writes an emotion overlay through the merged tool call", async () => {
     const catalogFilePath = path.join(
       fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-mcp-catalog-")),
       "visual-assets.json",
@@ -305,7 +305,7 @@ describe("claude-visual-mcp", () => {
           id: 2,
           method: "tools/call",
           params: {
-            name: "set_visual_emotion",
+            name: "set_visual_overlay",
             arguments: {
               emotion: "happy",
             },
@@ -324,7 +324,7 @@ describe("claude-visual-mcp", () => {
     });
   });
 
-  it("writes and clears a visual line through MCP tools", async () => {
+  it("writes and clears a visual line through the merged tool", async () => {
     const catalogFilePath = path.join(
       fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-mcp-catalog-")),
       "visual-assets.json",
@@ -365,7 +365,7 @@ describe("claude-visual-mcp", () => {
           id: 2,
           method: "tools/call",
           params: {
-            name: "set_visual_line",
+            name: "set_visual_overlay",
             arguments: {
               line: "문제를 좀 더 파볼게요!",
             },
@@ -403,8 +403,10 @@ describe("claude-visual-mcp", () => {
           id: 2,
           method: "tools/call",
           params: {
-            name: "clear_visual_line",
-            arguments: {},
+            name: "set_visual_overlay",
+            arguments: {
+              line: null,
+            },
           },
         },
       ],
@@ -417,6 +419,189 @@ describe("claude-visual-mcp", () => {
 
     expect(JSON.parse(fs.readFileSync(overlayFilePath, "utf8"))).toEqual({
       line: null,
+    });
+  });
+
+  it("updates emotion and line together in one overlay call", async () => {
+    const catalogFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-mcp-catalog-")),
+      "visual-assets.json",
+    );
+    const overlayFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-mcp-overlay-")),
+      "overlay.json",
+    );
+
+    fs.writeFileSync(
+      catalogFilePath,
+      JSON.stringify({
+        version: 1,
+        assets: [
+          {
+            id: "asset-happy",
+            kind: "image",
+            label: "Happy Fox",
+            path: "/tmp/happy.png",
+          },
+        ],
+        mappings: [
+          {
+            assetId: "asset-happy",
+            emotion: "happy",
+          },
+        ],
+        stateLines: [],
+      }),
+      "utf8",
+    );
+
+    await invokeMcpServer(
+      [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2024-11-05",
+            capabilities: {},
+            clientInfo: {
+              name: "test",
+              version: "0.0.0",
+            },
+          },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "set_visual_overlay",
+            arguments: {
+              emotion: "happy",
+              line: "둘 다 간다!",
+            },
+          },
+        },
+      ],
+      {
+        ...process.env,
+        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
+        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
+      },
+    );
+
+    expect(JSON.parse(fs.readFileSync(overlayFilePath, "utf8"))).toEqual({
+      emotion: "happy",
+      line: "둘 다 간다!",
+    });
+  });
+
+  it("preserves the other field when only one is updated", async () => {
+    const catalogFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-mcp-catalog-")),
+      "visual-assets.json",
+    );
+    const overlayFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-mcp-overlay-")),
+      "overlay.json",
+    );
+
+    fs.writeFileSync(
+      catalogFilePath,
+      JSON.stringify({
+        version: 1,
+        assets: [
+          {
+            id: "asset-happy",
+            kind: "image",
+            label: "Happy Fox",
+            path: "/tmp/happy.png",
+          },
+        ],
+        mappings: [
+          {
+            assetId: "asset-happy",
+            emotion: "happy",
+          },
+        ],
+        stateLines: [],
+      }),
+      "utf8",
+    );
+
+    // 첫 콜은 emotion 만 바꾸고, 두 번째는 line 만 바꾸는 구조.
+    // merge 가 깨지면 두 번째 콜이 emotion 을 날려버림.
+    await invokeMcpServer(
+      [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2024-11-05",
+            capabilities: {},
+            clientInfo: {
+              name: "test",
+              version: "0.0.0",
+            },
+          },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "set_visual_overlay",
+            arguments: {
+              emotion: "happy",
+            },
+          },
+        },
+      ],
+      {
+        ...process.env,
+        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
+        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
+      },
+    );
+
+    await invokeMcpServer(
+      [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2024-11-05",
+            capabilities: {},
+            clientInfo: {
+              name: "test",
+              version: "0.0.0",
+            },
+          },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "set_visual_overlay",
+            arguments: {
+              line: "나중에 왓지만 emotion 은 살아잇음",
+            },
+          },
+        },
+      ],
+      {
+        ...process.env,
+        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
+        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
+      },
+    );
+
+    expect(JSON.parse(fs.readFileSync(overlayFilePath, "utf8"))).toEqual({
+      emotion: "happy",
+      line: "나중에 왓지만 emotion 은 살아잇음",
     });
   });
 });

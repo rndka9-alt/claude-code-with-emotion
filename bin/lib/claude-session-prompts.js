@@ -14,11 +14,11 @@ function readPromptFile(fileName, fallback) {
 function createVisualToolUsagePrompt() {
   const emotionUsage = readPromptFile(
     "visual-emotion-usage.md",
-    "Use set_visual_emotion when the visible emotional tone should change, and use neutral to clear it.",
+    "Call set_visual_overlay with an emotion field when the visible emotional tone should change; use emotion: \"neutral\" to clear it.",
   );
   const lineUsage = readPromptFile(
     "visual-line-usage.md",
-    "Use set_visual_line for a short in-character utterance when it helps, and clear_visual_line when it no longer does.",
+    "Call set_visual_overlay with a line field for a short in-character utterance when it helps, and line: null when it no longer does.",
   );
 
   return [

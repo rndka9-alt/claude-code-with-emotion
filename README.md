@@ -182,9 +182,7 @@ bin/claude-visual-mcp
 Current tools:
 
 - `get_available_visual_options`
-- `set_visual_emotion`
-- `set_visual_line`
-- `clear_visual_line`
+- `set_visual_overlay` (set `emotion`, `line`, or both; pass `emotion: "neutral"` or `line: null` to clear)
 
 The MCP surface now splits its guidance across dedicated prompt files in `bin/prompts/`, so emotion selection and one-line copy rules can evolve independently without bloating the server script.
 

@@ -81,7 +81,29 @@ async function main() {
     `writing visual overlay emotion=${payload.emotion ?? "none"} line=${payload.line ?? ""}`,
   );
 
-  fs.writeFileSync(overlayFilePath, JSON.stringify(payload), "utf8");
+  // 부분 업데이트가 기존 필드를 덮어쓰지 않도록 파일 읽고 merge 후 쓴다.
+  // 두 툴이 연달아 호출될 때 레이스로 한 쪽이 씹히던 버그 방지.
+  let existingPayload = {};
+
+  try {
+    if (fs.existsSync(overlayFilePath)) {
+      const existingContents = fs.readFileSync(overlayFilePath, "utf8").trim();
+
+      if (existingContents.length > 0) {
+        const parsed = JSON.parse(existingContents);
+
+        if (typeof parsed === "object" && parsed !== null) {
+          existingPayload = parsed;
+        }
+      }
+    }
+  } catch {
+    // 잘못된 기존 파일은 빈 상태로 취급하고 그대로 덮어쓴다.
+  }
+
+  const mergedPayload = { ...existingPayload, ...payload };
+
+  fs.writeFileSync(overlayFilePath, JSON.stringify(mergedPayload), "utf8");
 }
 
 void main().catch((error) => {

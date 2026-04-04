@@ -145,8 +145,8 @@ function createToolsListResult() {
         },
       },
       {
-        name: "set_visual_emotion",
-        description: promptHints.emotionSelectionPrompt,
+        name: "set_visual_overlay",
+        description: promptHints.overlaySelectionPrompt,
         inputSchema: {
           type: "object",
           properties: {
@@ -154,66 +154,124 @@ function createToolsListResult() {
               type: "string",
               enum: emotionEnum,
             },
-          },
-          required: ["emotion"],
-          additionalProperties: false,
-        },
-      },
-      {
-        name: "set_visual_line",
-        description: promptHints.lineSelectionPrompt,
-        inputSchema: {
-          type: "object",
-          properties: {
             line: {
-              type: "string",
+              type: ["string", "null"],
               minLength: 1,
               maxLength: 80,
             },
           },
-          required: ["line"],
           additionalProperties: false,
-        },
-      },
-      {
-        name: "clear_visual_line",
-        description:
-          "Clear the extra in-character one-line utterance and fall back to the hook-driven activity label by itself.",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          additionalProperties: false,
+          anyOf: [{ required: ["emotion"] }, { required: ["line"] }],
         },
       },
     ],
   };
 }
 
-function callVisualEmotionTool(argumentsObject) {
-  const availableOptions = readAvailableVisualOptions();
-  const allowedEmotions = new Set(["neutral", ...availableOptions.emotions]);
-  const emotion =
-    typeof argumentsObject === "object" &&
-    argumentsObject !== null &&
-    typeof argumentsObject.emotion === "string"
-      ? argumentsObject.emotion
-      : null;
-
-  if (emotion === null || !allowedEmotions.has(emotion)) {
+function callVisualOverlayTool(argumentsObject) {
+  if (typeof argumentsObject !== "object" || argumentsObject === null) {
     return {
       isError: true,
       content: [
         {
           type: "text",
-          text: `Unsupported emotion: ${emotion ?? "missing"}`,
+          text: "Provide at least one of emotion or line.",
         },
       ],
     };
   }
 
+  const hasEmotion = Object.prototype.hasOwnProperty.call(
+    argumentsObject,
+    "emotion",
+  );
+  const hasLine = Object.prototype.hasOwnProperty.call(
+    argumentsObject,
+    "line",
+  );
+
+  if (!hasEmotion && !hasLine) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: "Provide at least one of emotion or line.",
+        },
+      ],
+    };
+  }
+
+  const payload = {};
+  const messages = [];
+
+  if (hasEmotion) {
+    const availableOptions = readAvailableVisualOptions();
+    const allowedEmotions = new Set(["neutral", ...availableOptions.emotions]);
+    const emotion = argumentsObject.emotion;
+
+    if (typeof emotion !== "string" || !allowedEmotions.has(emotion)) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Unsupported emotion: ${
+              typeof emotion === "string" ? emotion : "missing"
+            }`,
+          },
+        ],
+      };
+    }
+
+    // "neutral" 은 클라이언트가 emotion overlay 를 끄고 싶다는 뜻이므로 null 로 저장.
+    payload.emotion = emotion === "neutral" ? null : emotion;
+    messages.push(
+      emotion === "neutral"
+        ? "Cleared the visual emotion overlay."
+        : `Set the visual emotion overlay to ${emotion}.`,
+    );
+  }
+
+  if (hasLine) {
+    const line = argumentsObject.line;
+
+    if (line === null) {
+      payload.line = null;
+      messages.push("Cleared the visual line.");
+    } else if (typeof line === "string") {
+      const trimmed = line.trim();
+
+      if (trimmed.length === 0) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: "Missing line text.",
+            },
+          ],
+        };
+      }
+
+      payload.line = trimmed;
+      messages.push(`Set the visual line to "${trimmed}".`);
+    } else {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: "Line must be a string or null.",
+          },
+        ],
+      };
+    }
+  }
+
   const result = spawnSync(
     nodeRuntimePath,
-    [visualStateHelperPath, "--emotion", emotion],
+    [visualStateHelperPath, JSON.stringify(payload)],
     {
       cwd: process.cwd(),
       env: createVisualMcpChildEnv(process.env),
@@ -234,110 +292,24 @@ function callVisualEmotionTool(argumentsObject) {
     };
   }
 
-  return {
-    content: [
-      {
-        type: "text",
-        text:
-          emotion === "neutral"
-            ? "Cleared the visual emotion overlay."
-            : `Set the visual emotion overlay to ${emotion}.`,
-      },
-    ],
-    structuredContent: {
-      emotion,
-    },
-  };
-}
+  const structuredContent = {};
 
-function callVisualLineTool(argumentsObject) {
-  const line =
-    typeof argumentsObject === "object" &&
-    argumentsObject !== null &&
-    typeof argumentsObject.line === "string"
-      ? argumentsObject.line.trim()
-      : "";
-
-  if (line.length === 0) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: "Missing line text.",
-        },
-      ],
-    };
+  if (hasEmotion) {
+    structuredContent.emotion = payload.emotion;
   }
 
-  const result = spawnSync(
-    nodeRuntimePath,
-    [visualStateHelperPath, "--line", line],
-    {
-      cwd: process.cwd(),
-      env: createVisualMcpChildEnv(process.env),
-      encoding: "utf8",
-    },
-  );
-
-  if (result.status !== 0) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: result.stderr || result.stdout || "Failed to write visual line",
-        },
-      ],
-    };
+  if (hasLine) {
+    structuredContent.line = payload.line;
   }
 
   return {
     content: [
       {
         type: "text",
-        text: `Set the visual line to "${line}".`,
+        text: messages.join(" "),
       },
     ],
-    structuredContent: {
-      line,
-    },
-  };
-}
-
-function clearVisualLineTool() {
-  const result = spawnSync(
-    nodeRuntimePath,
-    [visualStateHelperPath, "--clear-line"],
-    {
-      cwd: process.cwd(),
-      env: createVisualMcpChildEnv(process.env),
-      encoding: "utf8",
-    },
-  );
-
-  if (result.status !== 0) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: result.stderr || result.stdout || "Failed to clear visual line",
-        },
-      ],
-    };
-  }
-
-  return {
-    content: [
-      {
-        type: "text",
-        text: "Cleared the visual line.",
-      },
-    ],
-    structuredContent: {
-      line: null,
-    },
+    structuredContent,
   };
 }
 
@@ -429,18 +401,8 @@ function handleRequest(message) {
       return;
     }
 
-    if (toolName === "set_visual_emotion") {
-      sendSuccess(id, callVisualEmotionTool(argumentsObject));
-      return;
-    }
-
-    if (toolName === "set_visual_line") {
-      sendSuccess(id, callVisualLineTool(argumentsObject));
-      return;
-    }
-
-    if (toolName === "clear_visual_line") {
-      sendSuccess(id, clearVisualLineTool());
+    if (toolName === "set_visual_overlay") {
+      sendSuccess(id, callVisualOverlayTool(argumentsObject));
       return;
     }
 

@@ -36,6 +36,6 @@
 - Imported visual assets are now copied into an app-managed library in `userData`, deduplicated by content hash, and pruned when the catalog no longer references them, so user mappings do not depend on the original source files surviving in place.
 - Embedded Claude launches now also auto-attach the local visual MCP server through a generated `--mcp-config` file, which turns the emotion overlay transport into an actual session capability instead of a manual helper-only path.
 - The status panel now distinguishes a hook-driven `activityLabel` from an MCP-driven one-line utterance, and the visual MCP guidance text is split into dedicated prompt files so emotion rules and in-character line rules can evolve separately.
-- Claude session startup now also appends a visual-tool usage prompt assembled from dedicated prompt files, so the rule for when to call `set_visual_emotion`, `set_visual_line`, and `clear_visual_line` is editable without hardcoding another giant string into the wrapper.
+- Claude session startup now also appends a visual-tool usage prompt assembled from dedicated prompt files, so the rule for when to call `set_visual_overlay` (with `emotion` and/or `line`) is editable without hardcoding another giant string into the wrapper.
 - `pnpm package:macos` now produces an unsigned local `.app` bundle, but Electron smoke-launch still aborts in this sandbox environment even for trivial `electron -e` commands.
 - Packaging is intentionally deferred until the core multi-terminal flow is working.

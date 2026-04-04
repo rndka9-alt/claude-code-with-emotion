@@ -15,8 +15,8 @@ describe("claude session prompts", () => {
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("set_visual_emotion");
-    expect(result.stdout).toContain("set_visual_line");
-    expect(result.stdout).toContain("clear_visual_line");
+    expect(result.stdout).toContain("set_visual_overlay");
+    expect(result.stdout).toContain("emotion");
+    expect(result.stdout).toContain("line");
   });
 });

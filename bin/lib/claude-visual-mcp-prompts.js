@@ -21,10 +21,20 @@ const lineSelectionPrompt = readPromptFile(
   "Set a short in-character utterance. The app appends the current activity label in parentheses, so do not restate the task.",
 );
 
+const overlaySelectionPrompt = [
+  "Update the assistant's visual overlay. Set `emotion`, `line`, or both in one call; omit a field to leave it unchanged.",
+  "",
+  "emotion:",
+  emotionSelectionPrompt,
+  "",
+  "line:",
+  lineSelectionPrompt,
+  "Pass `line: null` to clear the line without touching the emotion.",
+].join("\n");
+
 function createVisualPromptHints() {
   return {
-    emotionSelectionPrompt,
-    lineSelectionPrompt,
+    overlaySelectionPrompt,
   };
 }
 
