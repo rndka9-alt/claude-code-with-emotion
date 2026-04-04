@@ -111,7 +111,7 @@ describe('AssistantStatusStore', () => {
     }
   });
 
-  it('lets a visual overlay flush the pending state during the throttle window', async () => {
+  it('shares the throttle window between state and visual overlay emits', async () => {
     vi.useFakeTimers();
     try {
       const store = new AssistantStatusStore(6_000);
@@ -124,16 +124,16 @@ describe('AssistantStatusStore', () => {
       store.applyUpdate({ state: 'working', line: 'B' }, 'test');
       store.applyVisualOverlay({ emotion: 'happy' }, 'overlay');
 
-      // overlay emit 에 밀린 최신 state 가 함께 실려 나감
+      // throttle 창이 열려있는 동안엔 leading emit 만 나가고 overlay 도 큐잉댐
+      expect(emitted).toEqual([{ state: 'thinking', emotion: null }]);
+
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      // trailing edge 에서 최신 state + emotion 을 한 번에 flush
       expect(emitted).toEqual([
         { state: 'thinking', emotion: null },
         { state: 'working', emotion: 'happy' },
       ]);
-
-      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
-
-      // overlay 가 이미 flush 햇으므로 trailing emit 은 읍음
-      expect(emitted).toHaveLength(2);
     } finally {
       vi.useRealTimers();
     }

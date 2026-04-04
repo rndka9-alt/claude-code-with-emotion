@@ -63,22 +63,10 @@ export class AssistantStatusStore {
     this.currentSnapshot = this.applyOverlay(nextSnapshot, source);
 
     // 상태 변경이 너무 빠르게 반복대면 패널 라벨이 휙휙 바뀌어 읽기 힘들어서
-    // 0.7s leading+trailing throttle 을 건다. baseSnapshot 은 계속 갱신하니까
-    // throttle 창 안에 감정(visualOverlay) 이벤트가 오면 그쪽 emit 이 최신 상태를
-    // 자연스럽게 실어 내보내준다.
-    if (this.stateThrottleTimer === null) {
-      this.emit();
-      this.hasPendingStateEmit = false;
-      this.stateThrottleTimer = setTimeout(() => {
-        this.stateThrottleTimer = null;
-        if (this.hasPendingStateEmit) {
-          this.hasPendingStateEmit = false;
-          this.emit();
-        }
-      }, AssistantStatusStore.STATE_THROTTLE_MS);
-    } else {
-      this.hasPendingStateEmit = true;
-    }
+    // 0.7s leading+trailing throttle 을 건다. state·emotion 이 같은 창을 공유하니
+    // 창 안에 들어온 갱신들은 모두 currentSnapshot 에 누적댔다가 trailing emit 때
+    // 최신 상태로 한 번에 나간다.
+    this.scheduleThrottledEmit();
   }
 
   applyVisualOverlay(
@@ -94,9 +82,9 @@ export class AssistantStatusStore {
     }
 
     this.currentSnapshot = this.applyOverlay(this.baseSnapshot, source);
-    this.emit();
-    // 감정 이벤트가 최신 baseSnapshot 을 이미 실어 내보냈으니 trailing emit 취소
-    this.hasPendingStateEmit = false;
+    // emotion 이벤트도 state 와 같은 throttle 창을 공유해야, state<->emotion 이
+    // 번갈아 들어올 때 한쪽으로 throttle 이 뚫려 패널이 휙휙 바뀌는 걸 막는다.
+    this.scheduleThrottledEmit();
   }
 
   dispose(): void {
@@ -152,6 +140,22 @@ export class AssistantStatusStore {
   private emit(): void {
     for (const listener of this.listeners) {
       listener(this.currentSnapshot);
+    }
+  }
+
+  private scheduleThrottledEmit(): void {
+    if (this.stateThrottleTimer === null) {
+      this.emit();
+      this.hasPendingStateEmit = false;
+      this.stateThrottleTimer = setTimeout(() => {
+        this.stateThrottleTimer = null;
+        if (this.hasPendingStateEmit) {
+          this.hasPendingStateEmit = false;
+          this.emit();
+        }
+      }, AssistantStatusStore.STATE_THROTTLE_MS);
+    } else {
+      this.hasPendingStateEmit = true;
     }
   }
 
