@@ -27,7 +27,7 @@ describe('formatStatusPanelLine', () => {
         overlayLine: '문제를 좀 더 파볼게요!',
         line: '문제를 좀 더 파볼게요!',
       }),
-    ).toBe('문제를 좀 더 파볼게요! (자료를 찾는 중)');
+    ).toBe('문제를 좀 더 파볼게요!\n(자료를 찾는 중)');
   });
 
   it('falls back to the raw line when no activity label exists', () => {
@@ -53,6 +53,6 @@ describe('formatStatusPanelLine', () => {
           },
         ],
       }),
-    ).toBe('상황 파악중...! (자료를 찾는 중)');
+    ).toBe('상황 파악중...!\n(자료를 찾는 중)');
   });
 });

@@ -153,15 +153,15 @@ export function StatusPanel({
       )}
 
       <div className="flex min-w-0 flex-col justify-center gap-3">
-        <p className="m-0 text-[1.08rem] text-[var(--color-text-highlight)]">
+        <p className="m-0 whitespace-pre-line text-[1.08rem] text-[var(--color-text-highlight)]">
           {overlayMainText !== null ? (
             <>
               {overlayMainText}
               {overlayActivitySuffix !== null && (
-                <span className="opacity-40">
-                  {' '}
-                  ({overlayActivitySuffix})
-                </span>
+                <>
+                  <br />
+                  <span className="opacity-40">({overlayActivitySuffix})</span>
+                </>
               )}
             </>
           ) : (

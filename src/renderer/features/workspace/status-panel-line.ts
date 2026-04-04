@@ -29,7 +29,7 @@ export function formatStatusPanelLine(
   ).trim();
 
   if (overlayLine.length > 0 && activityLabel.length > 0) {
-    return `${overlayLine} (${activityLabel})`;
+    return `${overlayLine}\n(${activityLabel})`;
   }
 
   if (overlayLine.length > 0) {
@@ -37,7 +37,7 @@ export function formatStatusPanelLine(
   }
 
   if (customStateLine.length > 0 && activityLabel.length > 0) {
-    return `${customStateLine} (${activityLabel})`;
+    return `${customStateLine}\n(${activityLabel})`;
   }
 
   if (customStateLine.length > 0) {

@@ -81,7 +81,7 @@ describe('StatusPanel', () => {
           line: '문제를 좀 더 파볼게요!',
         }}
         {...defaultProps}
-        statusLine="문제를 좀 더 파볼게요! (자료를 찾는 중)"
+        statusLine={'문제를 좀 더 파볼게요!\n(자료를 찾는 중)'}
         statusVisual={null}
       />,
     );
@@ -92,7 +92,7 @@ describe('StatusPanel', () => {
       return (
         element?.tagName === 'SPAN' &&
         element.classList.contains('opacity-40') &&
-        element.textContent === ' (자료를 찾는 중)'
+        element.textContent === '(자료를 찾는 중)'
       );
     });
     expect(suffix).toBeInTheDocument();
