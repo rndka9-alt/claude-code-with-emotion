@@ -44,7 +44,6 @@ export interface AssistantStatusUpdate {
   state: AssistantSemanticState;
   line: string;
   currentTask?: string;
-  durationMs?: number;
   intensity?: AssistantStatusIntensity;
 }
 

@@ -8,12 +8,11 @@ import {
 type SnapshotListener = (snapshot: AssistantStatusSnapshot) => void;
 
 export class AssistantStatusStore {
-  static readonly STATE_THROTTLE_MS = 700;
+  static readonly STATE_THROTTLE_MS = 1_000;
 
   private baseSnapshot: AssistantStatusSnapshot;
   private currentSnapshot: AssistantStatusSnapshot;
   private readonly listeners = new Set<SnapshotListener>();
-  private revertTimer: NodeJS.Timeout | null = null;
   private stateThrottleTimer: NodeJS.Timeout | null = null;
   private hasPendingStateEmit = false;
   private visualOverlay: AssistantVisualOverlayUpdate = {};
@@ -39,26 +38,6 @@ export class AssistantStatusStore {
   applyUpdate(update: AssistantStatusUpdate, source: string): void {
     const nextSnapshot = this.normalizeUpdate(update, source);
 
-    if (typeof update.durationMs === 'number' && update.durationMs > 0) {
-      this.currentSnapshot = this.applyOverlay(nextSnapshot, source);
-      this.emit();
-      this.clearRevertTimer();
-      this.revertTimer = setTimeout(() => {
-        this.currentSnapshot = this.applyOverlay(
-          {
-            ...this.baseSnapshot,
-            updatedAtMs: Date.now(),
-          },
-          source,
-        );
-        this.emit();
-        this.revertTimer = null;
-      }, update.durationMs);
-
-      return;
-    }
-
-    this.clearRevertTimer();
     this.baseSnapshot = nextSnapshot;
     this.currentSnapshot = this.applyOverlay(nextSnapshot, source);
 
@@ -88,7 +67,6 @@ export class AssistantStatusStore {
   }
 
   dispose(): void {
-    this.clearRevertTimer();
     this.clearStateThrottleTimer();
     this.listeners.clear();
   }
@@ -156,13 +134,6 @@ export class AssistantStatusStore {
       }, AssistantStatusStore.STATE_THROTTLE_MS);
     } else {
       this.hasPendingStateEmit = true;
-    }
-  }
-
-  private clearRevertTimer(): void {
-    if (this.revertTimer !== null) {
-      clearTimeout(this.revertTimer);
-      this.revertTimer = null;
     }
   }
 

@@ -393,7 +393,6 @@ function createUpdate(eventName, payload, hookState) {
       line: '권한 확인 기다리는 중이에요...!',
       task: summarizePermission(payload),
       intensity: 'medium',
-      durationMs: 12000,
     };
   }
 
@@ -404,7 +403,6 @@ function createUpdate(eventName, payload, hookState) {
       line: '권한이 막혀서 다른 길 찾는 중이에요...!',
       task: summarizePermission(payload),
       intensity: 'medium',
-      durationMs: 4500,
     };
   }
 
@@ -436,7 +434,6 @@ function createUpdate(eventName, payload, hookState) {
         line: '권한 팝업 확인 중이에요...!',
         task: summarizePermission(payload),
         intensity: 'medium',
-        durationMs: 12000,
       };
     }
 
@@ -446,7 +443,6 @@ function createUpdate(eventName, payload, hookState) {
       line: '새 알림이 와서 확인 중이에요...!',
       task: summarizeNotification(payload),
       intensity: 'medium',
-      durationMs: 3500,
     };
   }
 
@@ -507,7 +503,6 @@ function createUpdate(eventName, payload, hookState) {
       line: '작업 하나를 마무리햇어요...!',
       task: summarizeBackgroundTask(payload, 'Background task completed'),
       intensity: 'medium',
-      durationMs: 4500,
     };
   }
 
@@ -519,7 +514,6 @@ function createUpdate(eventName, payload, hookState) {
         line: '유저가 도구 실행을 중간에 멈췃어요...!',
         task: summarizeTool(payload, 'Interrupted during tool use'),
         intensity: 'medium',
-        durationMs: 6000,
       };
     }
 
@@ -560,7 +554,6 @@ function createUpdate(eventName, payload, hookState) {
         line: '권한 승인 없이 세션이 닫혓어요...!',
         task: summarizePermissionCancellation(pendingPermission),
         intensity: 'low',
-        durationMs: 6000,
       };
     }
 
@@ -594,10 +587,6 @@ function publishStatus(update) {
     '--intensity',
     update.intensity,
   ];
-
-  if (typeof update.durationMs === 'number' && update.durationMs > 0) {
-    args.push('--duration-ms', String(update.durationMs));
-  }
 
   const result = spawnSync(statusCommand, args, {
     stdio: 'ignore',

@@ -82,7 +82,6 @@ describe('claude-session-hook', () => {
     expect(status.state).toBe('waiting');
     expect(status.line).toBe('권한 확인 기다리는 중이에요...!');
     expect(status.currentTask).toBe('Waiting on permission for Bash');
-    expect(status.durationMs).toBe(12000);
   });
 
   it('maps Notification into a surprised transient state', () => {
@@ -96,7 +95,6 @@ describe('claude-session-hook', () => {
     expect(status.currentTask).toBe(
       'Notification: Build completed successfully',
     );
-    expect(status.durationMs).toBe(3500);
   });
 
   it('maps TaskCompleted into a happy transient state', () => {
@@ -110,7 +108,6 @@ describe('claude-session-hook', () => {
     expect(status.currentTask).toBe(
       'Task: Finished updating the renderer layout',
     );
-    expect(status.durationMs).toBe(4500);
   });
 
   it('maps interrupted stop signals into a waiting interruption message', () => {
@@ -123,7 +120,6 @@ describe('claude-session-hook', () => {
     expect(status.state).toBe('waiting');
     expect(status.line).toBe('유저가 도구 실행을 중간에 멈췃어요...!');
     expect(status.currentTask).toBe('Interrupted during tool use (Bash)');
-    expect(status.durationMs).toBe(6000);
   });
 
   it('infers a soft permission cancel when the next event is a new prompt', () => {
@@ -194,6 +190,5 @@ describe('claude-session-hook', () => {
     expect(status.state).toBe('disconnected');
     expect(status.line).toBe('권한 승인 없이 세션이 닫혓어요...!');
     expect(status.currentTask).toBe('Waiting on permission for Bash (not approved)');
-    expect(status.durationMs).toBe(6000);
   });
 });

@@ -20,38 +20,6 @@ describe('AssistantStatusStore', () => {
     expect(store.getSnapshot().activityLabel).toBe('연결 대기 중');
   });
 
-  it('reverts temporary updates back to the base snapshot', async () => {
-    const store = new AssistantStatusStore(2_000);
-
-    store.applyUpdate(
-      {
-        state: 'working',
-        line: 'Base state',
-        currentTask: 'Normal work',
-      },
-      'test',
-    );
-
-    store.applyUpdate(
-      {
-        state: 'surprised',
-        line: 'Temporary burst',
-        durationMs: 20,
-      },
-      'test',
-    );
-
-    expect(store.getSnapshot().state).toBe('surprised');
-
-    await new Promise((resolve) => {
-      setTimeout(resolve, 40);
-    });
-
-    expect(store.getSnapshot().state).toBe('working');
-    expect(store.getSnapshot().emotion).toBeNull();
-    expect(store.getSnapshot().line).toBe('Base state');
-  });
-
   it('lets a visual overlay emotion sit on top of the semantic base state', () => {
     const store = new AssistantStatusStore(3_000);
 

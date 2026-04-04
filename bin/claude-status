@@ -43,12 +43,6 @@ function parseArgs(argv) {
       result.currentTask = value;
     } else if (key === '--activity') {
       result.activityLabel = value;
-    } else if (key === '--duration-ms') {
-      const parsed = Number(value);
-
-      if (!Number.isNaN(parsed)) {
-        result.durationMs = parsed;
-      }
     } else if (key === '--intensity') {
       result.intensity = value;
     }
@@ -132,7 +126,7 @@ function main() {
   const payload = parseArgs(process.argv.slice(2));
 
   if (typeof payload.state !== 'string' || typeof payload.line !== 'string') {
-    console.error('Usage: claude-status --state <state> [--emotion <emotion>] --line <line> [--task <task>] [--duration-ms <ms>] [--intensity <low|medium|high>] [--list-visual-options]');
+    console.error('Usage: claude-status --state <state> [--emotion <emotion>] --line <line> [--task <task>] [--intensity <low|medium|high>] [--list-visual-options]');
     process.exit(1);
   }
 

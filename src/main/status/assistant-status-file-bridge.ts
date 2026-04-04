@@ -48,7 +48,6 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
   const line = value.line;
   const currentTask = value.currentTask;
   const activityLabel = value.activityLabel;
-  const durationMs = value.durationMs;
   const intensity = value.intensity;
 
   if (
@@ -81,13 +80,6 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
   }
 
   if (
-    durationMs !== undefined &&
-    typeof durationMs !== 'number'
-  ) {
-    return null;
-  }
-
-  if (
     intensity !== undefined &&
     intensity !== 'low' &&
     intensity !== 'medium' &&
@@ -111,10 +103,6 @@ function parseAssistantStatusUpdate(value: unknown): AssistantStatusUpdate | nul
 
   if (activityLabel !== undefined) {
     update.activityLabel = activityLabel;
-  }
-
-  if (durationMs !== undefined) {
-    update.durationMs = durationMs;
   }
 
   if (intensity !== undefined) {

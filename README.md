@@ -84,7 +84,7 @@ Each embedded shell session gets a `claude-status` command on `PATH`.
 Example:
 
 ```bash
-claude-status --state thinking --line "로그 읽는 중..." --task "Inspecting failing test" --duration-ms 4000 --intensity high
+claude-status --state thinking --line "로그 읽는 중..." --task "Inspecting failing test" --intensity high
 ```
 
 You can optionally add an emotion layer when the current visual catalog supports it:
