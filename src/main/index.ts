@@ -4,6 +4,7 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  screen,
   shell,
   type IpcMainEvent,
 } from 'electron';
@@ -21,6 +22,10 @@ import { AssistantStatusStore } from './status/assistant-status-store';
 import { ensureNodePtySpawnHelpersExecutable } from './terminal/node-pty-runtime';
 import { createTerminalSessionManager } from './terminal/session-manager';
 import { VisualAssetStore } from './visual-assets/visual-asset-store';
+import {
+  WindowBoundsStore,
+  type WindowBounds,
+} from './window/window-bounds-store';
 import {
   APP_THEME_CHANNELS,
 } from '../shared/app-theme-bridge';
@@ -94,12 +99,62 @@ function getRendererEntry():
   };
 }
 
-function createMainWindow(themeSelection: AppThemeSelection): BrowserWindow {
+function resolveInitialWindowBounds(
+  savedBounds: WindowBounds | null,
+): {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+} {
+  if (!savedBounds) {
+    return { width: WINDOW_SIZE.width, height: WINDOW_SIZE.height };
+  }
+
+  const width = Math.max(WINDOW_SIZE.minWidth, Math.round(savedBounds.width));
+  const height = Math.max(WINDOW_SIZE.minHeight, Math.round(savedBounds.height));
+
+  // 저장된 좌표가 음수 sentinel(최초 저장 전 상태)이면 OS 가 중앙 배치하도록 맡긴다
+  if (savedBounds.x < 0 || savedBounds.y < 0) {
+    return { width, height };
+  }
+
+  // 외장 모니터가 사라진 경우 오프스크린으로 복원되는 것을 막기 위해 디스플레이 범위와 교차 검증
+  const displays = screen.getAllDisplays();
+  const visible = displays.some((display) => {
+    const { x: dx, y: dy, width: dw, height: dh } = display.workArea;
+    const right = savedBounds.x + width;
+    const bottom = savedBounds.y + height;
+
+    return (
+      savedBounds.x < dx + dw &&
+      right > dx &&
+      savedBounds.y < dy + dh &&
+      bottom > dy
+    );
+  });
+
+  if (!visible) {
+    return { width, height };
+  }
+
+  return {
+    width,
+    height,
+    x: Math.round(savedBounds.x),
+    y: Math.round(savedBounds.y),
+  };
+}
+
+function createMainWindow(
+  themeSelection: AppThemeSelection,
+  boundsStore: WindowBoundsStore,
+): BrowserWindow {
   const preloadPath = path.join(__dirname, '../preload/index.js');
   const themeDefinition = getAppThemeDefinition(themeSelection.themeId);
+  const initialBounds = resolveInitialWindowBounds(boundsStore.getBounds());
   const mainWindow = new BrowserWindow({
-    width: WINDOW_SIZE.width,
-    height: WINDOW_SIZE.height,
+    ...initialBounds,
     minWidth: WINDOW_SIZE.minWidth,
     minHeight: WINDOW_SIZE.minHeight,
     show: false,
@@ -112,6 +167,25 @@ function createMainWindow(themeSelection: AppThemeSelection): BrowserWindow {
       sandbox: false,
     },
   });
+
+  const persistBounds = (): void => {
+    // 최대화/최소화/풀스크린 상태의 bounds 는 저장하지 않아야 다음 실행에서 원래 크기로 복귀 가능
+    if (
+      mainWindow.isMaximized() ||
+      mainWindow.isMinimized() ||
+      mainWindow.isFullScreen()
+    ) {
+      return;
+    }
+
+    const { x, y, width, height } = mainWindow.getBounds();
+
+    boundsStore.save({ x, y, width, height });
+  };
+
+  mainWindow.on('resized', persistBounds);
+  mainWindow.on('moved', persistBounds);
+  mainWindow.on('close', persistBounds);
 
   const rendererEntry = getRendererEntry();
 
@@ -596,15 +670,24 @@ void app.whenReady().then(() => {
       runtimeLog.write('app-theme', message);
     },
   );
+  const windowBoundsStore = new WindowBoundsStore(
+    path.join(app.getPath('userData'), 'window-bounds.json'),
+    (message) => {
+      runtimeLog.write('window-bounds', message);
+    },
+  );
   installApplicationMenu();
-  const mainWindow = createMainWindow(themeStore.getSelection());
+  const mainWindow = createMainWindow(themeStore.getSelection(), windowBoundsStore);
 
   attachWindowDiagnostics(mainWindow, runtimeLog);
   registerTerminalBridge(mainWindow, runtimeLog, themeStore);
 
   app.on('activate', () => {
     if (!hasOpenWindows()) {
-      const nextMainWindow = createMainWindow(themeStore.getSelection());
+      const nextMainWindow = createMainWindow(
+        themeStore.getSelection(),
+        windowBoundsStore,
+      );
 
       attachWindowDiagnostics(nextMainWindow, runtimeLog);
       registerTerminalBridge(nextMainWindow, runtimeLog, themeStore);
