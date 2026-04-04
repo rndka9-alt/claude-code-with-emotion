@@ -67,7 +67,7 @@ const WINDOW_SIZE = {
   minWidth: 640,
   minHeight: 520,
 };
-const EXTERNAL_BROWSER_PROTOCOLS = new Set(['http:', 'https:']);
+const EXTERNAL_BROWSER_PROTOCOLS = new Set(['http:', 'https:', 'vscode:']);
 
 function isExternalBrowserUrl(url: string): boolean {
   try {

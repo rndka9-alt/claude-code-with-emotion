@@ -182,7 +182,7 @@ function isExternalBrowserHref(href: string): boolean {
   try {
     const protocol = new URL(href).protocol;
 
-    return protocol === 'http:' || protocol === 'https:';
+    return protocol === 'http:' || protocol === 'https:' || protocol === 'vscode:';
   } catch {
     return false;
   }
@@ -263,7 +263,51 @@ function createTerminalSessionController(
     lineHeight: 1.3,
     scrollback: DEFAULT_TERMINAL_HISTORY_LINES,
     theme: createTerminalTheme(),
+    // OSC 8 하이퍼링크 클릭 시 기본 window.open 대신 shell.openExternal 사용
+    linkHandler: {
+      activate(_event, uri) {
+        void linksBridge?.openExternal(uri);
+      },
+    },
   });
+
+  // 터미널 텍스트에서 URL을 감지해 Cmd+클릭으로 열 수 잇게 하는 링크 프로바이더
+  const LINKABLE_URL_REGEX = /https?:\/\/[^\s)>\]"']+|vscode:\/\/[^\s)>\]"']+/g;
+  terminal.registerLinkProvider({
+    provideLinks(bufferLineNumber, callback) {
+      const line = terminal.buffer.active.getLine(bufferLineNumber);
+      if (!line) {
+        callback(undefined);
+        return;
+      }
+
+      const text = line.translateToString();
+      const links: Array<{
+        range: { start: { x: number; y: number }; end: { x: number; y: number } };
+        text: string;
+        activate: (_event: MouseEvent, linkText: string) => void;
+      }> = [];
+
+      LINKABLE_URL_REGEX.lastIndex = 0;
+      let match;
+      while ((match = LINKABLE_URL_REGEX.exec(text)) !== null) {
+        const url = match[0];
+        links.push({
+          range: {
+            start: { x: match.index + 1, y: bufferLineNumber },
+            end: { x: match.index + url.length, y: bufferLineNumber },
+          },
+          text: url,
+          activate(_event, linkText) {
+            void linksBridge?.openExternal(linkText);
+          },
+        });
+      }
+
+      callback(links.length > 0 ? links : undefined);
+    },
+  });
+
   const container = createTerminalContainer();
   const bufferedOutputEvents: TerminalOutputEvent[] = [];
   const scheduledTasks: ScheduledTask[] = [];
