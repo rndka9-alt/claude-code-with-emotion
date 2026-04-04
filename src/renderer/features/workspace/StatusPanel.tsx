@@ -96,26 +96,13 @@ export function StatusPanel({
           src={statusVisual.assetUrl}
         />
       )}
-
-      {isDisconnected ? (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-2 left-1/2 inline-flex h-[26px] w-[26px] -translate-x-1/2 items-center justify-center border border-border-launch bg-surface-launch text-text-tooltip transition-colors duration-150 group-hover:bg-surface-launch"
-        >
-          <Play
-            aria-hidden="true"
-            className="h-3.5 w-3.5 translate-x-[0.5px]"
-            fill="currentColor"
-          />
-        </span>
-      ) : null}
     </>
   );
 
   return (
     <aside
       aria-label="Assistant status panel"
-      className="relative flex min-h-32 flex-none items-center gap-[18px] border border-border-panel bg-surface-panel px-5 py-4 max-[900px]:min-h-28"
+      className="relative flex flex-none items-center border border-border-panel bg-surface-panel max-[900px]:min-h-28"
     >
       <button
         aria-label="Open settings"
@@ -130,24 +117,35 @@ export function StatusPanel({
       {isDisconnected ? (
         <button
           aria-label="실행하기"
-          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px] cursor-pointer transition-[background-color,transform] duration-150 hover:bg-surface-launch-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong focus-visible:ring-offset-2 focus-visible:ring-offset-surface-panel"
+          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] cursor-pointer transition-[background-color,transform] duration-150 hover:bg-surface-launch-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong focus-visible:ring-offset-2 focus-visible:ring-offset-surface-panel"
           onClick={onLaunchClaude}
           style={avatarStyle}
           title="실행하기"
           type="button"
         >
           {avatarContent}
+
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-2 left-1/2 top-0 inline-flex h-[26px] w-[26px] -translate-x-1/2 items-center justify-center border border-border-launch bg-surface-launch text-text-tooltip transition-colors duration-150 group-hover:bg-surface-launch"
+          >
+            <Play
+              aria-hidden="true"
+              className="h-3.5 w-3.5 translate-x-[0.5px]"
+              fill="currentColor"
+            />
+          </span>
         </button>
       ) : (
         <div
-          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]"
+          className="group relative flex aspect-square w-28 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)]"
           style={avatarStyle}
         >
           {avatarContent}
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-5 py-4">
         <p className="m-0 whitespace-pre-line text-[1.08rem] text-text-highlight">
           {overlayMainText !== null ? (
             <>
