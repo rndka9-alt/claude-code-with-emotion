@@ -67,10 +67,6 @@ export function StatusPanel({
         ? `var(${avatarBackgroundVariableByState[assistantStatus.state]})`
         : 'var(--color-avatar-image)',
   };
-  const orbClassName = [
-    'status-panel__avatar-orb h-16 w-16 bg-[var(--color-avatar-orb)] shadow-[var(--shadow-avatar-orb)] transition-[transform,opacity,box-shadow] duration-150 max-[900px]:h-[52px] max-[900px]:w-[52px]',
-    orbClassNameByIntensity[assistantStatus.intensity],
-  ].join(' ');
   const visibleLine = statusLine.length > 0 ? statusLine : assistantStatus.line;
 
   // MCP 한마디(overlayLine)가 활성화된 경우 활동 라벨을 별도 span으로 분리해 투명도 적용
@@ -86,18 +82,13 @@ export function StatusPanel({
     assistantStatus.activityLabel.trim().length > 0
       ? assistantStatus.activityLabel.trim()
       : null;
-  const avatarClassName = [
-    'group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]',
-    isDisconnected
-      ? 'cursor-pointer transition-[background-color,transform] duration-150 hover:bg-[var(--color-surface-launch-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-panel)]'
-      : '',
-  ]
-    .filter((className) => className.length > 0)
-    .join(' ');
   const avatarContent = (
     <>
       {statusVisual === null ? (
-        <div aria-hidden="true" className={orbClassName} />
+        <div
+          aria-hidden="true"
+          className={`status-panel__avatar-orb h-16 w-16 bg-[var(--color-avatar-orb)] shadow-[var(--shadow-avatar-orb)] transition-[transform,opacity,box-shadow] duration-150 max-[900px]:h-[52px] max-[900px]:w-[52px] ${orbClassNameByIntensity[assistantStatus.intensity]}`}
+        />
       ) : (
         <img
           alt={statusVisual.resolution.asset.label}
@@ -139,7 +130,7 @@ export function StatusPanel({
       {isDisconnected ? (
         <button
           aria-label="실행하기"
-          className={avatarClassName}
+          className="group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px] cursor-pointer transition-[background-color,transform] duration-150 hover:bg-[var(--color-surface-launch-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-panel)]"
           onClick={onLaunchClaude}
           style={avatarStyle}
           title="실행하기"
@@ -148,7 +139,10 @@ export function StatusPanel({
           {avatarContent}
         </button>
       ) : (
-        <div className={avatarClassName} style={avatarStyle}>
+        <div
+          className="group relative flex aspect-square w-28 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)] max-[900px]:w-[88px]"
+          style={avatarStyle}
+        >
           {avatarContent}
         </div>
       )}
