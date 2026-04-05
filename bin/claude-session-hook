@@ -183,12 +183,16 @@ function summarizeElicitation(payload) {
   );
 }
 
+// 공용 summary 로, Subagent* / TeammateIdle / TaskCompleted 에서 함께 호출된다.
+// 각 이벤트의 실제 페이로드 필드를 함께 나열한다:
+//  - TaskCompleted: task_subject(요약), task_description(상세, optional)
+//  - SubagentStop: last_assistant_message, agent_type, agent_id
+//  - SubagentStart: agent_type, agent_id
 function summarizeBackgroundTask(payload, fallback) {
   return summarizeText(
     readStringField(payload, [
-      "description",
-      "task",
-      "prompt",
+      "task_subject",
+      "task_description",
       "last_assistant_message",
       "agent_type",
       "agent_id",
@@ -198,12 +202,12 @@ function summarizeBackgroundTask(payload, fallback) {
   );
 }
 
+// Claude Code 의 Notification 훅 페이로드는 notification_type 필드로 종류를 구분한다
+// (permission_prompt / idle_prompt / auth_success / elicitation_dialog).
+// 과거엔 notification/type/subtype 를 추정으로 읽엇는데 실제 필드명과 달라서
+// 권한 팝업이 항상 surprised 폴백으로 새던 버그가 잇엇다.
 function isPermissionPromptNotification(payload) {
-  const notificationType = readStringField(payload, [
-    "notification",
-    "type",
-    "subtype",
-  ]);
+  const notificationType = readStringField(payload, ["notification_type"]);
 
   return notificationType === "permission_prompt";
 }

@@ -107,9 +107,23 @@ describe("claude-session-hook", () => {
     );
   });
 
+  it("routes permission_prompt Notification into the permission_wait state", () => {
+    const result = invokeHook("Notification", {
+      notification_type: "permission_prompt",
+      message: "Claude needs your permission to use Bash",
+    });
+    const status = readStatusFile(result.statusFilePath);
+
+    expect(status.state).toBe("permission_wait");
+    expect(status.line).toBe("권한 팝업 확인 중이에요...!");
+    expect(status.currentTask).toBe(
+      "Permission: Claude needs your permission to use Bash",
+    );
+  });
+
   it("maps TaskCompleted into a happy transient state", () => {
     const result = invokeHook("TaskCompleted", {
-      description: "Finished updating the renderer layout",
+      task_subject: "Finished updating the renderer layout",
     });
     const status = readStatusFile(result.statusFilePath);
 
