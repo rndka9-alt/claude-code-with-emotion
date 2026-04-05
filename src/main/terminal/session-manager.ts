@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { spawn } from "node-pty";
 import type { IPty } from "node-pty";
@@ -7,6 +5,7 @@ import {
   joinPathList,
   resolveHomeDir,
 } from "../platform/platform-paths";
+import { getPlatformShellAdapter } from "../platform/platform-shell-adapter";
 import { ensureClaudeHooksSettingsFile } from "./claude-hooks-settings";
 import { TerminalOutputStore } from "./terminal-output-store";
 import type {
@@ -63,11 +62,6 @@ interface TerminalDimensions {
   rows: number;
 }
 
-interface ShellLaunchConfig {
-  env: Record<string, string>;
-  shellArgs: string[];
-}
-
 function createInitialCommandInput(command: string): string {
   const trimmedCommand = command.trim();
 
@@ -112,16 +106,6 @@ function createNodePtyRuntime(
   return adaptPty(ptyProcess);
 }
 
-export function resolveShell(env: NodeJS.ProcessEnv): string {
-  const shell = env.SHELL;
-
-  if (typeof shell === "string" && shell.length > 0) {
-    return shell;
-  }
-
-  return "/bin/zsh";
-}
-
 export function createRuntimeEnv(
   env: NodeJS.ProcessEnv,
   cwd: string,
@@ -157,107 +141,6 @@ export function createRuntimeEnv(
     HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? "false",
     TERM: "xterm-256color",
     TERM_PROGRAM: "claude-code-with-emotion",
-  };
-}
-
-function quoteForShell(value: string): string {
-  return `'${value.replaceAll("'", "'\"'\"'")}'`;
-}
-
-function createShellExports(env: Record<string, string>): string {
-  return Object.entries(env)
-    .map(([key, value]) => {
-      return `export ${key}=${quoteForShell(value)}`;
-    })
-    .join("\n");
-}
-
-function createZshWrapperFile(
-  sourceFileName: string,
-  env: Record<string, string>,
-): string {
-  const sourceLine = [
-    `if [ -f "$HOME/${sourceFileName}" ]; then`,
-    `  . "$HOME/${sourceFileName}"`,
-    "fi",
-  ].join("\n");
-
-  return `${sourceLine}\n${createShellExports(env)}\n`;
-}
-
-function getZshWrapperDir(homeDir: string): string {
-  return path.join(
-    os.tmpdir(),
-    "claude-code-with-emotion-shell",
-    Buffer.from(homeDir).toString("hex"),
-    "zsh",
-  );
-}
-
-function ensureZshWrapperDir(
-  homeDir: string,
-  env: Record<string, string>,
-): string {
-  const wrapperDir = getZshWrapperDir(homeDir);
-
-  fs.mkdirSync(wrapperDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(wrapperDir, ".zshenv"),
-    createZshWrapperFile(".zshenv", env),
-    "utf8",
-  );
-  fs.writeFileSync(
-    path.join(wrapperDir, ".zprofile"),
-    createZshWrapperFile(".zprofile", env),
-    "utf8",
-  );
-  fs.writeFileSync(
-    path.join(wrapperDir, ".zshrc"),
-    createZshWrapperFile(".zshrc", env),
-    "utf8",
-  );
-  fs.writeFileSync(
-    path.join(wrapperDir, ".zlogin"),
-    createZshWrapperFile(".zlogin", env),
-    "utf8",
-  );
-
-  return wrapperDir;
-}
-
-export function createShellLaunchConfig(
-  shell: string,
-  env: Record<string, string>,
-): ShellLaunchConfig {
-  const shellName = path.basename(shell);
-  const interactiveShellArgs = ["-i", "-l"];
-
-  if (shellName === "zsh") {
-    const homeDir = resolveHomeDir(env);
-
-    if (typeof homeDir === "string" && homeDir.length > 0) {
-      const wrapperDir = ensureZshWrapperDir(homeDir, env);
-
-      return {
-        env: {
-          ...env,
-          ZDOTDIR: wrapperDir,
-        },
-        shellArgs: interactiveShellArgs,
-      };
-    }
-  }
-
-  if (shellName === "bash") {
-    return {
-      env,
-      shellArgs: interactiveShellArgs,
-    };
-  }
-
-  return {
-    env,
-    shellArgs: ["-l"],
   };
 }
 
@@ -304,7 +187,8 @@ export class TerminalSessionManager {
       };
     }
 
-    const shell = resolveShell(process.env);
+    const shellAdapter = getPlatformShellAdapter();
+    const shell = shellAdapter.resolveDefaultShell(process.env);
     const size = normalizeTerminalDimensions(request.cols, request.rows);
     const runtimeEnv = createRuntimeEnv(
       process.env,
@@ -322,7 +206,7 @@ export class TerminalSessionManager {
         ensureClaudeHooksSettingsFile(this.helperBinDir, homeDir);
     }
 
-    const launchConfig = createShellLaunchConfig(shell, runtimeEnv);
+    const launchConfig = shellAdapter.createLaunchConfig(shell, runtimeEnv);
     const runtime = this.runtimeFactory({
       cols: size.cols,
       rows: size.rows,

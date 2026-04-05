@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { getPlatformShellAdapter } from "../platform/platform-shell-adapter";
 
 type ClaudeHookEvent =
   | "SessionStart"
@@ -40,10 +41,6 @@ interface ClaudeHooksSettings {
   permissions: ClaudePermissionsConfig;
 }
 
-function quoteForShell(value: string): string {
-  return `'${value.replaceAll("'", "'\"'\"'")}'`;
-}
-
 function getHooksSettingsDir(homeDir: string): string {
   return path.join(
     os.tmpdir(),
@@ -57,8 +54,9 @@ export function buildClaudeHookCommand(
   eventName: ClaudeHookEvent,
 ): string {
   const hookScriptPath = path.join(helperBinDir, "claude-session-hook");
+  const shellAdapter = getPlatformShellAdapter();
 
-  return `${quoteForShell(hookScriptPath)} ${quoteForShell(eventName)}`;
+  return `${shellAdapter.quoteForHookCommand(hookScriptPath)} ${shellAdapter.quoteForHookCommand(eventName)}`;
 }
 
 export function createClaudeHooksSettings(

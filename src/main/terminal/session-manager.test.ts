@@ -1,7 +1,5 @@
 import {
-  createShellLaunchConfig,
   createRuntimeEnv,
-  resolveShell,
   TerminalSessionManager,
 } from "./session-manager";
 import fs from "node:fs";
@@ -34,13 +32,6 @@ function createBootstrapRequest(): TerminalBootstrapRequest {
     rows: 32,
   };
 }
-
-describe("resolveShell", () => {
-  it("prefers SHELL and falls back to /bin/zsh", () => {
-    expect(resolveShell({ SHELL: "/bin/bash" })).toBe("/bin/bash");
-    expect(resolveShell({})).toBe("/bin/zsh");
-  });
-});
 
 describe("createRuntimeEnv", () => {
   it("adds terminal-specific env vars and drops non-string values", () => {
@@ -97,66 +88,6 @@ describe("createRuntimeEnv", () => {
     expect(env.HEADLINE_INFO_MODE).toBe("precmd");
     expect(env.HEADLINE_LINE_MODE).toBe("on");
     expect(env.HEADLINE_DO_CLOCK).toBe("true");
-  });
-});
-
-describe("createShellLaunchConfig", () => {
-  it("wraps zsh startup files so helper commands stay first on PATH", () => {
-    const tempHome = fs.mkdtempSync(
-      path.join(os.tmpdir(), "claude-with-emotion-home-"),
-    );
-    let wrapperDir = "";
-    const env = {
-      HOME: tempHome,
-      PATH: "/tmp/helper-bin:/usr/bin",
-      CLAUDE_WITH_EMOTION_ORIGINAL_PATH: "/usr/bin",
-      CLAUDE_WITH_EMOTION_STATUS_FILE: "/tmp/status.json",
-      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: "/tmp/status.json.hook-state.json",
-      CLAUDE_WITH_EMOTION_TRACE_FILE: "/tmp/trace.log",
-      CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: "/tmp/visual-assets.json",
-      CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: "/tmp/visual-overlay.json",
-    };
-
-    try {
-      const launchConfig = createShellLaunchConfig("/bin/zsh", env);
-      const zdotDir = launchConfig.env.ZDOTDIR;
-      wrapperDir = typeof zdotDir === "string" ? zdotDir : "";
-
-      expect(launchConfig.shellArgs).toEqual(["-i", "-l"]);
-      expect(typeof zdotDir).toBe("string");
-
-      if (typeof zdotDir !== "string") {
-        throw new Error("Expected ZDOTDIR to be a string");
-      }
-
-      const zshrc = fs.readFileSync(path.join(zdotDir, ".zshrc"), "utf8");
-
-      expect(zshrc).toContain('. "$HOME/.zshrc"');
-      expect(zshrc).toContain("export PATH='/tmp/helper-bin:/usr/bin'");
-      expect(zshrc).toContain(
-        "export CLAUDE_WITH_EMOTION_STATUS_FILE='/tmp/status.json'",
-      );
-      expect(zshrc).toContain(
-        "export CLAUDE_WITH_EMOTION_HOOK_STATE_FILE='/tmp/status.json.hook-state.json'",
-      );
-    } finally {
-      if (wrapperDir.length > 0) {
-        fs.rmSync(wrapperDir, { recursive: true, force: true });
-      }
-      fs.rmSync(tempHome, { recursive: true, force: true });
-    }
-  });
-
-  it("keeps non-zsh shells on the direct login-shell path", () => {
-    const env = {
-      HOME: "/tmp/home",
-      PATH: "/tmp/helper-bin:/usr/bin",
-    };
-
-    const launchConfig = createShellLaunchConfig("/bin/bash", env);
-
-    expect(launchConfig.shellArgs).toEqual(["-i", "-l"]);
-    expect(launchConfig.env).toEqual(env);
   });
 });
 
