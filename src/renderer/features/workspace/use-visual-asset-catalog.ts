@@ -14,6 +14,21 @@ export interface VisualAssetCatalogViewModel {
   saveCatalog: (catalog: VisualAssetCatalog) => Promise<VisualAssetCatalog>;
 }
 
+// 메인 프로세스가 구버전 스키마(필드 누락)로 catalog 를 돌려줄 수 있어서 IPC
+// 경계에서 기본값으로 채워 넣음. 그러지 않으면 신규 필드를 iterate 하는 UI 가
+// 즉시 throw 해버린다.
+function normalizeCatalog(catalog: VisualAssetCatalog): VisualAssetCatalog {
+  return {
+    ...catalog,
+    assets: Array.isArray(catalog.assets) ? catalog.assets : [],
+    mappings: Array.isArray(catalog.mappings) ? catalog.mappings : [],
+    stateLines: Array.isArray(catalog.stateLines) ? catalog.stateLines : [],
+    emotionDescriptions: Array.isArray(catalog.emotionDescriptions)
+      ? catalog.emotionDescriptions
+      : [],
+  };
+}
+
 export function useVisualAssetCatalog(): VisualAssetCatalogViewModel {
   const bridge = window.claudeApp?.visualAssets;
   const [catalog, setCatalog] = useState<VisualAssetCatalog>(
@@ -29,12 +44,12 @@ export function useVisualAssetCatalog(): VisualAssetCatalogViewModel {
 
     void bridge.getCatalog().then((nextCatalog) => {
       if (!isDisposed) {
-        setCatalog(nextCatalog);
+        setCatalog(normalizeCatalog(nextCatalog));
       }
     });
 
     const unsubscribe = bridge.onCatalog((nextCatalog) => {
-      setCatalog(nextCatalog);
+      setCatalog(normalizeCatalog(nextCatalog));
     });
 
     return () => {
@@ -61,13 +76,13 @@ export function useVisualAssetCatalog(): VisualAssetCatalogViewModel {
     },
     saveCatalog: async (nextCatalog) => {
       if (bridge === undefined) {
-        setCatalog(nextCatalog);
+        setCatalog(normalizeCatalog(nextCatalog));
         return nextCatalog;
       }
 
       const savedCatalog = await bridge.saveCatalog(nextCatalog);
 
-      setCatalog(savedCatalog);
+      setCatalog(normalizeCatalog(savedCatalog));
       return savedCatalog;
     },
   };
