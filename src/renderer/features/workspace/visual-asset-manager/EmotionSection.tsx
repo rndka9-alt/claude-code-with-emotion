@@ -621,8 +621,13 @@ export function EmotionSection({
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-2">
-                          <h4 className="m-0">Exact State + Emotion</h4>
+                        <details className="group/exact flex flex-col gap-2">
+                          <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+                            <h4 className="m-0">Exact State + Emotion</h4>
+                            <span className="text-xs text-text-subtle transition-transform duration-150 group-open/exact:rotate-180">
+                              ▾
+                            </span>
+                          </summary>
                           <p className={managerSectionCopyClassName}>
                             이건 state-only, emotion-only보다 먼저 잡혀요. 진짜
                             전용 표정 카드예요...!
@@ -699,7 +704,7 @@ export function EmotionSection({
                               );
                             })}
                           </div>
-                        </div>
+                        </details>
                       </details>
                     </div>
                   </li>
