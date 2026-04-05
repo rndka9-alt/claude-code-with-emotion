@@ -16,11 +16,16 @@ export class AssistantStatusStore {
   private stateThrottleTimer: NodeJS.Timeout | null = null;
   private lastEmitMs = Number.NEGATIVE_INFINITY;
   private visualOverlay: AssistantVisualOverlayUpdate = {};
+  private readonly logEvent: ((message: string) => void) | undefined;
 
-  constructor(nowMs: number = Date.now()) {
+  constructor(
+    nowMs: number = Date.now(),
+    logEvent?: (message: string) => void,
+  ) {
     const initialSnapshot = createDefaultAssistantStatusSnapshot(nowMs);
     this.baseSnapshot = initialSnapshot;
     this.currentSnapshot = initialSnapshot;
+    this.logEvent = logEvent;
   }
 
   getSnapshot(): AssistantStatusSnapshot {
@@ -36,6 +41,8 @@ export class AssistantStatusStore {
   }
 
   applyUpdate(update: AssistantStatusUpdate, source: string): void {
+    this.logSupersededSnapshotIfPending(source);
+
     // 새 훅 상태 이벤트가 들어오면 이전 오버레이 감정은 유통기한이 끝난다.
     // 감정은 깜빡이는 신호, 상태는 흐르는 강이니 다음 state 가 오는 순간 오버레이 감정은
     // 자리를 비켜줘야 state 전용 에셋이 다시 나올 수 있다. delete 로 지워야
@@ -58,6 +65,8 @@ export class AssistantStatusStore {
     update: AssistantVisualOverlayUpdate,
     source: string,
   ): void {
+    this.logSupersededSnapshotIfPending(source);
+
     if (update.emotion !== undefined) {
       this.visualOverlay.emotion = update.emotion;
     }
@@ -153,6 +162,20 @@ export class AssistantStatusStore {
       this.emit();
       this.lastEmitMs = Date.now();
     }, delay);
+  }
+
+  private logSupersededSnapshotIfPending(nextSource: string): void {
+    // pending timer 가 있는데 새 update 가 들어오면, 아직 emit 되지 못한 currentSnapshot 은
+    // 곧 덮어쓰여서 구독자에게 한 번도 안 나간 채 사라진다. 그 "증발한 프레임" 이 무엇이엇는지
+    // 로그로 남겨야 왜 특정 감정 에셋이 화면에 안 떳는지 추적할 수 있다.
+    if (this.stateThrottleTimer === null || this.logEvent === undefined) {
+      return;
+    }
+
+    const snapshot = this.currentSnapshot;
+    this.logEvent(
+      `throttle skip pending state=${snapshot.state} emotion=${snapshot.emotion ?? "none"} line=${JSON.stringify(snapshot.line)} source=${snapshot.source} superseded-by=${nextSource}`,
+    );
   }
 
   private clearStateThrottleTimer(): void {
