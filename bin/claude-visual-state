@@ -38,6 +38,12 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (key === "--reset") {
+      result.emotion = null;
+      result.line = null;
+      continue;
+    }
+
     const value = argv[index + 1];
 
     if (value === undefined) {
@@ -72,7 +78,7 @@ async function main() {
     (payload.emotion === undefined && payload.line === undefined)
   ) {
     console.error(
-      "Usage: claude-visual-state --emotion <emotion> [--line <line>] [--clear-line]",
+      "Usage: claude-visual-state --emotion <emotion> [--line <line>] [--clear-line] [--reset]",
     );
     process.exit(1);
   }

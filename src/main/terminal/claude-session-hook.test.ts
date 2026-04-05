@@ -169,16 +169,16 @@ describe("claude-session-hook", () => {
     expect(status.currentTask).toBe("Prompt: 흐음.. 다시 정리해줘");
   });
 
-  it("clears the visual overlay line on SessionStart", () => {
-    // /clear 로 Claude CLI 가 재시작댈 때 이전 세션의 한마디가 남는 버그 방지:
-    // SessionStart 훅이 overlay 파일에 {"line": null} 을 찍어 스토어의
-    // visualOverlay.line 을 비워야 한다.
+  it("resets the visual overlay emotion and line on SessionStart", () => {
+    // /clear 로 Claude CLI 가 재시작댈 때 이전 세션의 한마디·감정 에셋이 남는 버그 방지:
+    // SessionStart 훅이 overlay 파일에 {"emotion": null, "line": null} 을 찍어
+    // 스토어의 visualOverlay 를 통째로 비워야 한다.
     const result = invokeHook("SessionStart", {});
     const overlayPayload: unknown = JSON.parse(
       fs.readFileSync(result.overlayFilePath, "utf8"),
     );
 
-    expect(overlayPayload).toEqual({ line: null });
+    expect(overlayPayload).toEqual({ emotion: null, line: null });
 
     const status = readStatusFile(result.statusFilePath);
     expect(status.state).toBe("waiting");

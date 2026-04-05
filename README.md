@@ -112,6 +112,7 @@ claude-visual-state --emotion happy
 claude-visual-state --emotion neutral
 claude-visual-state --line "문제를 좀 더 파볼게요!"
 claude-visual-state --clear-line
+claude-visual-state --reset
 ```
 
 `neutral` clears the overlay and lets the current semantic state render by itself again.

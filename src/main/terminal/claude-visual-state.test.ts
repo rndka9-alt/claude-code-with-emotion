@@ -52,6 +52,49 @@ describe("claude-visual-state", () => {
     });
   });
 
+  it("resets both emotion and line with --reset", () => {
+    const overlayFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-overlay-")),
+      "overlay.json",
+    );
+
+    // 먼저 emotion·line 둘 다 채워두고 --reset 으로 한 방에 비우는 시나리오.
+    spawnSync(
+      "node",
+      [
+        "./bin/claude-visual-state",
+        JSON.stringify({ emotion: "happy", line: "야호" }),
+      ],
+      {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const resetResult = spawnSync(
+      "node",
+      ["./bin/claude-visual-state", "--reset"],
+      {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: overlayFilePath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    expect(resetResult.status).toBe(0);
+    expect(JSON.parse(fs.readFileSync(overlayFilePath, "utf8"))).toEqual({
+      emotion: null,
+      line: null,
+    });
+  });
+
   it("writes and clears a visual line overlay payload", () => {
     const overlayFilePath = path.join(
       fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-overlay-")),
