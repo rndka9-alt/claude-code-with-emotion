@@ -132,7 +132,7 @@ function createToolsListResult() {
 
   const availableOptions = readAvailableVisualOptions();
   const emotionEnum = ["neutral", ...availableOptions.emotions];
-  const promptHints = createVisualPromptHints();
+  const promptHints = createVisualPromptHints(availableOptions.emotions);
 
   return {
     tools: [
