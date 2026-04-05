@@ -61,8 +61,17 @@ describe("claude hooks settings", () => {
     expect(settings.hooks.TeammateIdle[0]?.hooks[0]?.command).toContain(
       "TeammateIdle",
     );
+    expect(settings.hooks.TaskCreated[0]?.hooks[0]?.command).toContain(
+      "TaskCreated",
+    );
     expect(settings.hooks.TaskCompleted[0]?.hooks[0]?.command).toContain(
       "TaskCompleted",
+    );
+    expect(settings.hooks.PreCompact[0]?.hooks[0]?.command).toContain(
+      "PreCompact",
+    );
+    expect(settings.hooks.PostCompact[0]?.hooks[0]?.command).toContain(
+      "PostCompact",
     );
     expect(settings.hooks.Stop[0]?.hooks[0]?.command).toContain("Stop");
     expect(settings.hooks.StopFailure[0]?.hooks[0]?.command).toContain(

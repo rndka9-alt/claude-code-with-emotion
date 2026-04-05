@@ -121,6 +121,48 @@ describe("claude-session-hook", () => {
     );
   });
 
+  it("maps TaskCreated into a working state", () => {
+    const result = invokeHook("TaskCreated", {
+      task_subject: "Implement user authentication",
+    });
+    const status = readStatusFile(result.statusFilePath);
+
+    expect(status.state).toBe("working");
+    expect(status.line).toBe("새 작업을 하나 시작햇어요...!");
+    expect(status.currentTask).toBe("Task: Implement user authentication");
+  });
+
+  it("maps PreCompact with matcher into a working state and records matcher in task", () => {
+    const result = invokeHook("PreCompact", {
+      matcher: "manual",
+    });
+    const status = readStatusFile(result.statusFilePath);
+
+    expect(status.state).toBe("working");
+    expect(status.line).toBe("이야기햇던 내용 정리하고 올게요...!");
+    expect(status.currentTask).toBe("Compact: manual");
+  });
+
+  it("maps PreCompact without matcher into a working state with generic task", () => {
+    const result = invokeHook("PreCompact", {});
+    const status = readStatusFile(result.statusFilePath);
+
+    expect(status.state).toBe("working");
+    expect(status.line).toBe("이야기햇던 내용 정리하고 올게요...!");
+    expect(status.currentTask).toBe("Compact");
+  });
+
+  it("maps PostCompact into a thinking state and records matcher in task", () => {
+    const result = invokeHook("PostCompact", {
+      matcher: "auto",
+    });
+    const status = readStatusFile(result.statusFilePath);
+
+    expect(status.state).toBe("thinking");
+    expect(status.line).toBe("이야기 정리 끝내고 돌아왓어요...!");
+    expect(status.currentTask).toBe("Compact completed: auto");
+  });
+
   it("maps TaskCompleted into a happy transient state", () => {
     const result = invokeHook("TaskCompleted", {
       task_subject: "Finished updating the renderer layout",

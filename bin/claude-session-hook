@@ -505,12 +505,48 @@ function createUpdate(eventName, payload, hookState) {
     };
   }
 
+  if (eventName === "TaskCreated") {
+    return {
+      activity: "새 작업 시작",
+      state: "working",
+      line: "새 작업을 하나 시작햇어요...!",
+      task: summarizeBackgroundTask(payload, "Background task started"),
+      intensity: "medium",
+    };
+  }
+
   if (eventName === "TaskCompleted") {
     return {
       activity: "작업 마무리 중",
       state: "happy",
       line: "작업 하나를 마무리햇어요...!",
       task: summarizeBackgroundTask(payload, "Background task completed"),
+      intensity: "medium",
+    };
+  }
+
+  // PreCompact / PostCompact 는 설정에선 매처 없이 한 번에 묶어 등록하고,
+  // 여기서 payload 의 matcher 필드(manual/auto)로 trace 로그만 구분한다.
+  // 라인·activity 는 manual/auto 공용으로 유지.
+  if (eventName === "PreCompact") {
+    const matcher = readStringField(payload, ["matcher"]);
+    return {
+      activity: "이야기 정리 중",
+      state: "working",
+      line: "이야기햇던 내용 정리하고 올게요...!",
+      task: matcher !== null ? `Compact: ${matcher}` : "Compact",
+      intensity: "medium",
+    };
+  }
+
+  if (eventName === "PostCompact") {
+    const matcher = readStringField(payload, ["matcher"]);
+    return {
+      activity: "정리 마치고 돌아옴",
+      state: "thinking",
+      line: "이야기 정리 끝내고 돌아왓어요...!",
+      task:
+        matcher !== null ? `Compact completed: ${matcher}` : "Compact completed",
       intensity: "medium",
     };
   }

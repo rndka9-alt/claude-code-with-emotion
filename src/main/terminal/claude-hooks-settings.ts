@@ -18,7 +18,10 @@ type ClaudeHookEvent =
   | "SubagentStart"
   | "SubagentStop"
   | "TeammateIdle"
+  | "TaskCreated"
   | "TaskCompleted"
+  | "PreCompact"
+  | "PostCompact"
   | "Stop"
   | "StopFailure"
   | "SessionEnd";
@@ -33,8 +36,6 @@ type ClaudeHookEvent =
  *   3. bin/claude-session-hook 의 createUpdate 에 상태 매핑 분기 추가
  */
 type ClaudeUnregisteredHookEvent =
-  /** TaskCreate 툴로 새 task 가 생성된 순간. TaskCompleted 의 짝꿍. */
-  | "TaskCreated"
   /** CLAUDE.md / rules 파일이 로드된 순간. 세션 시작·/clear 직후 발동. */
   | "InstructionsLoaded"
   /** 설정 파일이 변경된 순간. 신호가 약해 노이즈 위험. */
@@ -46,11 +47,7 @@ type ClaudeUnregisteredHookEvent =
   /** 워크트리 생성 시점. */
   | "WorktreeCreate"
   /** 워크트리 제거 시점. */
-  | "WorktreeRemove"
-  /** 컨텍스트 압축이 시작되기 직전. 긴 세션에서 Claude 가 멈춘 것처럼 보이는 구간. */
-  | "PreCompact"
-  /** 컨텍스트 압축이 완료된 직후. */
-  | "PostCompact";
+  | "WorktreeRemove";
 
 interface ClaudeHookCommandConfig {
   type: "command";
@@ -110,7 +107,10 @@ export function createClaudeHooksSettings(
     "SubagentStart",
     "SubagentStop",
     "TeammateIdle",
+    "TaskCreated",
     "TaskCompleted",
+    "PreCompact",
+    "PostCompact",
     "Stop",
     "StopFailure",
     "SessionEnd",
@@ -157,7 +157,10 @@ export function createClaudeHooksSettings(
       SubagentStart: hooks.SubagentStart ?? [],
       SubagentStop: hooks.SubagentStop ?? [],
       TeammateIdle: hooks.TeammateIdle ?? [],
+      TaskCreated: hooks.TaskCreated ?? [],
       TaskCompleted: hooks.TaskCompleted ?? [],
+      PreCompact: hooks.PreCompact ?? [],
+      PostCompact: hooks.PostCompact ?? [],
       Stop: hooks.Stop ?? [],
       StopFailure: hooks.StopFailure ?? [],
       SessionEnd: hooks.SessionEnd ?? [],
