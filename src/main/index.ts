@@ -306,6 +306,45 @@ function registerTerminalBridge(
     path.join(sessionStatusRootDir, `${sessionId}.json`);
   const resolveOverlayFilePath = (sessionId: string): string =>
     path.join(sessionOverlayRootDir, `${sessionId}.json`);
+  // 탭은 앱 재시작마다 새로 생기고 persist 하지 않으므로, 이전 실행이 크래시 등으로
+  // 남긴 세션 파일은 전부 좀비다. 정상 종료 경로는 disposeSessionStatusBridges 가
+  // 파일 단위로 치우고, 비정상 종료 복구는 여기서 디렉토리 통째로 훑어 정리한다.
+  const clearStaleSessionArtifactDir = (dir: string, label: string): void => {
+    if (!fs.existsSync(dir)) {
+      return;
+    }
+
+    let entries: string[] = [];
+
+    try {
+      entries = fs.readdirSync(dir);
+    } catch (error) {
+      runtimeLog.write(
+        label,
+        `failed to scan stale artifact dir path=${dir} error=${error instanceof Error ? error.message : String(error)}`,
+      );
+      return;
+    }
+
+    for (const entry of entries) {
+      const entryPath = path.join(dir, entry);
+
+      try {
+        fs.rmSync(entryPath, { force: true });
+      } catch (error) {
+        runtimeLog.write(
+          label,
+          `failed to remove stale artifact path=${entryPath} error=${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+  };
+
+  clearStaleSessionArtifactDir(sessionStatusRootDir, "assistant-status-file");
+  clearStaleSessionArtifactDir(
+    sessionOverlayRootDir,
+    "assistant-visual-overlay",
+  );
   const writeVisualMcpState = (visualOverlayFilePath: string): void => {
     const nextState = {
       traceFilePath: assistantStatusTraceFilePath,
@@ -366,6 +405,17 @@ function registerTerminalBridge(
     statusFileBridge.start();
     overlayFileBridge.start();
   };
+  const removeSessionArtifact = (filePath: string, label: string): void => {
+    try {
+      // force:true 로 ENOENT 는 조용히 무시 — 파일 미생성 상태에서 dispose 댈 수도 잇음.
+      fs.rmSync(filePath, { force: true });
+    } catch (error) {
+      runtimeLog.write(
+        label,
+        `failed to remove session artifact path=${filePath} error=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  };
   const disposeSessionStatusBridges = (sessionId: string): void => {
     sessionStatusFileBridges.get(sessionId)?.stop();
     sessionOverlayFileBridges.get(sessionId)?.stop();
@@ -375,6 +425,14 @@ function registerTerminalBridge(
     sessionOverlayFileBridges.delete(sessionId);
     sessionStatusUnsubscribes.delete(sessionId);
     sessionStatusStores.delete(sessionId);
+    removeSessionArtifact(
+      resolveStatusFilePath(sessionId),
+      "assistant-status-file",
+    );
+    removeSessionArtifact(
+      resolveOverlayFilePath(sessionId),
+      "assistant-visual-overlay",
+    );
   };
   const terminalSessionManager = createTerminalSessionManager(
     (sessionId, event) => {
