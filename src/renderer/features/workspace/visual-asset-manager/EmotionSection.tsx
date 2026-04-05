@@ -96,6 +96,68 @@ function assetHasStateEmotionMapping(
   });
 }
 
+interface AssetMappingBadge {
+  key: string;
+  label: string;
+}
+
+// 라벨 배지는 사이드바에 조용히 서 잇도록 STATE_PRESETS / EMOTION_PRESETS 순서를
+// 그대로 따라가게 햇어요. 매핑 추가/삭제에 따라 순서가 춤추면 쭈인님이 어지러우니까...!
+function collectAssetMappingBadges(
+  catalog: VisualAssetCatalog,
+  assetId: string,
+): ReadonlyArray<AssetMappingBadge> {
+  const pairBadges: AssetMappingBadge[] = [];
+  const stateBadges: AssetMappingBadge[] = [];
+  const emotionBadges: AssetMappingBadge[] = [];
+
+  for (const statePreset of STATE_PRESETS) {
+    for (const emotionPreset of EMOTION_PRESETS) {
+      if (emotionPreset.id === "neutral") {
+        continue;
+      }
+
+      if (
+        assetHasStateEmotionMapping(
+          catalog,
+          assetId,
+          statePreset.id,
+          emotionPreset.id,
+        )
+      ) {
+        pairBadges.push({
+          key: `pair-${statePreset.id}-${emotionPreset.id}`,
+          label: `${statePreset.label} + ${emotionPreset.label}`,
+        });
+      }
+    }
+  }
+
+  for (const statePreset of STATE_PRESETS) {
+    if (assetHasStateMapping(catalog, assetId, statePreset.id)) {
+      stateBadges.push({
+        key: `state-${statePreset.id}`,
+        label: statePreset.label,
+      });
+    }
+  }
+
+  for (const emotionPreset of EMOTION_PRESETS) {
+    if (emotionPreset.id === "neutral") {
+      continue;
+    }
+
+    if (assetHasEmotionMapping(catalog, assetId, emotionPreset.id)) {
+      emotionBadges.push({
+        key: `emotion-${emotionPreset.id}`,
+        label: emotionPreset.label,
+      });
+    }
+  }
+
+  return [...pairBadges, ...stateBadges, ...emotionBadges];
+}
+
 export function EmotionSection({
   catalog,
   onDropFiles,
@@ -176,6 +238,7 @@ export function EmotionSection({
             const stateMappingIdPrefix = `state-${asset.id}`;
             const emotionMappingIdPrefix = `emotion-${asset.id}`;
             const pairMappingIdPrefix = `pair-${asset.id}`;
+            const mappingBadges = collectAssetMappingBadges(catalog, asset.id);
 
             return (
               <li
@@ -192,11 +255,26 @@ export function EmotionSection({
 
                 <div className="flex min-w-0 flex-col gap-[14px]">
                   <div className="flex items-start justify-between gap-2.5">
-                    <div>
+                    <div className="flex min-w-0 flex-col gap-2">
                       <h3 className="m-0 break-all">{asset.label}</h3>
-                      <p className={`${managerSectionCopyClassName} break-all`}>
-                        {asset.path}
-                      </p>
+                      {mappingBadges.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {mappingBadges.map((badge) => {
+                            return (
+                              <span
+                                className="inline-flex items-center border border-border-soft bg-surface-elevated px-2 py-0.5 text-xs text-text-secondary"
+                                key={badge.key}
+                              >
+                                {badge.label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className={managerSectionCopyClassName}>
+                          아직 연결된 감정·상태가 읍어요...
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2.5">
