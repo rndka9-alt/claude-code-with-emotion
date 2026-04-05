@@ -12,6 +12,7 @@ export type VisualStatePresetId =
   | "waiting"
   | "permission_wait"
   | "interrupted"
+  | "compacting"
   | "completed"
   | "error"
   | "tool_failed";
@@ -119,6 +120,15 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
     id: "interrupted",
     label: "Interrupted",
     source: "synthetic",
+  },
+  {
+    category: "state",
+    defaultLine: "이야기 정리하고 돌아올게요...!",
+    description:
+      "Claude is compacting the conversation (PreCompact) and will return shortly.",
+    id: "compacting",
+    label: "Compacting",
+    source: "assistant-hook",
   },
   {
     category: "state",
@@ -344,6 +354,14 @@ export function normalizeAssistantSemanticState(
 
   if (state === "tool_failed") {
     return { state: "tool_failed", emotion: null };
+  }
+
+  if (state === "compacting") {
+    return { state: "compacting", emotion: null };
+  }
+
+  if (state === "completed") {
+    return { state: "completed", emotion: null };
   }
 
   if (state === "surprised") {

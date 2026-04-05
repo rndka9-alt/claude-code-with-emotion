@@ -36,6 +36,7 @@ function createStateLineDrafts(
     waiting: "",
     permission_wait: "",
     interrupted: "",
+    compacting: "",
     completed: "",
     error: "",
     tool_failed: "",
@@ -73,6 +74,10 @@ function getSituationMessageDescription(state: VisualStatePresetId): string {
 
   if (state === "interrupted") {
     return "현재 턴 작업이 중간에 끊긴 상태예요.";
+  }
+
+  if (state === "compacting") {
+    return "대화 내용을 compact 하는 중이라 잠깐 자리를 비운 상태예요.";
   }
 
   if (state === "completed") {

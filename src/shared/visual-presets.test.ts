@@ -25,6 +25,17 @@ describe("visual presets", () => {
     });
   });
 
+  it("normalizes compacting and completed lifecycle states without adding an emotion", () => {
+    expect(normalizeAssistantSemanticState("compacting")).toEqual({
+      state: "compacting",
+      emotion: null,
+    });
+    expect(normalizeAssistantSemanticState("completed")).toEqual({
+      state: "completed",
+      emotion: null,
+    });
+  });
+
   it("normalizes emotional semantic states into the future two-axis contract", () => {
     expect(normalizeAssistantSemanticState("happy")).toEqual({
       state: "completed",

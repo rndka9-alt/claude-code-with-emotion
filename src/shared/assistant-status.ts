@@ -6,6 +6,8 @@ export type AssistantSemanticState =
   | "permission_wait"
   | "interrupted"
   | "tool_failed"
+  | "compacting"
+  | "completed"
   | "surprised"
   | "sad"
   | "happy"

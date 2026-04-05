@@ -532,7 +532,7 @@ function createUpdate(eventName, payload, hookState) {
     const matcher = readStringField(payload, ["matcher"]);
     return {
       activity: "이야기 정리 중",
-      state: "working",
+      state: "compacting",
       line: "이야기햇던 내용 정리하고 올게요...!",
       task: matcher !== null ? `Compact: ${matcher}` : "Compact",
       intensity: "medium",
@@ -543,7 +543,7 @@ function createUpdate(eventName, payload, hookState) {
     const matcher = readStringField(payload, ["matcher"]);
     return {
       activity: "정리 마치고 돌아옴",
-      state: "thinking",
+      state: "completed",
       line: "이야기 정리 끝내고 돌아왓어요...!",
       task:
         matcher !== null ? `Compact completed: ${matcher}` : "Compact completed",

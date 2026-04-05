@@ -29,6 +29,10 @@ const avatarBackgroundVariableByState: Record<
   permission_wait: "--color-avatar-idle",
   interrupted: "--color-avatar-idle",
   tool_failed: "--color-avatar-error",
+  // compacting 은 working 과 비슷한 "손 움직이는 중" 느낌이라 working 색상을 빌려 쓴다.
+  compacting: "--color-avatar-working",
+  // completed 는 기분 좋은 마무리라 happy 의 업비트 색과 동일 톤을 재사용.
+  completed: "--color-avatar-happy",
   surprised: "--color-avatar-surprised",
   sad: "--color-avatar-sad",
   happy: "--color-avatar-happy",
