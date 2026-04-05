@@ -119,6 +119,10 @@ export function resolveVisualAsset(
   catalog: VisualAssetCatalog,
   request: VisualAssetResolutionRequest,
 ): VisualAssetResolution | null {
+  // 우선순위: state+emotion 조합 > emotion 전용 > state 전용 > 기본값.
+  // emotion 이 명시적으로 설정댓을 때(MCP 툴 호출 등) 그 emotion 자산이 state
+  // 자산에 가려지지 않도록 state 전용보다 먼저 본다. emotion 이 null 이면
+  // emotion 전용 단계는 건너뛰고 state 전용이 주인공 역할을 한다.
   if (request.emotion !== null) {
     const exactMatch = resolveFromMapping(
       catalog,
@@ -129,6 +133,17 @@ export function resolveVisualAsset(
 
     if (exactMatch !== null) {
       return exactMatch;
+    }
+
+    const emotionOnlyMatch = resolveFromMapping(
+      catalog,
+      (mapping) =>
+        mapping.state === undefined && mapping.emotion === request.emotion,
+      "emotion",
+    );
+
+    if (emotionOnlyMatch !== null) {
+      return emotionOnlyMatch;
     }
   }
 
@@ -141,19 +156,6 @@ export function resolveVisualAsset(
 
   if (stateOnlyMatch !== null) {
     return stateOnlyMatch;
-  }
-
-  if (request.emotion !== null) {
-    const emotionOnlyMatch = resolveFromMapping(
-      catalog,
-      (mapping) =>
-        mapping.state === undefined && mapping.emotion === request.emotion,
-      "emotion",
-    );
-
-    if (emotionOnlyMatch !== null) {
-      return emotionOnlyMatch;
-    }
   }
 
   const defaultAsset = catalog.assets.find((asset) => asset.isDefault === true);
