@@ -12,7 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const APP_NAME = "Claude Code With Emotion";
-const APP_IDENTIFIER = "com.igangmin.claude-code-with-emotion";
+const APP_IDENTIFIER = "studio.moodlamp.claude-code-with-emotion";
 
 function replacePlistValue(contents, key, value) {
   const pattern = new RegExp(
