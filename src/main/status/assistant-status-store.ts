@@ -36,6 +36,12 @@ export class AssistantStatusStore {
   }
 
   applyUpdate(update: AssistantStatusUpdate, source: string): void {
+    // 새 훅 상태 이벤트가 들어오면 이전 오버레이 감정은 유통기한이 끝난다.
+    // 감정은 깜빡이는 신호, 상태는 흐르는 강이니 다음 state 가 오는 순간 오버레이 감정은
+    // 자리를 비켜줘야 state 전용 에셋이 다시 나올 수 있다. delete 로 지워야
+    // applyOverlay 의 `!== undefined` 체크가 "오버레이 없음" 으로 읽는다.
+    delete this.visualOverlay.emotion;
+
     const nextSnapshot = this.normalizeUpdate(update, source);
 
     this.baseSnapshot = nextSnapshot;
@@ -77,7 +83,10 @@ export class AssistantStatusStore {
   ): AssistantStatusSnapshot {
     return {
       activityLabel: update.activityLabel ?? this.currentSnapshot.activityLabel,
-      emotion: update.emotion ?? this.currentSnapshot.emotion,
+      // currentSnapshot.emotion 은 오버레이까지 얹힌 값이라 폴백으로 쓰면 감정이 base 에
+      // 스탬프처럼 복사대 영원히 남는다. base 는 훅이 직접 준 감정만 담고, 오버레이는
+      // applyOverlay 에서만 얹어야 "다음 state 에서 감정 만료" 흐름이 성립한다.
+      emotion: update.emotion ?? null,
       overlayLine: this.currentSnapshot.overlayLine,
       state: update.state,
       line: update.line,

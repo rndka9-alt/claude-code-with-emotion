@@ -54,6 +54,28 @@ describe("AssistantStatusStore", () => {
     expect(store.getSnapshot().line).toBe("Base state");
   });
 
+  it("expires the overlay emotion once the next hook state arrives", () => {
+    const store = new AssistantStatusStore(2_000);
+
+    store.applyUpdate(
+      { state: "working", line: "Base" },
+      "assistant-command",
+    );
+    store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
+
+    expect(store.getSnapshot().emotion).toBe("happy");
+
+    // 감정이 오버레이에 살아있는 동안 훅이 새 state 를 쏴주면 오버레이 감정은 만료대야 한다.
+    // 이 규칙이 없으면 resolveVisualAsset 이 emotion 자산만 계속 우선해서 state 에셋이 묻힌다.
+    store.applyUpdate(
+      { state: "responding", line: "Next" },
+      "assistant-command",
+    );
+
+    expect(store.getSnapshot().state).toBe("responding");
+    expect(store.getSnapshot().emotion).toBeNull();
+  });
+
   it("throttles rapid state emits and flushes the latest one on the trailing edge", async () => {
     vi.useFakeTimers();
     try {
