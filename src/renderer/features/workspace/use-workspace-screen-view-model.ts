@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
 import type { AppThemeId, AppThemeOption } from "../../../shared/theme";
 import type { VisualMcpSetupStatus } from "../../../shared/mcp-setup-bridge";
-import type {
-  VisualEmotionPresetId,
-  VisualStatePresetId,
+import {
+  EMOTION_PRESETS,
+  STATE_PRESETS,
+  type VisualEmotionPresetId,
+  type VisualStatePresetId,
 } from "../../../shared/visual-presets";
+import type { VisualAssetCatalog } from "../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
+import { useToast } from "../toast/ToastProvider";
 import { getActiveTab, getVisibleTabs } from "./model";
 import { formatStatusPanelLine } from "./status-panel-line";
 import { resolveStatusPanelVisual } from "./status-panel-visual";
@@ -15,6 +19,9 @@ import { useAppTheme } from "./use-app-theme";
 import { useVisualAssetCatalog } from "./use-visual-asset-catalog";
 import { useWorkspaceState } from "./use-workspace-state";
 import {
+  findVisualAssetEmotionOwner,
+  findVisualAssetStateEmotionOwner,
+  findVisualAssetStateOwner,
   mergePickedVisualAssets,
   removeVisualAsset,
   setVisualAssetDefault,
@@ -24,6 +31,28 @@ import {
   setVisualAssetStateEmotionMapping,
   setVisualAssetStateMapping,
 } from "./visual-asset-catalog-edits";
+
+function findEmotionLabel(emotionId: VisualEmotionPresetId): string {
+  return (
+    EMOTION_PRESETS.find((preset) => preset.id === emotionId)?.label ??
+    emotionId
+  );
+}
+
+function findStateLabel(stateId: VisualStatePresetId): string {
+  return (
+    STATE_PRESETS.find((preset) => preset.id === stateId)?.label ?? stateId
+  );
+}
+
+function findAssetLabel(
+  catalog: VisualAssetCatalog,
+  assetId: string,
+): string {
+  return (
+    catalog.assets.find((asset) => asset.id === assetId)?.label ?? assetId
+  );
+}
 
 const MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY =
   "claude-code-with-emotion:mcp-setup-prompt-dismissed";
@@ -184,6 +213,12 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     pickFiles: pickVisualAssetFiles,
     saveCatalog: saveVisualAssetCatalog,
   } = useVisualAssetCatalog();
+  const toast = useToast();
+  // 토스트 undo 가 클릭대는 시점엔 closure 가 낡아 잇을 수 잇어요. 항상 최신 catalog 를 보게 ref 로 투영.
+  const catalogRef = useRef(visualAssetCatalog);
+  useEffect(() => {
+    catalogRef.current = visualAssetCatalog;
+  }, [visualAssetCatalog]);
   const statusVisual = resolveStatusPanelVisual(
     assistantSnapshot,
     visualAssetCatalog,
@@ -391,6 +426,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     statusVisual,
     tabs: state.tabs,
     toggleEmotion: (assetId, emotion, isEnabled) => {
+      const previousOwnerAssetId = isEnabled
+        ? findVisualAssetEmotionOwner(visualAssetCatalog, emotion)
+        : null;
+
       void persistVisualAssetCatalog(
         setVisualAssetEmotionMapping(
           visualAssetCatalog,
@@ -399,8 +438,42 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
           isEnabled,
         ),
       );
+
+      if (
+        previousOwnerAssetId !== null &&
+        previousOwnerAssetId !== assetId
+      ) {
+        const previousOwnerLabel = findAssetLabel(
+          visualAssetCatalog,
+          previousOwnerAssetId,
+        );
+        const newOwnerLabel = findAssetLabel(visualAssetCatalog, assetId);
+        const emotionLabel = findEmotionLabel(emotion);
+
+        toast.showToast({
+          message: `'${emotionLabel}' 을(를) ${previousOwnerLabel} 에서 ${newOwnerLabel} 로 옮겻어요`,
+          tone: "warning",
+          action: {
+            label: "되돌리기",
+            onAction: () => {
+              void persistVisualAssetCatalog(
+                setVisualAssetEmotionMapping(
+                  catalogRef.current,
+                  previousOwnerAssetId,
+                  emotion,
+                  true,
+                ),
+              );
+            },
+          },
+        });
+      }
     },
     toggleState: (assetId, statePreset, isEnabled) => {
+      const previousOwnerAssetId = isEnabled
+        ? findVisualAssetStateOwner(visualAssetCatalog, statePreset)
+        : null;
+
       void persistVisualAssetCatalog(
         setVisualAssetStateMapping(
           visualAssetCatalog,
@@ -409,8 +482,46 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
           isEnabled,
         ),
       );
+
+      if (
+        previousOwnerAssetId !== null &&
+        previousOwnerAssetId !== assetId
+      ) {
+        const previousOwnerLabel = findAssetLabel(
+          visualAssetCatalog,
+          previousOwnerAssetId,
+        );
+        const newOwnerLabel = findAssetLabel(visualAssetCatalog, assetId);
+        const stateLabel = findStateLabel(statePreset);
+
+        toast.showToast({
+          message: `'${stateLabel}' 을(를) ${previousOwnerLabel} 에서 ${newOwnerLabel} 로 옮겻어요`,
+          tone: "warning",
+          action: {
+            label: "되돌리기",
+            onAction: () => {
+              void persistVisualAssetCatalog(
+                setVisualAssetStateMapping(
+                  catalogRef.current,
+                  previousOwnerAssetId,
+                  statePreset,
+                  true,
+                ),
+              );
+            },
+          },
+        });
+      }
     },
     toggleStateEmotion: (assetId, statePreset, emotion, isEnabled) => {
+      const previousOwnerAssetId = isEnabled
+        ? findVisualAssetStateEmotionOwner(
+            visualAssetCatalog,
+            statePreset,
+            emotion,
+          )
+        : null;
+
       void persistVisualAssetCatalog(
         setVisualAssetStateEmotionMapping(
           visualAssetCatalog,
@@ -420,6 +531,38 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
           isEnabled,
         ),
       );
+
+      if (
+        previousOwnerAssetId !== null &&
+        previousOwnerAssetId !== assetId
+      ) {
+        const previousOwnerLabel = findAssetLabel(
+          visualAssetCatalog,
+          previousOwnerAssetId,
+        );
+        const newOwnerLabel = findAssetLabel(visualAssetCatalog, assetId);
+        const stateLabel = findStateLabel(statePreset);
+        const emotionLabel = findEmotionLabel(emotion);
+
+        toast.showToast({
+          message: `'${stateLabel} + ${emotionLabel}' 을(를) ${previousOwnerLabel} 에서 ${newOwnerLabel} 로 옮겻어요`,
+          tone: "warning",
+          action: {
+            label: "되돌리기",
+            onAction: () => {
+              void persistVisualAssetCatalog(
+                setVisualAssetStateEmotionMapping(
+                  catalogRef.current,
+                  previousOwnerAssetId,
+                  statePreset,
+                  emotion,
+                  true,
+                ),
+              );
+            },
+          },
+        });
+      }
     },
     updateTabTitle,
     visualAssetCatalog,

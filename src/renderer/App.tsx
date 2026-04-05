@@ -1,5 +1,6 @@
 import { Grip } from "lucide-react";
 import { useState, type ReactElement } from "react";
+import { ToastProvider } from "./features/toast/ToastProvider";
 import { PaneStack } from "./features/workspace/PaneStack";
 import { StatusPanel } from "./features/workspace/StatusPanel";
 import { TabBar } from "./features/workspace/TabBar";
@@ -7,6 +8,16 @@ import { VisualAssetManagerDialog } from "./features/workspace/VisualAssetManage
 import { useWorkspaceScreenViewModel } from "./features/workspace/use-workspace-screen-view-model";
 
 export function App(): ReactElement {
+  // ToastProvider 가 바깥에 둘러야 view-model 훅에서 useToast 를 쓸 수 있어요.
+  // AppContent 를 분리해서 기존 테스트가 <App /> 만 렌더해도 토스트 컨텍스트가 같이 붙어요.
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
+}
+
+function AppContent(): ReactElement {
   const [isStatusPanelCollapsed, setIsStatusPanelCollapsed] = useState(false);
   const {
     activateTab,

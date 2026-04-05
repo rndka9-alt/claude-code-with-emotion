@@ -96,6 +96,98 @@ function assetHasStateEmotionMapping(
   });
 }
 
+// 현재 chip 기준에서 "다른 에셋" 이 슬롯을 점유 중이면 그 label 을 반환.
+// 본인이 가지고 잇거나 아무도 안 가져갓으면 null. 배열 순서상 첫 유효 매핑만 본다 (resolver 동기화).
+function findOtherOwnerLabelForState(
+  catalog: VisualAssetCatalog,
+  selfAssetId: string,
+  state: VisualStatePresetId,
+): string | null {
+  for (const mapping of catalog.mappings) {
+    if (mapping.state !== state || mapping.emotion !== undefined) {
+      continue;
+    }
+
+    if (mapping.assetId === selfAssetId) {
+      return null;
+    }
+
+    const ownerAsset = catalog.assets.find((asset) => {
+      return asset.id === mapping.assetId;
+    });
+
+    if (ownerAsset !== undefined) {
+      return ownerAsset.label;
+    }
+  }
+
+  return null;
+}
+
+function findOtherOwnerLabelForEmotion(
+  catalog: VisualAssetCatalog,
+  selfAssetId: string,
+  emotion: VisualEmotionPresetId,
+): string | null {
+  for (const mapping of catalog.mappings) {
+    if (mapping.emotion !== emotion || mapping.state !== undefined) {
+      continue;
+    }
+
+    if (mapping.assetId === selfAssetId) {
+      return null;
+    }
+
+    const ownerAsset = catalog.assets.find((asset) => {
+      return asset.id === mapping.assetId;
+    });
+
+    if (ownerAsset !== undefined) {
+      return ownerAsset.label;
+    }
+  }
+
+  return null;
+}
+
+function findOtherOwnerLabelForStateEmotion(
+  catalog: VisualAssetCatalog,
+  selfAssetId: string,
+  state: VisualStatePresetId,
+  emotion: VisualEmotionPresetId,
+): string | null {
+  for (const mapping of catalog.mappings) {
+    if (mapping.state !== state || mapping.emotion !== emotion) {
+      continue;
+    }
+
+    if (mapping.assetId === selfAssetId) {
+      return null;
+    }
+
+    const ownerAsset = catalog.assets.find((asset) => {
+      return asset.id === mapping.assetId;
+    });
+
+    if (ownerAsset !== undefined) {
+      return ownerAsset.label;
+    }
+  }
+
+  return null;
+}
+
+function buildChipTitle(
+  baseDescription: string,
+  otherOwnerLabel: string | null,
+): string {
+  if (otherOwnerLabel === null) {
+    return baseDescription;
+  }
+
+  return `${baseDescription} · 현재 점유: ${otherOwnerLabel}`;
+}
+
 interface AssetMappingBadge {
   key: string;
   label: string;
@@ -322,13 +414,21 @@ export function EmotionSection({
                       <div className="flex flex-wrap gap-2">
                         {STATE_PRESETS.map((preset) => {
                           const inputId = `${stateMappingIdPrefix}-${preset.id}`;
+                          const otherOwnerLabel = findOtherOwnerLabelForState(
+                            catalog,
+                            asset.id,
+                            preset.id,
+                          );
 
                           return (
                             <label
                               className={managerChipClassName}
                               htmlFor={inputId}
                               key={preset.id}
-                              title={preset.description}
+                              title={buildChipTitle(
+                                preset.description,
+                                otherOwnerLabel,
+                              )}
                             >
                               <input
                                 checked={assetHasStateMapping(
@@ -350,6 +450,12 @@ export function EmotionSection({
                                 type="checkbox"
                               />
                               <span>{preset.label}</span>
+                              {otherOwnerLabel !== null ? (
+                                <span
+                                  aria-hidden="true"
+                                  className="inline-block h-1.5 w-1.5 rounded-full bg-text-warning"
+                                />
+                              ) : null}
                             </label>
                           );
                         })}
@@ -365,13 +471,21 @@ export function EmotionSection({
                           }
 
                           const inputId = `${emotionMappingIdPrefix}-${preset.id}`;
+                          const otherOwnerLabel = findOtherOwnerLabelForEmotion(
+                            catalog,
+                            asset.id,
+                            preset.id,
+                          );
 
                           return (
                             <label
                               className={managerChipClassName}
                               htmlFor={inputId}
                               key={preset.id}
-                              title={preset.description}
+                              title={buildChipTitle(
+                                preset.description,
+                                otherOwnerLabel,
+                              )}
                             >
                               <input
                                 checked={assetHasEmotionMapping(
@@ -393,6 +507,12 @@ export function EmotionSection({
                                 type="checkbox"
                               />
                               <span>{preset.label}</span>
+                              {otherOwnerLabel !== null ? (
+                                <span
+                                  aria-hidden="true"
+                                  className="inline-block h-1.5 w-1.5 rounded-full bg-text-warning"
+                                />
+                              ) : null}
                             </label>
                           );
                         })}
@@ -423,13 +543,23 @@ export function EmotionSection({
                               <div className="flex flex-wrap gap-2">
                                 {STATE_PRESETS.map((statePreset) => {
                                   const inputId = `${pairMappingIdPrefix}-${statePreset.id}-${emotionPreset.id}`;
+                                  const otherOwnerLabel =
+                                    findOtherOwnerLabelForStateEmotion(
+                                      catalog,
+                                      asset.id,
+                                      statePreset.id,
+                                      emotionPreset.id,
+                                    );
 
                                   return (
                                     <label
                                       className={`${managerChipClassName} text-xs`}
                                       htmlFor={inputId}
                                       key={`${statePreset.id}-${emotionPreset.id}`}
-                                      title={`${statePreset.label} + ${emotionPreset.label}`}
+                                      title={buildChipTitle(
+                                        `${statePreset.label} + ${emotionPreset.label}`,
+                                        otherOwnerLabel,
+                                      )}
                                     >
                                       <input
                                         checked={assetHasStateEmotionMapping(
@@ -453,6 +583,12 @@ export function EmotionSection({
                                         type="checkbox"
                                       />
                                       <span>{statePreset.label}</span>
+                                      {otherOwnerLabel !== null ? (
+                                        <span
+                                          aria-hidden="true"
+                                          className="inline-block h-1.5 w-1.5 rounded-full bg-text-warning"
+                                        />
+                                      ) : null}
                                     </label>
                                   );
                                 })}

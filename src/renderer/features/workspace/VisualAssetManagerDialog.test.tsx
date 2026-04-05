@@ -113,6 +113,77 @@ describe("VisualAssetManagerDialog", () => {
     expect(onDropFiles).toHaveBeenCalledWith([droppedFile]);
   });
 
+  it("shows the current owner hint on emotion chips owned by another asset", () => {
+    render(
+      <VisualAssetManagerDialog
+        availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
+        catalog={{
+          version: 1,
+          assets: [
+            {
+              id: "asset-a",
+              kind: "image",
+              label: "Avatar A",
+              path: "/tmp/a.png",
+            },
+            {
+              id: "asset-b",
+              kind: "image",
+              label: "Avatar B",
+              path: "/tmp/b.png",
+            },
+          ],
+          mappings: [{ assetId: "asset-a", emotion: "happy" }],
+          stateLines: [],
+          emotionDescriptions: [],
+        }}
+        currentThemeId="current-dark"
+        isInstallingVisualMcp={false}
+        mcpSetupError={null}
+        mcpSetupInstalled={false}
+        onClose={() => {}}
+        onDropFiles={() => {}}
+        onInstallVisualMcp={() => {}}
+        onPickFiles={() => {}}
+        onRemoveAsset={() => {}}
+        onSelectTheme={() => {}}
+        onSetDefaultAsset={() => {}}
+        onSetEmotionDescription={() => {}}
+        onSetStateLine={() => {}}
+        onToggleEmotion={() => {}}
+        onToggleState={() => {}}
+        onToggleStateEmotion={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "감정 에셋" }));
+
+    // details 두 개 (A, B) 다 열어서 chip 을 보이게 만들어요.
+    for (const summary of screen.getAllByText("매핑 설정")) {
+      fireEvent.click(summary);
+    }
+
+    // Avatar B 의 happy chip - 다른 에셋이 점유 중이니 title 에 owner 힌트가 붙어 있어야 대요.
+    const chipForBHappy = document
+      .getElementById("emotion-asset-b-happy")
+      ?.closest("label");
+
+    expect(chipForBHappy).not.toBeNull();
+    expect(chipForBHappy?.getAttribute("title") ?? "").toContain(
+      "현재 점유: Avatar A",
+    );
+
+    // Avatar A 의 happy chip 은 본인이 점유 중이니 owner 힌트가 없어야 함.
+    const chipForAHappy = document
+      .getElementById("emotion-asset-a-happy")
+      ?.closest("label");
+
+    expect(chipForAHappy).not.toBeNull();
+    expect(chipForAHappy?.getAttribute("title") ?? "").not.toContain(
+      "현재 점유:",
+    );
+  });
+
   it("closes when Escape is pressed or the dim overlay is clicked", () => {
     const onClose = vi.fn();
 

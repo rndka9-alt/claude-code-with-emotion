@@ -1,4 +1,7 @@
 import {
+  findVisualAssetEmotionOwner,
+  findVisualAssetStateEmotionOwner,
+  findVisualAssetStateOwner,
   mergePickedVisualAssets,
   removeVisualAsset,
   setVisualAssetDefault,
@@ -394,6 +397,118 @@ describe("visual asset catalog edits", () => {
       },
     ]);
     expect(withoutLine.stateLines).toEqual([]);
+  });
+
+  it("steals emotion/state/pair slots away from previous owners on enable", () => {
+    const baseCatalog = {
+      version: 1 as const,
+      assets: [
+        {
+          id: "asset-a",
+          kind: "image" as const,
+          label: "A",
+          path: "/tmp/a.png",
+        },
+        {
+          id: "asset-b",
+          kind: "image" as const,
+          label: "B",
+          path: "/tmp/b.png",
+        },
+      ],
+      mappings: [
+        { assetId: "asset-a", emotion: "happy" as const },
+        { assetId: "asset-a", state: "working" as const },
+        {
+          assetId: "asset-a",
+          state: "working" as const,
+          emotion: "sad" as const,
+        },
+      ],
+      stateLines: [],
+      emotionDescriptions: [],
+    };
+
+    const stolenEmotion = setVisualAssetEmotionMapping(
+      baseCatalog,
+      "asset-b",
+      "happy",
+      true,
+    );
+    const stolenState = setVisualAssetStateMapping(
+      baseCatalog,
+      "asset-b",
+      "working",
+      true,
+    );
+    const stolenPair = setVisualAssetStateEmotionMapping(
+      baseCatalog,
+      "asset-b",
+      "working",
+      "sad",
+      true,
+    );
+
+    expect(stolenEmotion.mappings).toEqual([
+      { assetId: "asset-a", state: "working" },
+      { assetId: "asset-a", state: "working", emotion: "sad" },
+      { assetId: "asset-b", emotion: "happy" },
+    ]);
+    expect(stolenState.mappings).toEqual([
+      { assetId: "asset-a", emotion: "happy" },
+      { assetId: "asset-a", state: "working", emotion: "sad" },
+      { assetId: "asset-b", state: "working" },
+    ]);
+    expect(stolenPair.mappings).toEqual([
+      { assetId: "asset-a", emotion: "happy" },
+      { assetId: "asset-a", state: "working" },
+      { assetId: "asset-b", state: "working", emotion: "sad" },
+    ]);
+  });
+
+  it("reports the current slot owner or null when the slot is free", () => {
+    const catalog = {
+      version: 1 as const,
+      assets: [
+        {
+          id: "asset-a",
+          kind: "image" as const,
+          label: "A",
+          path: "/tmp/a.png",
+        },
+        {
+          id: "asset-orphan",
+          kind: "image" as const,
+          label: "Orphan",
+          path: "/tmp/orphan.png",
+        },
+      ],
+      mappings: [
+        { assetId: "asset-a", emotion: "happy" as const },
+        { assetId: "asset-a", state: "working" as const },
+        {
+          assetId: "asset-a",
+          state: "working" as const,
+          emotion: "sad" as const,
+        },
+        // 좀비 매핑: assetId 가 카탈로그에 읍는 경우는 owner 가 아니에요.
+        { assetId: "asset-ghost", emotion: "angry" as const },
+      ],
+      stateLines: [],
+      emotionDescriptions: [],
+    };
+
+    expect(findVisualAssetEmotionOwner(catalog, "happy")).toEqual("asset-a");
+    expect(findVisualAssetEmotionOwner(catalog, "angry")).toEqual(null);
+    expect(findVisualAssetEmotionOwner(catalog, "bored")).toEqual(null);
+    expect(findVisualAssetStateOwner(catalog, "working")).toEqual("asset-a");
+    expect(findVisualAssetStateOwner(catalog, "thinking")).toEqual(null);
+    expect(
+      findVisualAssetStateEmotionOwner(catalog, "working", "sad"),
+    ).toEqual("asset-a");
+    expect(
+      findVisualAssetStateEmotionOwner(catalog, "working", "happy"),
+    ).toEqual(null);
   });
 
   it("sets, replaces, and clears emotion description overrides", () => {

@@ -130,43 +130,6 @@ function parseVisualAssetFilenameAssignment(
   return assignment;
 }
 
-function hasStateOnlyMapping(
-  mapping: VisualAssetMapping,
-  assetId: string,
-  state: VisualStatePresetId,
-): boolean {
-  return (
-    mapping.assetId === assetId &&
-    mapping.state === state &&
-    mapping.emotion === undefined
-  );
-}
-
-function hasEmotionOnlyMapping(
-  mapping: VisualAssetMapping,
-  assetId: string,
-  emotion: VisualEmotionPresetId,
-): boolean {
-  return (
-    mapping.assetId === assetId &&
-    mapping.state === undefined &&
-    mapping.emotion === emotion
-  );
-}
-
-function hasStateAndEmotionMapping(
-  mapping: VisualAssetMapping,
-  assetId: string,
-  state: VisualStatePresetId,
-  emotion: VisualEmotionPresetId,
-): boolean {
-  return (
-    mapping.assetId === assetId &&
-    mapping.state === state &&
-    mapping.emotion === emotion
-  );
-}
-
 function removeMatchingStateOnlyMappings(
   mappings: ReadonlyArray<VisualAssetMapping>,
   state: VisualStatePresetId,
@@ -324,15 +287,16 @@ export function setVisualAssetDefault(
   };
 }
 
+// 각 슬롯(state, emotion, state+emotion pair)은 1:1 로 유지돼요.
+// isEnabled=true 일 때 다른 에셋이 점유 중이면 그 매핑을 뺏어오고, 본인 걸 꽂음.
+// isEnabled=false 면 그 슬롯을 비우기만 함.
 export function setVisualAssetStateMapping(
   catalog: VisualAssetCatalog,
   assetId: string,
   state: VisualStatePresetId,
   isEnabled: boolean,
 ): VisualAssetCatalog {
-  const nextMappings = catalog.mappings.filter((mapping) => {
-    return !hasStateOnlyMapping(mapping, assetId, state);
-  });
+  const nextMappings = removeMatchingStateOnlyMappings(catalog.mappings, state);
 
   if (isEnabled) {
     nextMappings.push({
@@ -353,9 +317,10 @@ export function setVisualAssetEmotionMapping(
   emotion: VisualEmotionPresetId,
   isEnabled: boolean,
 ): VisualAssetCatalog {
-  const nextMappings = catalog.mappings.filter((mapping) => {
-    return !hasEmotionOnlyMapping(mapping, assetId, emotion);
-  });
+  const nextMappings = removeMatchingEmotionOnlyMappings(
+    catalog.mappings,
+    emotion,
+  );
 
   if (isEnabled) {
     nextMappings.push({
@@ -377,9 +342,11 @@ export function setVisualAssetStateEmotionMapping(
   emotion: VisualEmotionPresetId,
   isEnabled: boolean,
 ): VisualAssetCatalog {
-  const nextMappings = catalog.mappings.filter((mapping) => {
-    return !hasStateAndEmotionMapping(mapping, assetId, state, emotion);
-  });
+  const nextMappings = removeMatchingStateEmotionMappings(
+    catalog.mappings,
+    state,
+    emotion,
+  );
 
   if (isEnabled) {
     nextMappings.push({
@@ -393,6 +360,55 @@ export function setVisualAssetStateEmotionMapping(
     ...catalog,
     mappings: nextMappings,
   };
+}
+
+// 슬롯 점유자 조회. 해당 매핑이 가리키는 자산이 실제로 카탈로그에 남아 잇을 때만 반환해요.
+// resolveFromMapping 과 동일하게 배열 순서상 첫 번째 유효 매핑을 리턴해요.
+function findSlotOwnerAssetId(
+  catalog: VisualAssetCatalog,
+  matcher: (mapping: VisualAssetMapping) => boolean,
+): string | null {
+  const knownAssetIds = new Set(catalog.assets.map((asset) => asset.id));
+
+  for (const mapping of catalog.mappings) {
+    if (!matcher(mapping)) {
+      continue;
+    }
+
+    if (knownAssetIds.has(mapping.assetId)) {
+      return mapping.assetId;
+    }
+  }
+
+  return null;
+}
+
+export function findVisualAssetStateOwner(
+  catalog: VisualAssetCatalog,
+  state: VisualStatePresetId,
+): string | null {
+  return findSlotOwnerAssetId(catalog, (mapping) => {
+    return mapping.state === state && mapping.emotion === undefined;
+  });
+}
+
+export function findVisualAssetEmotionOwner(
+  catalog: VisualAssetCatalog,
+  emotion: VisualEmotionPresetId,
+): string | null {
+  return findSlotOwnerAssetId(catalog, (mapping) => {
+    return mapping.state === undefined && mapping.emotion === emotion;
+  });
+}
+
+export function findVisualAssetStateEmotionOwner(
+  catalog: VisualAssetCatalog,
+  state: VisualStatePresetId,
+  emotion: VisualEmotionPresetId,
+): string | null {
+  return findSlotOwnerAssetId(catalog, (mapping) => {
+    return mapping.state === state && mapping.emotion === emotion;
+  });
 }
 
 export function setVisualAssetStateLine(
