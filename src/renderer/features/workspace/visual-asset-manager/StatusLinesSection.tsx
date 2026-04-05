@@ -136,7 +136,7 @@ export function StatusLinesSection({
                     />
                   </button>
                   <span
-                    className="pointer-events-none absolute top-full left-1/2 z-[1] mt-2 block w-[220px] -translate-x-1/2 -translate-y-1 border border-tab-border bg-surface-tooltip px-3 py-2.5 text-xs leading-[1.45] text-text-tooltip opacity-0 shadow-tooltip transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                    className="pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-[220px] -translate-y-1 border border-tab-border bg-surface-tooltip px-3 py-2.5 text-xs leading-[1.45] text-text-tooltip opacity-0 shadow-tooltip transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
                     role="tooltip"
                   >
                     {getSituationMessageDescription(preset.id)}
