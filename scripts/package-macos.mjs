@@ -1,5 +1,6 @@
 import {
   chmodSync,
+  copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -45,9 +46,12 @@ const electronAppTemplatePath = path.join(
 );
 const outputDir = path.join(distDir, "macos");
 const bundlePath = path.join(outputDir, `${APP_NAME}.app`);
-const resourcesAppPath = path.join(bundlePath, "Contents", "Resources", "app");
+const resourcesPath = path.join(bundlePath, "Contents", "Resources");
+const resourcesAppPath = path.join(resourcesPath, "app");
 const executableDir = path.join(bundlePath, "Contents", "MacOS");
 const infoPlistPath = path.join(bundlePath, "Contents", "Info.plist");
+const customIconPath = path.join(projectRoot, "assets", "icon.icns");
+const bundleIconPath = path.join(resourcesPath, "electron.icns");
 
 if (!existsSync(electronAppTemplatePath)) {
   throw new Error(
@@ -76,6 +80,11 @@ const updatedPlist = [
 }, infoPlist);
 
 writeFileSync(infoPlistPath, updatedPlist, "utf8");
+
+// Electron 템플릿의 electron.icns 자리를 그대로 덮어씀 — Info.plist의 CFBundleIconFile 키를 건드리지 않아도 돼서 단순함
+if (existsSync(customIconPath)) {
+  copyFileSync(customIconPath, bundleIconPath);
+}
 
 mkdirSync(resourcesAppPath, { recursive: true });
 
