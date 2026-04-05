@@ -36,6 +36,7 @@ describe("createPosixLaunchConfig", () => {
       HOME: tempHome,
       PATH: "/tmp/helper-bin:/usr/bin",
       CLAUDE_WITH_EMOTION_ORIGINAL_PATH: "/usr/bin",
+      CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: "/tmp/helper-bin",
       CLAUDE_WITH_EMOTION_STATUS_FILE: "/tmp/status.json",
       CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: "/tmp/status.json.hook-state.json",
       CLAUDE_WITH_EMOTION_TRACE_FILE: "/tmp/trace.log",
@@ -58,7 +59,16 @@ describe("createPosixLaunchConfig", () => {
       const zshrc = fs.readFileSync(path.join(zdotDir, ".zshrc"), "utf8");
 
       expect(zshrc).toContain('. "$HOME/.zshrc"');
-      expect(zshrc).toContain("export PATH='/tmp/helper-bin:/usr/bin'");
+      // PATH 는 유저 쉘 설정 실행 뒤에 동적으로 재조립돼야 하므로 정적 quoted export 엔 포함되면 안 된다.
+      expect(zshrc).not.toContain("export PATH='/tmp/helper-bin:/usr/bin'");
+      expect(zshrc).not.toContain(
+        "export CLAUDE_WITH_EMOTION_ORIGINAL_PATH='/usr/bin'",
+      );
+      expect(zshrc).toContain("__cwe_helper='/tmp/helper-bin'");
+      expect(zshrc).toContain(
+        'export CLAUDE_WITH_EMOTION_ORIGINAL_PATH="${__cwe_stripped}"',
+      );
+      expect(zshrc).toContain('export PATH="${__cwe_helper}:${__cwe_stripped}"');
       expect(zshrc).toContain(
         "export CLAUDE_WITH_EMOTION_STATUS_FILE='/tmp/status.json'",
       );

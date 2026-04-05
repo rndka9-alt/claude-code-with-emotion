@@ -125,6 +125,9 @@ export function createRuntimeEnv(
     pathSegments.push(existingPath);
   }
 
+  // Finder 에서 실행한 Electron 은 LANG/LC_* 를 상속 못 받아서 쉘이 C 로케일로 떨어진다.
+  // 그 상태에선 한글·이모지가 raw 바이트로 처리돼 입력이 `\x80\x82` 처럼 깨져 보이기 때문에
+  // UTF-8 기본값을 주입해 멀티바이트 입력이 항상 UTF-8 로 해석되게 보장한다.
   return {
     ...Object.fromEntries(sanitizedEnvEntries),
     CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
@@ -136,6 +139,8 @@ export function createRuntimeEnv(
     CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: visualOverlayFilePath,
     PWD: cwd,
     PATH: joinPathList(pathSegments),
+    LANG: env.LANG ?? "en_US.UTF-8",
+    LC_CTYPE: env.LC_CTYPE ?? env.LC_ALL ?? env.LANG ?? "en_US.UTF-8",
     HEADLINE_INFO_MODE: env.HEADLINE_INFO_MODE ?? "prompt",
     HEADLINE_LINE_MODE: env.HEADLINE_LINE_MODE ?? "off",
     HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? "false",
