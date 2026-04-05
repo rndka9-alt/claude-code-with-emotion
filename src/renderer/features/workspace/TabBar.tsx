@@ -51,6 +51,26 @@ export function TabBar({
   } = useTabDragReorder(tabs, onReorderTab);
 
   useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+
+    // 가로 스크롤 전용 탭 스트립이라 휠 입력을 항상 우리가 가로 이동으로 흡수한다
+    // 중간중간 브라우저 기본 스크롤과 수동 스크롤이 섞이면 관성 끝에서 움찔하는 현상이 생겨서
+    // deltaX가 있으면 deltaX를, 없으면 deltaY를 써서 일관되게 한 방향으로만 이동시킨다
+    const handleWheel = (event: WheelEvent) => {
+      const delta = event.deltaX !== 0 ? event.deltaX : event.deltaY;
+      if (delta === 0) return;
+      event.preventDefault();
+      strip.scrollLeft += delta;
+    };
+
+    strip.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      strip.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
+  useEffect(() => {
     const tab = document.getElementById(`tab-${activeTabId}`);
     const strip = stripRef.current;
     if (!tab || !strip) return;
