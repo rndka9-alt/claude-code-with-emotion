@@ -1,11 +1,12 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { splitPathList } from "../platform/platform-paths";
 import type { VisualMcpSetupStatus } from "../../shared/mcp-setup-bridge";
 
 const VISUAL_MCP_SERVER_NAME = "claude-code-with-emotion-visuals";
 
 function resolveClaudeBinary(pathValue: string | undefined): string | null {
-  const segments = typeof pathValue === "string" ? pathValue.split(":") : [];
+  const segments = splitPathList(pathValue);
 
   for (const segment of segments) {
     if (segment.length === 0) {

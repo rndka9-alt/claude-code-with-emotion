@@ -3,6 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node-pty";
 import type { IPty } from "node-pty";
+import {
+  joinPathList,
+  resolveHomeDir,
+} from "../platform/platform-paths";
 import { ensureClaudeHooksSettingsFile } from "./claude-hooks-settings";
 import { TerminalOutputStore } from "./terminal-output-store";
 import type {
@@ -147,7 +151,7 @@ export function createRuntimeEnv(
     CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: visualAssetCatalogFilePath,
     CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: visualOverlayFilePath,
     PWD: cwd,
-    PATH: pathSegments.join(":"),
+    PATH: joinPathList(pathSegments),
     HEADLINE_INFO_MODE: env.HEADLINE_INFO_MODE ?? "prompt",
     HEADLINE_LINE_MODE: env.HEADLINE_LINE_MODE ?? "off",
     HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? "false",
@@ -229,7 +233,7 @@ export function createShellLaunchConfig(
   const interactiveShellArgs = ["-i", "-l"];
 
   if (shellName === "zsh") {
-    const homeDir = env.HOME;
+    const homeDir = resolveHomeDir(env);
 
     if (typeof homeDir === "string" && homeDir.length > 0) {
       const wrapperDir = ensureZshWrapperDir(homeDir, env);
@@ -311,7 +315,7 @@ export class TerminalSessionManager {
       this.visualAssetCatalogFilePath,
       visualOverlayFilePath,
     );
-    const homeDir = runtimeEnv.HOME;
+    const homeDir = resolveHomeDir(runtimeEnv);
 
     if (typeof homeDir === "string" && homeDir.length > 0) {
       runtimeEnv.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE =
