@@ -5,13 +5,14 @@ import {
   type ChangeEvent,
   type ReactElement,
 } from "react";
-import { CircleHelp, Search } from "lucide-react";
+import { CircleHelp, Image as ImageIcon, Search } from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import {
   getDefaultVisualStateLine,
   STATE_PRESETS,
   type VisualStatePresetId,
 } from "../../../../shared/visual-presets";
+import { createStatusPanelAssetUrl } from "../status-panel-visual";
 import {
   managerIconClassName,
   managerInputClassName,
@@ -98,6 +99,30 @@ export function StatusLinesSection({
     setStateLineDrafts(createStateLineDrafts(catalog));
   }, [catalog]);
 
+  // 매핑된 이미지를 preset 루프 안에서 즉석으로 찾으면 스캔이 n*m 으로 늘어나니
+  // state-only mapping 만 골라 미리 Map 으로 만들어 둔다.
+  const stateAssetUrls = useMemo(() => {
+    const urls = new Map<VisualStatePresetId, string>();
+
+    for (const mapping of catalog.mappings) {
+      if (mapping.state === undefined || mapping.emotion !== undefined) {
+        continue;
+      }
+
+      const asset = catalog.assets.find(
+        (candidate) => candidate.id === mapping.assetId,
+      );
+
+      if (asset === undefined) {
+        continue;
+      }
+
+      urls.set(mapping.state, createStatusPanelAssetUrl(asset.path));
+    }
+
+    return urls;
+  }, [catalog]);
+
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredPresets = useMemo(() => {
@@ -146,6 +171,7 @@ export function StatusLinesSection({
       <div className="grid gap-3 min-[901px]:grid-cols-2">
         {filteredPresets.map((preset) => {
           const inputId = `state-line-${preset.id}`;
+          const assetUrl = stateAssetUrls.get(preset.id) ?? null;
 
           return (
             <div className="flex flex-col gap-1.5" key={preset.id}>
@@ -174,6 +200,30 @@ export function StatusLinesSection({
                     {getSituationMessageDescription(preset.id)}
                   </span>
                 </span>
+                {assetUrl !== null ? (
+                  <span className="group relative inline-flex items-center">
+                    <button
+                      aria-label={`${preset.label} 매핑 이미지 미리보기`}
+                      className="inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent text-text-accent"
+                      type="button"
+                    >
+                      <ImageIcon
+                        aria-hidden="true"
+                        className={managerIconClassName}
+                      />
+                    </button>
+                    <span
+                      className="pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-32 -translate-y-1 border border-tab-border bg-surface-tooltip opacity-0 shadow-tooltip transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                      role="tooltip"
+                    >
+                      <img
+                        alt=""
+                        className="block aspect-square w-full object-cover"
+                        src={assetUrl}
+                      />
+                    </span>
+                  </span>
+                ) : null}
               </div>
               <input
                 className={managerInputClassName}

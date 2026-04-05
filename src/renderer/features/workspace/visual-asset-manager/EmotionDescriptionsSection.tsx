@@ -5,12 +5,18 @@ import {
   type ChangeEvent,
   type ReactElement,
 } from "react";
-import { CircleAlert, CircleHelp, Search } from "lucide-react";
+import {
+  CircleAlert,
+  CircleHelp,
+  Image as ImageIcon,
+  Search,
+} from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
   type VisualEmotionPresetId,
 } from "../../../../shared/visual-presets";
+import { createStatusPanelAssetUrl } from "../status-panel-visual";
 import {
   managerIconClassName,
   managerInputClassName,
@@ -99,6 +105,29 @@ export function EmotionDescriptionsSection({
     [catalog],
   );
 
+  // emotion-only 매핑만 추려서 미리 Map 으로 두면 렌더 루프가 n*m 스캔을 피한다.
+  const emotionAssetUrls = useMemo(() => {
+    const urls = new Map<VisualEmotionPresetId, string>();
+
+    for (const mapping of catalog.mappings) {
+      if (mapping.emotion === undefined || mapping.state !== undefined) {
+        continue;
+      }
+
+      const asset = catalog.assets.find(
+        (candidate) => candidate.id === mapping.assetId,
+      );
+
+      if (asset === undefined) {
+        continue;
+      }
+
+      urls.set(mapping.emotion, createStatusPanelAssetUrl(asset.path));
+    }
+
+    return urls;
+  }, [catalog]);
+
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   // draft 값(사용자가 덮어쓴 설명)도 검색 대상에 넣어야 스크롤 뒤에 숨은 편집 내용도 잡혀요.
@@ -154,6 +183,7 @@ export function EmotionDescriptionsSection({
           const inputId = `emotion-description-${preset.id}`;
           const isNeutral = preset.id === "neutral";
           const isUnmapped = !isNeutral && !mappedEmotions.has(preset.id);
+          const assetUrl = emotionAssetUrls.get(preset.id) ?? null;
 
           return (
             <div className="flex flex-col gap-1.5" key={preset.id}>
@@ -196,6 +226,30 @@ export function EmotionDescriptionsSection({
                     </button>
                     <span className={tooltipClassName} role="tooltip">
                       매핑된 이미지가 없어 적용되지 않습니다.
+                    </span>
+                  </span>
+                ) : null}
+                {assetUrl !== null ? (
+                  <span className="group relative inline-flex items-center">
+                    <button
+                      aria-label={`${preset.label} 매핑 이미지 미리보기`}
+                      className="inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent text-text-accent"
+                      type="button"
+                    >
+                      <ImageIcon
+                        aria-hidden="true"
+                        className={managerIconClassName}
+                      />
+                    </button>
+                    <span
+                      className="pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-32 -translate-y-1 border border-tab-border bg-surface-tooltip opacity-0 shadow-tooltip transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                      role="tooltip"
+                    >
+                      <img
+                        alt=""
+                        className="block aspect-square w-full object-cover"
+                        src={assetUrl}
+                      />
                     </span>
                   </span>
                 ) : null}
