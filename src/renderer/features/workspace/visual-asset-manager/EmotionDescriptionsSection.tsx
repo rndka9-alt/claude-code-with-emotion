@@ -5,7 +5,7 @@ import {
   type ChangeEvent,
   type ReactElement,
 } from "react";
-import { CircleAlert, CircleHelp } from "lucide-react";
+import { CircleAlert, CircleHelp, Search } from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
@@ -14,6 +14,8 @@ import {
 import {
   managerIconClassName,
   managerInputClassName,
+  managerSearchIconWrapperClassName,
+  managerSearchInputClassName,
   managerSectionCopyClassName,
 } from "./shared";
 
@@ -86,14 +88,39 @@ export function EmotionDescriptionsSection({
   const [descriptionDrafts, setDescriptionDrafts] = useState<
     Record<VisualEmotionPresetId, string>
   >(() => createEmotionDescriptionDrafts(catalog));
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     setDescriptionDrafts(createEmotionDescriptionDrafts(catalog));
   }, [catalog]);
 
-  const mappedEmotions = useMemo(() => collectMappedEmotions(catalog), [
-    catalog,
-  ]);
+  const mappedEmotions = useMemo(
+    () => collectMappedEmotions(catalog),
+    [catalog],
+  );
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+
+  // draft 값(사용자가 덮어쓴 설명)도 검색 대상에 넣어야 스크롤 뒤에 숨은 편집 내용도 잡혀요.
+  const filteredPresets = useMemo(() => {
+    if (normalizedSearchQuery.length === 0) {
+      return EMOTION_PRESETS;
+    }
+
+    return EMOTION_PRESETS.filter((preset) => {
+      if (
+        preset.label.toLowerCase().includes(normalizedSearchQuery) ||
+        preset.id.toLowerCase().includes(normalizedSearchQuery) ||
+        preset.description.toLowerCase().includes(normalizedSearchQuery)
+      ) {
+        return true;
+      }
+
+      const draft = descriptionDrafts[preset.id];
+
+      return draft.toLowerCase().includes(normalizedSearchQuery);
+    });
+  }, [normalizedSearchQuery, descriptionDrafts]);
 
   return (
     <section className="flex flex-col gap-2">
@@ -102,8 +129,28 @@ export function EmotionDescriptionsSection({
         감정별 설명을 덮어써서 Claude 에게 다른 가이드를 넘겨요. 비워두면 기본
         프리셋 설명이 그대로 사용돼요.
       </p>
+      <div className="relative">
+        <span className={managerSearchIconWrapperClassName}>
+          <Search aria-hidden="true" className={managerIconClassName} />
+        </span>
+        <input
+          aria-label="감정 설명 검색"
+          className={managerSearchInputClassName}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            setSearchQuery(event.currentTarget.value);
+          }}
+          placeholder="감정 또는 설명으로 검색"
+          type="search"
+          value={searchQuery}
+        />
+      </div>
+      {filteredPresets.length === 0 ? (
+        <div className="border border-dashed border-border-muted bg-surface-empty p-7 text-text-faint">
+          검색어에 걸리는 감정이 읍어요...!
+        </div>
+      ) : null}
       <div className="grid gap-3 min-[901px]:grid-cols-2">
-        {EMOTION_PRESETS.map((preset) => {
+        {filteredPresets.map((preset) => {
           const inputId = `emotion-description-${preset.id}`;
           const isNeutral = preset.id === "neutral";
           const isUnmapped = !isNeutral && !mappedEmotions.has(preset.id);

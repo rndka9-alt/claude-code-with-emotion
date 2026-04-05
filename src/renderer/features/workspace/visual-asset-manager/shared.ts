@@ -16,6 +16,13 @@ export const managerChipClassName =
 export const managerInputClassName =
   "w-full border border-border-soft bg-surface-elevated px-3 py-2.5 text-text-tooltip outline-none transition-colors duration-150 focus:border-border-strong";
 
+// 검색 아이콘은 absolute 로 띄우니까 인풋 왼쪽을 icon 폭만큼 비워둔다.
+export const managerSearchInputClassName =
+  "w-full border border-border-soft bg-surface-elevated pl-9 pr-3 py-2.5 text-text-tooltip outline-none transition-colors duration-150 focus:border-border-strong";
+
+export const managerSearchIconWrapperClassName =
+  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle";
+
 export function getManagerTabClassName(isActive: boolean): string {
   return [
     "border px-[14px] py-[9px] transition-colors duration-150",

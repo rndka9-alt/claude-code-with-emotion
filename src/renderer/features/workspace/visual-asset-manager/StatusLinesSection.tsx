@@ -1,10 +1,11 @@
 import {
   useEffect,
+  useMemo,
   useState,
   type ChangeEvent,
   type ReactElement,
 } from "react";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, Search } from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import {
   getDefaultVisualStateLine,
@@ -14,6 +15,8 @@ import {
 import {
   managerIconClassName,
   managerInputClassName,
+  managerSearchIconWrapperClassName,
+  managerSearchInputClassName,
   managerSectionCopyClassName,
 } from "./shared";
 
@@ -89,10 +92,29 @@ export function StatusLinesSection({
   const [stateLineDrafts, setStateLineDrafts] = useState<
     Record<VisualStatePresetId, string>
   >(() => createStateLineDrafts(catalog));
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     setStateLineDrafts(createStateLineDrafts(catalog));
   }, [catalog]);
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+
+  const filteredPresets = useMemo(() => {
+    if (normalizedSearchQuery.length === 0) {
+      return STATE_PRESETS;
+    }
+
+    return STATE_PRESETS.filter((preset) => {
+      return (
+        preset.label.toLowerCase().includes(normalizedSearchQuery) ||
+        preset.id.toLowerCase().includes(normalizedSearchQuery) ||
+        getSituationMessageDescription(preset.id)
+          .toLowerCase()
+          .includes(normalizedSearchQuery)
+      );
+    });
+  }, [normalizedSearchQuery]);
 
   return (
     <section className="flex flex-col gap-2">
@@ -101,8 +123,28 @@ export function StatusLinesSection({
         상태별 기본 한 줄을 덮어써요. Claude가 직접 띄운 overlay 문구는 여전히
         먼저 보여요.
       </p>
+      <div className="relative">
+        <span className={managerSearchIconWrapperClassName}>
+          <Search aria-hidden="true" className={managerIconClassName} />
+        </span>
+        <input
+          aria-label="상태 설명 검색"
+          className={managerSearchInputClassName}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            setSearchQuery(event.currentTarget.value);
+          }}
+          placeholder="상태 또는 설명으로 검색"
+          type="search"
+          value={searchQuery}
+        />
+      </div>
+      {filteredPresets.length === 0 ? (
+        <div className="border border-dashed border-border-muted bg-surface-empty p-7 text-text-faint">
+          검색어에 걸리는 상태가 읍어요...!
+        </div>
+      ) : null}
       <div className="grid gap-3 min-[901px]:grid-cols-2">
-        {STATE_PRESETS.map((preset) => {
+        {filteredPresets.map((preset) => {
           const inputId = `state-line-${preset.id}`;
 
           return (
