@@ -56,6 +56,7 @@ function createCatalog(): VisualAssetCatalog {
         emotion: "happy",
       },
     ],
+    emotionDescriptions: [],
   };
 }
 
@@ -115,6 +116,7 @@ describe("visual asset resolver", () => {
         { assetId: "asset-sad", emotion: "sad" },
       ],
       stateLines: [],
+      emotionDescriptions: [],
     };
 
     const resolution = resolveVisualAsset(catalog, {
@@ -141,6 +143,7 @@ describe("visual asset resolver", () => {
 
     expect(availableOptions.states).toEqual(["working"]);
     expect(availableOptions.emotions).toEqual(["happy"]);
+    expect(availableOptions.emotionDescriptions).toEqual({});
   });
 
   it("resolves a custom state line when one exists", () => {

@@ -18,6 +18,7 @@ import {
   mergePickedVisualAssets,
   removeVisualAsset,
   setVisualAssetDefault,
+  setVisualAssetEmotionDescription,
   setVisualAssetEmotionMapping,
   setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
@@ -105,6 +106,10 @@ export interface WorkspaceScreenViewModel {
   resizePane: (index: number, deltaRatio: number) => void;
   setThemeId: (themeId: AppThemeId) => void;
   setDefaultAsset: (assetId: string, isDefault: boolean) => void;
+  setEmotionDescription: (
+    emotion: VisualEmotionPresetId,
+    description: string,
+  ) => void;
   setStateLine: (statePreset: VisualStatePresetId, line: string) => void;
   statusLine: string;
   statusVisual: ReturnType<typeof resolveStatusPanelVisual>;
@@ -366,6 +371,15 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     setDefaultAsset: (assetId, isDefault) => {
       void persistVisualAssetCatalog(
         setVisualAssetDefault(visualAssetCatalog, assetId, isDefault),
+      );
+    },
+    setEmotionDescription: (emotion, description) => {
+      void persistVisualAssetCatalog(
+        setVisualAssetEmotionDescription(
+          visualAssetCatalog,
+          emotion,
+          description,
+        ),
       );
     },
     setStateLine: (statePreset, line) => {

@@ -25,8 +25,11 @@ const lineSelectionPrompt = readPromptFile(
   "Set a short in-character utterance. The app appends the current activity label in parentheses, so do not restate the task.",
 );
 
-function buildOverlaySelectionPrompt(availableEmotionIds) {
-  const emotionCatalog = buildEmotionCatalogSection(availableEmotionIds);
+function buildOverlaySelectionPrompt(availableEmotionIds, overrides) {
+  const emotionCatalog = buildEmotionCatalogSection(
+    availableEmotionIds,
+    overrides,
+  );
 
   const sections = [
     "Update the assistant's visual overlay. Set `emotion`, `line`, or both in one call; omit a field to leave it unchanged.",
@@ -50,9 +53,12 @@ function buildOverlaySelectionPrompt(availableEmotionIds) {
   return sections.join("\n");
 }
 
-function createVisualPromptHints(availableEmotionIds = []) {
+function createVisualPromptHints(availableEmotionIds = [], overrides = {}) {
   return {
-    overlaySelectionPrompt: buildOverlaySelectionPrompt(availableEmotionIds),
+    overlaySelectionPrompt: buildOverlaySelectionPrompt(
+      availableEmotionIds,
+      overrides,
+    ),
   };
 }
 

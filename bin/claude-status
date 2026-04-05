@@ -58,39 +58,57 @@ function parseArgs(argv) {
 function collectAvailableVisualOptions(catalog) {
   const states = [];
   const emotions = [];
+  const emotionDescriptions = {};
   const seenStates = new Set();
   const seenEmotions = new Set();
 
-  if (!catalog || !Array.isArray(catalog.mappings)) {
-    return { states, emotions };
+  if (!catalog || typeof catalog !== "object") {
+    return { states, emotions, emotionDescriptions };
   }
 
-  for (const mapping of catalog.mappings) {
-    if (
-      typeof mapping === "object" &&
-      mapping !== null &&
-      typeof mapping.state === "string" &&
-      !seenStates.has(mapping.state)
-    ) {
-      seenStates.add(mapping.state);
-      states.push(mapping.state);
-    }
+  if (Array.isArray(catalog.mappings)) {
+    for (const mapping of catalog.mappings) {
+      if (
+        typeof mapping === "object" &&
+        mapping !== null &&
+        typeof mapping.state === "string" &&
+        !seenStates.has(mapping.state)
+      ) {
+        seenStates.add(mapping.state);
+        states.push(mapping.state);
+      }
 
-    if (
-      typeof mapping === "object" &&
-      mapping !== null &&
-      typeof mapping.emotion === "string" &&
-      mapping.emotion !== "neutral" &&
-      !seenEmotions.has(mapping.emotion)
-    ) {
-      seenEmotions.add(mapping.emotion);
-      emotions.push(mapping.emotion);
+      if (
+        typeof mapping === "object" &&
+        mapping !== null &&
+        typeof mapping.emotion === "string" &&
+        mapping.emotion !== "neutral" &&
+        !seenEmotions.has(mapping.emotion)
+      ) {
+        seenEmotions.add(mapping.emotion);
+        emotions.push(mapping.emotion);
+      }
+    }
+  }
+
+  if (Array.isArray(catalog.emotionDescriptions)) {
+    for (const mapping of catalog.emotionDescriptions) {
+      if (
+        typeof mapping === "object" &&
+        mapping !== null &&
+        typeof mapping.emotion === "string" &&
+        typeof mapping.description === "string" &&
+        mapping.description.length > 0
+      ) {
+        emotionDescriptions[mapping.emotion] = mapping.description;
+      }
     }
   }
 
   return {
     states,
     emotions,
+    emotionDescriptions,
   };
 }
 
@@ -99,7 +117,7 @@ function printAvailableVisualOptions() {
     process.env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE;
 
   if (typeof catalogFilePath !== "string" || catalogFilePath.length === 0) {
-    process.stdout.write('{"states":[],"emotions":[]}\n');
+    process.stdout.write('{"states":[],"emotions":[],"emotionDescriptions":{}}\n');
     return;
   }
 
@@ -111,7 +129,7 @@ function printAvailableVisualOptions() {
       `${JSON.stringify(collectAvailableVisualOptions(parsed))}\n`,
     );
   } catch {
-    process.stdout.write('{"states":[],"emotions":[]}\n');
+    process.stdout.write('{"states":[],"emotions":[],"emotionDescriptions":{}}\n');
   }
 }
 

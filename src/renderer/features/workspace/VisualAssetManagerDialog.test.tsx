@@ -14,6 +14,7 @@ describe("VisualAssetManagerDialog", () => {
           assets: [],
           mappings: [],
           stateLines: [],
+          emotionDescriptions: [],
         }}
         currentThemeId="current-dark"
         isInstallingVisualMcp={false}
@@ -26,6 +27,7 @@ describe("VisualAssetManagerDialog", () => {
         onRemoveAsset={() => {}}
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
+        onSetEmotionDescription={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}
@@ -80,6 +82,7 @@ describe("VisualAssetManagerDialog", () => {
           assets: [],
           mappings: [],
           stateLines: [],
+          emotionDescriptions: [],
         }}
         currentThemeId="current-dark"
         isInstallingVisualMcp={false}
@@ -92,6 +95,7 @@ describe("VisualAssetManagerDialog", () => {
         onRemoveAsset={() => {}}
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
+        onSetEmotionDescription={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}
@@ -120,6 +124,7 @@ describe("VisualAssetManagerDialog", () => {
           assets: [],
           mappings: [],
           stateLines: [],
+          emotionDescriptions: [],
         }}
         currentThemeId="current-dark"
         isInstallingVisualMcp={false}
@@ -132,6 +137,7 @@ describe("VisualAssetManagerDialog", () => {
         onRemoveAsset={() => {}}
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
+        onSetEmotionDescription={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}

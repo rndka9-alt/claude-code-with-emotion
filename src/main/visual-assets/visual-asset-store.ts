@@ -8,6 +8,7 @@ import {
   type VisualAssetCatalog,
   type VisualAssetMapping,
   type VisualAssetRecord,
+  type VisualEmotionDescriptionMapping,
   type VisualStateLineMapping,
 } from "../../shared/visual-assets";
 import {
@@ -83,6 +84,18 @@ function isVisualStateLineMapping(
   return typeof value.state === "string" && typeof value.line === "string";
 }
 
+function isVisualEmotionDescriptionMapping(
+  value: unknown,
+): value is VisualEmotionDescriptionMapping {
+  if (!isObjectRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.emotion === "string" && typeof value.description === "string"
+  );
+}
+
 function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
   const assets = candidate.assets.filter((asset) => {
     return (
@@ -114,10 +127,24 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
         line: mapping.line.trim(),
       };
     });
+  const emotionDescriptions = candidate.emotionDescriptions
+    .filter((mapping) => {
+      return (
+        isVisualEmotionPresetId(mapping.emotion) &&
+        mapping.description.trim().length > 0
+      );
+    })
+    .map((mapping) => {
+      return {
+        emotion: mapping.emotion,
+        description: mapping.description.trim(),
+      };
+    });
 
   return {
     version: 1,
     assets,
+    emotionDescriptions,
     mappings,
     stateLines,
   };
@@ -147,6 +174,9 @@ function parseCatalogFromDisk(
       mappings: parsed.mappings.filter(isVisualAssetMapping),
       stateLines: Array.isArray(parsed.stateLines)
         ? parsed.stateLines.filter(isVisualStateLineMapping)
+        : [],
+      emotionDescriptions: Array.isArray(parsed.emotionDescriptions)
+        ? parsed.emotionDescriptions.filter(isVisualEmotionDescriptionMapping)
         : [],
     };
 
@@ -266,7 +296,7 @@ export class VisualAssetStore {
     this.pruneUnusedImportedAssets(previousCatalog, sanitizedCatalog);
     this.emit();
     this.logEvent?.(
-      `saved visual asset catalog assets=${sanitizedCatalog.assets.length} mappings=${sanitizedCatalog.mappings.length} stateLines=${sanitizedCatalog.stateLines.length}`,
+      `saved visual asset catalog assets=${sanitizedCatalog.assets.length} mappings=${sanitizedCatalog.mappings.length} stateLines=${sanitizedCatalog.stateLines.length} emotionDescriptions=${sanitizedCatalog.emotionDescriptions.length}`,
     );
 
     return sanitizedCatalog;

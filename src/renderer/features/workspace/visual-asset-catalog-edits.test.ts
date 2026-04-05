@@ -2,6 +2,7 @@ import {
   mergePickedVisualAssets,
   removeVisualAsset,
   setVisualAssetDefault,
+  setVisualAssetEmotionDescription,
   setVisualAssetEmotionMapping,
   setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
@@ -23,6 +24,7 @@ describe("visual asset catalog edits", () => {
         ],
         mappings: [],
         stateLines: [],
+        emotionDescriptions: [],
       },
       [
         {
@@ -69,6 +71,7 @@ describe("visual asset catalog edits", () => {
           },
         ],
         stateLines: [],
+        emotionDescriptions: [],
       },
       [
         {
@@ -172,6 +175,7 @@ describe("visual asset catalog edits", () => {
         assets: [],
         mappings: [],
         stateLines: [],
+        emotionDescriptions: [],
       },
       [
         {
@@ -222,6 +226,7 @@ describe("visual asset catalog edits", () => {
         ],
         mappings: [],
         stateLines: [],
+        emotionDescriptions: [],
       },
       "asset-b",
       true,
@@ -259,6 +264,7 @@ describe("visual asset catalog edits", () => {
         ],
         mappings: [],
         stateLines: [],
+        emotionDescriptions: [],
       },
       "asset-a",
       "working",
@@ -314,6 +320,7 @@ describe("visual asset catalog edits", () => {
           },
         ],
         stateLines: [],
+        emotionDescriptions: [],
       },
       "asset-a",
     );
@@ -323,6 +330,7 @@ describe("visual asset catalog edits", () => {
       assets: [],
       mappings: [],
       stateLines: [],
+      emotionDescriptions: [],
     });
   });
 
@@ -340,6 +348,7 @@ describe("visual asset catalog edits", () => {
         ],
         mappings: [],
         stateLines: [],
+        emotionDescriptions: [],
       },
       "asset-a",
       "working",
@@ -371,6 +380,7 @@ describe("visual asset catalog edits", () => {
         assets: [],
         mappings: [],
         stateLines: [],
+        emotionDescriptions: [],
       },
       "thinking",
       "읽는 중이에요...!",
@@ -384,5 +394,44 @@ describe("visual asset catalog edits", () => {
       },
     ]);
     expect(withoutLine.stateLines).toEqual([]);
+  });
+
+  it("sets, replaces, and clears emotion description overrides", () => {
+    const base = {
+      version: 1 as const,
+      assets: [],
+      mappings: [],
+      stateLines: [],
+      emotionDescriptions: [],
+    };
+    const withDescription = setVisualAssetEmotionDescription(
+      base,
+      "happy",
+      "  기분 좋음  ",
+    );
+    const withReplacement = setVisualAssetEmotionDescription(
+      withDescription,
+      "happy",
+      "완전 신남",
+    );
+    const withCleared = setVisualAssetEmotionDescription(
+      withReplacement,
+      "happy",
+      "   ",
+    );
+
+    expect(withDescription.emotionDescriptions).toEqual([
+      {
+        emotion: "happy",
+        description: "기분 좋음",
+      },
+    ]);
+    expect(withReplacement.emotionDescriptions).toEqual([
+      {
+        emotion: "happy",
+        description: "완전 신남",
+      },
+    ]);
+    expect(withCleared.emotionDescriptions).toEqual([]);
   });
 });

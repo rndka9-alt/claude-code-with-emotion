@@ -24,8 +24,14 @@ export interface VisualStateLineMapping {
   state: VisualStatePresetId;
 }
 
+export interface VisualEmotionDescriptionMapping {
+  description: string;
+  emotion: VisualEmotionPresetId;
+}
+
 export interface VisualAssetCatalog {
   assets: ReadonlyArray<VisualAssetRecord>;
+  emotionDescriptions: ReadonlyArray<VisualEmotionDescriptionMapping>;
   mappings: ReadonlyArray<VisualAssetMapping>;
   stateLines: ReadonlyArray<VisualStateLineMapping>;
   version: 1;
@@ -42,7 +48,12 @@ export interface VisualAssetResolution {
   match: "default" | "emotion" | "state" | "state-and-emotion";
 }
 
+export type VisualEmotionDescriptionOverrides = Partial<
+  Record<VisualEmotionPresetId, string>
+>;
+
 export interface AvailableVisualOptions {
+  emotionDescriptions: VisualEmotionDescriptionOverrides;
   emotions: VisualEmotionPresetId[];
   states: VisualStatePresetId[];
 }
@@ -51,6 +62,7 @@ export function createEmptyVisualAssetCatalog(): VisualAssetCatalog {
   return {
     version: 1,
     assets: [],
+    emotionDescriptions: [],
     mappings: [],
     stateLines: [],
   };
@@ -105,6 +117,12 @@ export function collectAvailableVisualOptions(
     }
   }
 
+  const emotionDescriptions: VisualEmotionDescriptionOverrides = {};
+
+  for (const mapping of catalog.emotionDescriptions) {
+    emotionDescriptions[mapping.emotion] = mapping.description;
+  }
+
   return {
     states: STATE_PRESETS.filter((preset) => mappedStates.has(preset.id)).map(
       (preset) => preset.id,
@@ -112,6 +130,7 @@ export function collectAvailableVisualOptions(
     emotions: EMOTION_PRESETS.filter((preset) =>
       mappedEmotions.has(preset.id),
     ).map((preset) => preset.id),
+    emotionDescriptions,
   };
 }
 
@@ -184,4 +203,19 @@ export function resolveVisualStateLine(
   }
 
   return mapping.line;
+}
+
+export function resolveVisualEmotionDescription(
+  catalog: VisualAssetCatalog,
+  emotion: VisualEmotionPresetId,
+): string | null {
+  const mapping = catalog.emotionDescriptions.find(
+    (candidate) => candidate.emotion === emotion,
+  );
+
+  if (mapping === undefined) {
+    return null;
+  }
+
+  return mapping.description;
 }

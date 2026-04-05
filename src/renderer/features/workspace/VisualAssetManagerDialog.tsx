@@ -6,6 +6,7 @@ import type {
   VisualStatePresetId,
 } from "../../../shared/visual-presets";
 import type { AppThemeId, AppThemeOption } from "../../../shared/theme";
+import { EmotionDescriptionsSection } from "./visual-asset-manager/EmotionDescriptionsSection";
 import { EmotionSection } from "./visual-asset-manager/EmotionSection";
 import { GeneralSection } from "./visual-asset-manager/GeneralSection";
 import {
@@ -32,6 +33,10 @@ interface VisualAssetManagerDialogProps {
   onRemoveAsset: (assetId: string) => void;
   onSelectTheme: (themeId: AppThemeId) => void;
   onSetDefaultAsset: (assetId: string, isDefault: boolean) => void;
+  onSetEmotionDescription: (
+    emotion: VisualEmotionPresetId,
+    description: string,
+  ) => void;
   onSetStateLine: (state: VisualStatePresetId, line: string) => void;
   onToggleEmotion: (
     assetId: string,
@@ -51,7 +56,12 @@ interface VisualAssetManagerDialogProps {
   ) => void;
 }
 
-type VisualAssetManagerTabId = "general" | "theme" | "assets" | "messages";
+type VisualAssetManagerTabId =
+  | "general"
+  | "theme"
+  | "assets"
+  | "messages"
+  | "emotion-descriptions";
 
 export function VisualAssetManagerDialog({
   availableThemes,
@@ -67,6 +77,7 @@ export function VisualAssetManagerDialog({
   onRemoveAsset,
   onSelectTheme,
   onSetDefaultAsset,
+  onSetEmotionDescription,
   onSetStateLine,
   onToggleEmotion,
   onToggleState,
@@ -110,7 +121,8 @@ export function VisualAssetManagerDialog({
           <div>
             <h2 className="m-0">Settings</h2>
             <p className={managerSectionCopyClassName}>
-              테마, Visual MCP, 감정 에셋, 상태 텍스트를 한 군데서 만져요.
+              테마, Visual MCP, 감정 에셋, 상태 텍스트, 감정 설명을 한 군데서
+              만져요.
             </p>
           </div>
 
@@ -198,6 +210,21 @@ export function VisualAssetManagerDialog({
             >
               상태 텍스트
             </button>
+            <button
+              aria-controls="emotion-descriptions-panel"
+              aria-selected={activeTab === "emotion-descriptions"}
+              className={getManagerTabClassName(
+                activeTab === "emotion-descriptions",
+              )}
+              id="emotion-descriptions-tab"
+              onClick={() => {
+                setActiveTab("emotion-descriptions");
+              }}
+              role="tab"
+              type="button"
+            >
+              감정 설명
+            </button>
           </div>
 
           <section
@@ -253,6 +280,18 @@ export function VisualAssetManagerDialog({
             <StatusLinesSection
               catalog={catalog}
               onSetStateLine={onSetStateLine}
+            />
+          </section>
+
+          <section
+            aria-labelledby="emotion-descriptions-tab"
+            hidden={activeTab !== "emotion-descriptions"}
+            id="emotion-descriptions-panel"
+            role="tabpanel"
+          >
+            <EmotionDescriptionsSection
+              catalog={catalog}
+              onSetEmotionDescription={onSetEmotionDescription}
             />
           </section>
         </div>

@@ -52,6 +52,7 @@ describe("formatStatusPanelLine", () => {
             line: "상황 파악중...!",
           },
         ],
+        emotionDescriptions: [],
       }),
     ).toBe("상황 파악중...!\n(자료를 찾는 중)");
   });

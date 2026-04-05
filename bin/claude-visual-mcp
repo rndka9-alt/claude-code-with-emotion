@@ -80,6 +80,7 @@ function readAvailableVisualOptions() {
     return {
       states: [],
       emotions: [],
+      emotionDescriptions: {},
     };
   }
 
@@ -97,6 +98,7 @@ function readAvailableVisualOptions() {
     return {
       states: [],
       emotions: [],
+      emotionDescriptions: {},
     };
   }
 
@@ -109,7 +111,18 @@ function readAvailableVisualOptions() {
       Array.isArray(parsed.states) &&
       Array.isArray(parsed.emotions)
     ) {
-      return parsed;
+      // emotionDescriptions 는 구버전 helper 호환을 위해 업스면 빈 객체로 폴백.
+      const emotionDescriptions =
+        typeof parsed.emotionDescriptions === "object" &&
+        parsed.emotionDescriptions !== null
+          ? parsed.emotionDescriptions
+          : {};
+
+      return {
+        states: parsed.states,
+        emotions: parsed.emotions,
+        emotionDescriptions,
+      };
     }
   } catch {
     // Fall through to the empty response.
@@ -118,6 +131,7 @@ function readAvailableVisualOptions() {
   return {
     states: [],
     emotions: [],
+    emotionDescriptions: {},
   };
 }
 
@@ -132,7 +146,10 @@ function createToolsListResult() {
 
   const availableOptions = readAvailableVisualOptions();
   const emotionEnum = ["neutral", ...availableOptions.emotions];
-  const promptHints = createVisualPromptHints(availableOptions.emotions);
+  const promptHints = createVisualPromptHints(
+    availableOptions.emotions,
+    availableOptions.emotionDescriptions,
+  );
 
   return {
     tools: [

@@ -417,3 +417,28 @@ export function setVisualAssetStateLine(
     ],
   };
 }
+
+export function setVisualAssetEmotionDescription(
+  catalog: VisualAssetCatalog,
+  emotion: VisualEmotionPresetId,
+  description: string,
+): VisualAssetCatalog {
+  const trimmedDescription = description.trim();
+
+  return {
+    ...catalog,
+    emotionDescriptions: [
+      ...catalog.emotionDescriptions.filter(
+        (mapping) => mapping.emotion !== emotion,
+      ),
+      ...(trimmedDescription.length > 0
+        ? [
+            {
+              emotion,
+              description: trimmedDescription,
+            },
+          ]
+        : []),
+    ],
+  };
+}

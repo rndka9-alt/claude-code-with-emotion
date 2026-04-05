@@ -19,12 +19,14 @@ describe("VisualAssetStore", () => {
       assets: [],
       mappings: [],
       stateLines: [],
+      emotionDescriptions: [],
     });
     expect(JSON.parse(fs.readFileSync(filePath, "utf8"))).toEqual({
       version: 1,
       assets: [],
       mappings: [],
       stateLines: [],
+      emotionDescriptions: [],
     });
   });
 
@@ -64,6 +66,7 @@ describe("VisualAssetStore", () => {
           line: "   문서 뒤지는 중   ",
         },
       ],
+      emotionDescriptions: [],
     });
 
     expect(savedCatalog.mappings).toEqual([
@@ -82,6 +85,7 @@ describe("VisualAssetStore", () => {
     expect(store.getAvailableOptions()).toEqual({
       states: ["working"],
       emotions: [],
+      emotionDescriptions: {},
     });
   });
 
@@ -112,6 +116,7 @@ describe("VisualAssetStore", () => {
       ],
       mappings: [],
       stateLines: [],
+      emotionDescriptions: [],
     });
 
     unsubscribe();
@@ -168,6 +173,7 @@ describe("VisualAssetStore", () => {
       ],
       mappings: [],
       stateLines: [],
+      emotionDescriptions: [],
     });
 
     expect(fs.existsSync(importedAsset.path)).toBe(true);
@@ -177,6 +183,7 @@ describe("VisualAssetStore", () => {
       assets: [],
       mappings: [],
       stateLines: [],
+      emotionDescriptions: [],
     });
 
     expect(fs.existsSync(importedAsset.path)).toBe(false);

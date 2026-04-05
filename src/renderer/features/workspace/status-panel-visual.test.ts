@@ -32,6 +32,7 @@ describe("resolveStatusPanelVisual", () => {
         },
       ],
       stateLines: [],
+      emotionDescriptions: [],
     });
 
     expect(visual).toEqual({
@@ -76,6 +77,7 @@ describe("resolveStatusPanelVisual", () => {
           },
         ],
         stateLines: [],
+        emotionDescriptions: [],
       },
     );
 

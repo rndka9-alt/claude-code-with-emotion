@@ -34,6 +34,7 @@ export function App(): ReactElement {
     resizePane,
     setThemeId,
     setDefaultAsset,
+    setEmotionDescription,
     setStateLine,
     statusLine,
     statusVisual,
@@ -144,6 +145,7 @@ export function App(): ReactElement {
           onRemoveAsset={removeAsset}
           onSelectTheme={setThemeId}
           onSetDefaultAsset={setDefaultAsset}
+          onSetEmotionDescription={setEmotionDescription}
           onSetStateLine={setStateLine}
           onToggleEmotion={toggleEmotion}
           onToggleState={toggleState}
