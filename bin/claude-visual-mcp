@@ -168,7 +168,6 @@ function createToolsListResult() {
             },
           },
           additionalProperties: false,
-          anyOf: [{ required: ["emotion"] }, { required: ["line"] }],
         },
       },
     ],
