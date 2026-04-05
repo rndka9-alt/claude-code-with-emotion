@@ -9,6 +9,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -32,6 +33,14 @@ function copyRuntimeTree(source, destination) {
     recursive: true,
     force: true,
   });
+}
+
+// Electron.app 번들 복사엔 macOS 네이티브 ditto 를 사용한다.
+// Node cpSync 는 pnpm 의 중첩 심볼릭 링크를 거치면서 프레임워크 내부 상대 링크를
+// 절대 경로로 리졸브해 복사해버려, Electron Framework 안의 icudtl.dat 등이 사라진다.
+// ditto 는 macOS 번들(심볼릭 링크·리소스 포크·메타데이터 포함)을 원본 그대로 보존한다.
+function copyAppBundle(source, destination) {
+  execFileSync("ditto", [source, destination], { stdio: "inherit" });
 }
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -61,7 +70,7 @@ if (!existsSync(electronAppTemplatePath)) {
 
 rmSync(outputDir, { recursive: true, force: true });
 mkdirSync(outputDir, { recursive: true });
-copyRuntimeTree(electronAppTemplatePath, bundlePath);
+copyAppBundle(electronAppTemplatePath, bundlePath);
 
 const executableSource = path.join(executableDir, "Electron");
 const executableTarget = path.join(executableDir, APP_NAME);
@@ -112,6 +121,10 @@ copyRuntimeTree(
 copyRuntimeTree(
   path.join(projectRoot, "dist", "renderer"),
   path.join(resourcesAppPath, "dist", "renderer"),
+);
+copyRuntimeTree(
+  path.join(projectRoot, "dist", "shared"),
+  path.join(resourcesAppPath, "dist", "shared"),
 );
 copyRuntimeTree(
   path.join(projectRoot, "node_modules"),
