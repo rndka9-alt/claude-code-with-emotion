@@ -83,7 +83,7 @@ describe("visual asset resolver", () => {
 
   it("uses an emotion-only mapping when no state+emotion combo exists", () => {
     const resolution = resolveVisualAsset(createCatalog(), {
-      state: "idle",
+      state: "waiting",
       emotion: "happy",
     });
 

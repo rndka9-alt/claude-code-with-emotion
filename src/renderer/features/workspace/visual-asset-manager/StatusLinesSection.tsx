@@ -27,10 +27,8 @@ function createStateLineDrafts(
 ): Record<VisualStatePresetId, string> {
   const drafts: Record<VisualStatePresetId, string> = {
     disconnected: "",
-    idle: "",
     thinking: "",
     working: "",
-    responding: "",
     waiting: "",
     permission_wait: "",
     interrupted: "",
@@ -53,20 +51,12 @@ function getSituationMessageDescription(state: VisualStatePresetId): string {
     return "Claude 세션이 아직 연결되지 않은 상태예요.";
   }
 
-  if (state === "idle") {
-    return "연결은 되어 있지만, 눈에 띄는 작업은 없는 쉬는 구간이에요.";
-  }
-
   if (state === "thinking") {
     return "질문을 읽거나 다음 행동을 정리하면서 흐름을 잡는 상태예요.";
   }
 
   if (state === "working") {
     return "툴을 쓰거나 파일을 수정하면서 실제 작업을 진행 중인 상태예요.";
-  }
-
-  if (state === "responding") {
-    return "쭈인님에게 답변을 작성하거나 스트리밍해서 보내는 상태예요.";
   }
 
   if (state === "waiting") {

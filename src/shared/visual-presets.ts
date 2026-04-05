@@ -7,10 +7,8 @@ export type VisualPresetCategory = "state" | "emotion";
 
 export type VisualStatePresetId =
   | "disconnected"
-  | "idle"
   | "thinking"
   | "working"
-  | "responding"
   | "waiting"
   | "permission_wait"
   | "interrupted"
@@ -82,15 +80,6 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
   },
   {
     category: "state",
-    defaultLine: "잠깐 숨 고르는 중이에요...!",
-    description:
-      "Claude is connected but not doing anything visible right now.",
-    id: "idle",
-    label: "Idle",
-    source: "assistant-hook",
-  },
-  {
-    category: "state",
     defaultLine: "질문 읽고 흐름 잡는 중이에요...!",
     description: "Claude is reading the prompt or planning the next move.",
     id: "thinking",
@@ -103,15 +92,6 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
     description: "Claude is actively using tools or making a concrete change.",
     id: "working",
     label: "Working",
-    source: "assistant-hook",
-  },
-  {
-    category: "state",
-    defaultLine: "답변 정리해서 보내는 중이에요...!",
-    description:
-      "Claude is composing or streaming a response back to the user.",
-    id: "responding",
-    label: "Responding",
     source: "assistant-hook",
   },
   {
@@ -342,10 +322,6 @@ export function normalizeAssistantSemanticState(
     return { state: "disconnected", emotion: null };
   }
 
-  if (state === "idle") {
-    return { state: "idle", emotion: null };
-  }
-
   if (state === "thinking") {
     return { state: "thinking", emotion: null };
   }
@@ -354,12 +330,20 @@ export function normalizeAssistantSemanticState(
     return { state: "working", emotion: null };
   }
 
-  if (state === "responding") {
-    return { state: "responding", emotion: null };
-  }
-
   if (state === "waiting") {
     return { state: "waiting", emotion: null };
+  }
+
+  if (state === "permission_wait") {
+    return { state: "permission_wait", emotion: null };
+  }
+
+  if (state === "interrupted") {
+    return { state: "interrupted", emotion: null };
+  }
+
+  if (state === "tool_failed") {
+    return { state: "tool_failed", emotion: null };
   }
 
   if (state === "surprised") {

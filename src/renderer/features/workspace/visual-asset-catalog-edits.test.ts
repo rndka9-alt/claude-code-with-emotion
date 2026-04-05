@@ -182,8 +182,8 @@ describe("visual asset catalog edits", () => {
       },
       [
         {
-          label: "working__idle.png",
-          path: "/tmp/working__idle.png",
+          label: "working__waiting.png",
+          path: "/tmp/working__waiting.png",
         },
         {
           label: "happy__sad.png",

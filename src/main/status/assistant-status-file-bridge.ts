@@ -14,11 +14,12 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 function isSemanticState(value: string): value is AssistantSemanticState {
   return (
     value === "disconnected" ||
-    value === "idle" ||
     value === "thinking" ||
     value === "working" ||
-    value === "responding" ||
     value === "waiting" ||
+    value === "permission_wait" ||
+    value === "interrupted" ||
+    value === "tool_failed" ||
     value === "surprised" ||
     value === "sad" ||
     value === "happy" ||

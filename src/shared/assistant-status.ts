@@ -1,10 +1,11 @@
 export type AssistantSemanticState =
   | "disconnected"
-  | "idle"
   | "thinking"
   | "working"
-  | "responding"
   | "waiting"
+  | "permission_wait"
+  | "interrupted"
+  | "tool_failed"
   | "surprised"
   | "sad"
   | "happy"

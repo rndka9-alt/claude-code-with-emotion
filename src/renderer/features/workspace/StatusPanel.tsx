@@ -23,11 +23,12 @@ const avatarBackgroundVariableByState: Record<
   string
 > = {
   disconnected: "--color-avatar-idle",
-  idle: "--color-avatar-idle",
   thinking: "--color-avatar-thinking",
   working: "--color-avatar-working",
-  responding: "--color-avatar-responding",
   waiting: "--color-avatar-idle",
+  permission_wait: "--color-avatar-idle",
+  interrupted: "--color-avatar-idle",
+  tool_failed: "--color-avatar-error",
   surprised: "--color-avatar-surprised",
   sad: "--color-avatar-sad",
   happy: "--color-avatar-happy",

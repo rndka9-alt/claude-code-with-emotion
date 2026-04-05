@@ -83,13 +83,13 @@ function readStatusFile(statusFilePath: string): Record<string, unknown> {
 }
 
 describe("claude-session-hook", () => {
-  it("maps PermissionRequest into a waiting state", () => {
+  it("maps PermissionRequest into the permission_wait state", () => {
     const result = invokeHook("PermissionRequest", {
       tool_name: "Bash",
     });
     const status = readStatusFile(result.statusFilePath);
 
-    expect(status.state).toBe("waiting");
+    expect(status.state).toBe("permission_wait");
     expect(status.line).toBe("권한 확인 기다리는 중이에요...!");
     expect(status.currentTask).toBe("Waiting on permission for Bash");
   });
@@ -120,14 +120,14 @@ describe("claude-session-hook", () => {
     );
   });
 
-  it("maps interrupted stop signals into a waiting interruption message", () => {
+  it("maps interrupted stop signals into the interrupted state", () => {
     const result = invokeHook("PostToolUseFailure", {
       tool_name: "Bash",
       is_interrupt: true,
     });
     const status = readStatusFile(result.statusFilePath);
 
-    expect(status.state).toBe("waiting");
+    expect(status.state).toBe("interrupted");
     expect(status.line).toBe("유저가 도구 실행을 중간에 멈췃어요...!");
     expect(status.currentTask).toBe("Interrupted during tool use (Bash)");
   });

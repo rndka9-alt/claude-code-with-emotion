@@ -68,11 +68,11 @@ describe("AssistantStatusStore", () => {
     // 감정이 오버레이에 살아있는 동안 훅이 새 state 를 쏴주면 오버레이 감정은 만료대야 한다.
     // 이 규칙이 없으면 resolveVisualAsset 이 emotion 자산만 계속 우선해서 state 에셋이 묻힌다.
     store.applyUpdate(
-      { state: "responding", line: "Next" },
+      { state: "waiting", line: "Next" },
       "assistant-command",
     );
 
-    expect(store.getSnapshot().state).toBe("responding");
+    expect(store.getSnapshot().state).toBe("waiting");
     expect(store.getSnapshot().emotion).toBeNull();
   });
 
@@ -87,7 +87,7 @@ describe("AssistantStatusStore", () => {
 
       store.applyUpdate({ state: "thinking", line: "A" }, "test");
       store.applyUpdate({ state: "working", line: "B" }, "test");
-      store.applyUpdate({ state: "responding", line: "C" }, "test");
+      store.applyUpdate({ state: "waiting", line: "C" }, "test");
 
       // leading edge 만 바로 emit 대고 중간 갱신은 버퍼링
       expect(emitted).toEqual(["thinking"]);
@@ -95,7 +95,7 @@ describe("AssistantStatusStore", () => {
       vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
 
       // trailing edge 에서 마지막 상태만 emit
-      expect(emitted).toEqual(["thinking", "responding"]);
+      expect(emitted).toEqual(["thinking", "waiting"]);
     } finally {
       vi.useRealTimers();
     }
@@ -120,12 +120,12 @@ describe("AssistantStatusStore", () => {
 
       // trailing 직후 바로 들어온 변경은 leading 으로 즉시 터지면 안 댐
       vi.advanceTimersByTime(100);
-      store.applyUpdate({ state: "responding", line: "C" }, "test");
+      store.applyUpdate({ state: "waiting", line: "C" }, "test");
       expect(emitted).toEqual(["thinking", "working"]);
 
       // 직전 emit 으로부터 STATE_THROTTLE_MS 가 채워질 때 발사대야 함
       vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS - 100);
-      expect(emitted).toEqual(["thinking", "working", "responding"]);
+      expect(emitted).toEqual(["thinking", "working", "waiting"]);
     } finally {
       vi.useRealTimers();
     }
