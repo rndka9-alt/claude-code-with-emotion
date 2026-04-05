@@ -54,26 +54,84 @@ describe("AssistantStatusStore", () => {
     expect(store.getSnapshot().line).toBe("Base state");
   });
 
-  it("expires the overlay emotion once the next hook state arrives", () => {
-    const store = new AssistantStatusStore(2_000);
+  it("expires the overlay emotion after trailing emit delivers it and the next hook state arrives", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(2_000);
 
-    store.applyUpdate(
-      { state: "working", line: "Base" },
-      "assistant-command",
-    );
-    store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
+      store.applyUpdate(
+        { state: "working", line: "Base" },
+        "assistant-command",
+      );
+      store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
 
-    expect(store.getSnapshot().emotion).toBe("happy");
+      expect(store.getSnapshot().emotion).toBe("happy");
 
-    // 감정이 오버레이에 살아있는 동안 훅이 새 state 를 쏴주면 오버레이 감정은 만료대야 한다.
-    // 이 규칙이 없으면 resolveVisualAsset 이 emotion 자산만 계속 우선해서 state 에셋이 묻힌다.
-    store.applyUpdate(
-      { state: "waiting", line: "Next" },
-      "assistant-command",
-    );
+      // 감정 overlay 는 trailing emit 으로 구독자에게 한 번 전달댄 뒤에야 만료대야 한다.
+      // 그래야 MCP overlay 호출이 PreToolUse·PostToolUse 훅 사이에 끼여도 감정이
+      // 최소 한 번은 패널에 뜨고, 그 뒤 state 전용 에셋이 나올 자리를 내준다.
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
 
-    expect(store.getSnapshot().state).toBe("waiting");
-    expect(store.getSnapshot().emotion).toBeNull();
+      store.applyUpdate(
+        { state: "waiting", line: "Next" },
+        "assistant-command",
+      );
+
+      expect(store.getSnapshot().state).toBe("waiting");
+      expect(store.getSnapshot().emotion).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("preserves an overlay emotion set between state updates within the same throttle window", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(9_000);
+      const emitted: Array<{ state: string; emotion: string | null }> = [];
+      store.subscribe((snapshot) => {
+        emitted.push({ state: snapshot.state, emotion: snapshot.emotion });
+      });
+
+      // MCP set_visual_overlay 호출 시나리오: PreToolUse → applyVisualOverlay → PostToolUse 가
+      // 같은 throttle 창에 몰리면, 예전엔 감정이 trailing emit 전에 증발해서 패널에 한 번도 못
+      // 떳엇다. pending 플래그가 그 창 안의 감정을 지켜주는지 검증한다.
+      store.applyUpdate(
+        { state: "working", line: "tool start" },
+        "assistant-command",
+      );
+      store.applyVisualOverlay({ emotion: "curious" }, "visual-overlay");
+      store.applyUpdate(
+        { state: "thinking", line: "back to thinking" },
+        "assistant-command",
+      );
+
+      // 창 여는 leading emit 만 나가고 감정은 아직 보류
+      expect(emitted).toEqual([{ state: "working", emotion: null }]);
+
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      // trailing edge 에서 마지막 state + 창 안에서 세팅된 감정이 한 쌍으로 나간다
+      expect(emitted).toEqual([
+        { state: "working", emotion: null },
+        { state: "thinking", emotion: "curious" },
+      ]);
+
+      // 한 번 노출댄 뒤엔 다음 state 훅에서 정상적으로 만료댄다
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+      store.applyUpdate(
+        { state: "waiting", line: "done" },
+        "assistant-command",
+      );
+
+      expect(emitted).toEqual([
+        { state: "working", emotion: null },
+        { state: "thinking", emotion: "curious" },
+        { state: "waiting", emotion: null },
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("throttles rapid state emits and flushes the latest one on the trailing edge", async () => {

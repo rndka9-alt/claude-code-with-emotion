@@ -16,6 +16,10 @@ export class AssistantStatusStore {
   private stateThrottleTimer: NodeJS.Timeout | null = null;
   private lastEmitMs = Number.NEGATIVE_INFINITY;
   private visualOverlay: AssistantVisualOverlayUpdate = {};
+  // overlay 감정이 구독자한테 한 번도 안 나간 채로 state 훅에 지워지는 걸 막는 플래그.
+  // PreToolUse → applyVisualOverlay → PostToolUse 가 같은 throttle 창에 몰릴 때,
+  // 그 사이에 세팅된 감정은 trailing emit 에 실려나갈 자격을 한 번은 보장받아야 한다.
+  private overlayEmotionPendingEmit = false;
   private readonly logEvent: ((message: string) => void) | undefined;
 
   constructor(
@@ -47,7 +51,24 @@ export class AssistantStatusStore {
     // 감정은 깜빡이는 신호, 상태는 흐르는 강이니 다음 state 가 오는 순간 오버레이 감정은
     // 자리를 비켜줘야 state 전용 에셋이 다시 나올 수 있다. delete 로 지워야
     // applyOverlay 의 `!== undefined` 체크가 "오버레이 없음" 으로 읽는다.
-    delete this.visualOverlay.emotion;
+    //
+    // 단, 감정이 아직 구독자한테 한 번도 안 나갓다면 (pending) 보호해야 한다.
+    // MCP set_visual_overlay 호출이 PreToolUse·PostToolUse state 훅에 샌드위치처럼
+    // 끼이는 구조라, 같은 throttle 창에 세팅된 감정을 여기서 지워버리면 trailing emit
+    // 전에 증발해서 패널에 한 번도 못 뜬다.
+    const overlayEmotionBefore = this.visualOverlay.emotion;
+    const hadOverlayEmotion = overlayEmotionBefore !== undefined;
+    const action = !hadOverlayEmotion
+      ? "no-op"
+      : this.overlayEmotionPendingEmit
+        ? "protect"
+        : "delete";
+    if (!this.overlayEmotionPendingEmit) {
+      delete this.visualOverlay.emotion;
+    }
+    this.logEvent?.(
+      `applyUpdate state=${update.state} source=${source} overlayEmotionBefore=${overlayEmotionBefore ?? (hadOverlayEmotion ? "null" : "none")} pending=${this.overlayEmotionPendingEmit} action=${action}`,
+    );
 
     const nextSnapshot = this.normalizeUpdate(update, source);
 
@@ -69,11 +90,18 @@ export class AssistantStatusStore {
 
     if (update.emotion !== undefined) {
       this.visualOverlay.emotion = update.emotion;
+      // null 은 "오버레이 비우기" 라 보호할 이유가 없다. 실제 감정 키가 들어왓을 때만
+      // pending 을 세워 다음 state 훅의 delete 로부터 이 한 번의 노출을 지켜준다.
+      this.overlayEmotionPendingEmit = update.emotion !== null;
     }
 
     if (update.line !== undefined) {
       this.visualOverlay.line = update.line;
     }
+
+    this.logEvent?.(
+      `applyVisualOverlay source=${source} emotion=${update.emotion === undefined ? "untouched" : (update.emotion ?? "null")} line=${update.line === undefined ? "untouched" : JSON.stringify(update.line)} pending=${this.overlayEmotionPendingEmit}`,
+    );
 
     this.currentSnapshot = this.applyOverlay(this.baseSnapshot, source);
     // emotion 이벤트도 state 와 같은 throttle 창을 공유해야, state<->emotion 이
@@ -132,9 +160,16 @@ export class AssistantStatusStore {
   }
 
   private emit(): void {
+    const snapshot = this.currentSnapshot;
     for (const listener of this.listeners) {
-      listener(this.currentSnapshot);
+      listener(snapshot);
     }
+    this.logEvent?.(
+      `emit state=${snapshot.state} emotion=${snapshot.emotion ?? "null"} source=${snapshot.source} pendingWas=${this.overlayEmotionPendingEmit}`,
+    );
+    // 감정이 방금 구독자한테 나갓으니 더 보호할 필요 없다. 다음 state 훅은
+    // 평소처럼 이 감정을 지워서 state 전용 에셋이 나올 차례를 돌려준다.
+    this.overlayEmotionPendingEmit = false;
   }
 
   private scheduleThrottledEmit(): void {
