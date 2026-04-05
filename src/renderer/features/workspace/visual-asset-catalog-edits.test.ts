@@ -171,7 +171,7 @@ describe("visual asset catalog edits", () => {
     ]);
   });
 
-  it("ignores ambiguous filename matches", () => {
+  it("fans out same-category filenames into multiple slots", () => {
     const catalog = mergePickedVisualAssets(
       {
         version: 1,
@@ -186,12 +186,12 @@ describe("visual asset catalog edits", () => {
           path: "/tmp/working__waiting.png",
         },
         {
-          label: "happy__sad.png",
-          path: "/tmp/happy__sad.png",
+          label: "happy__angry__sad.png",
+          path: "/tmp/happy__angry__sad.png",
         },
       ],
       (() => {
-        const ids = ["asset-a", "asset-b"];
+        const ids = ["asset-states", "asset-emotions"];
 
         return () => {
           const nextId = ids.shift();
@@ -205,7 +205,65 @@ describe("visual asset catalog edits", () => {
       })(),
     );
 
-    expect(catalog.mappings).toEqual([]);
+    expect(catalog.mappings).toEqual([
+      { assetId: "asset-states", state: "working" },
+      { assetId: "asset-states", state: "waiting" },
+      { assetId: "asset-emotions", emotion: "happy" },
+      { assetId: "asset-emotions", emotion: "angry" },
+      { assetId: "asset-emotions", emotion: "sad" },
+    ]);
+  });
+
+  it("keeps only the larger side on mixed N:M filenames and breaks ties toward emotions", () => {
+    const catalog = mergePickedVisualAssets(
+      {
+        version: 1,
+        assets: [],
+        mappings: [],
+        stateLines: [],
+        emotionDescriptions: [],
+      },
+      // 파일마다 서로 겹치지 않는 슬롯을 쓰게 해서 나중 파일이 앞 매핑을 뺏지 않도록 구성.
+      [
+        // 상태 2 vs 감정 1 → 상태가 이겨서 happy 는 버려짐
+        {
+          label: "working__waiting__happy.png",
+          path: "/tmp/states-win.png",
+        },
+        // 상태 1 vs 감정 2 → 감정이 이겨서 thinking 은 버려짐
+        {
+          label: "thinking__curious__serious.png",
+          path: "/tmp/emotions-win.png",
+        },
+        // 동점(2:2) → 감정 우선이라 completed/error 는 버려짐
+        {
+          label: "completed__error__proud__surprised.png",
+          path: "/tmp/tie.png",
+        },
+      ],
+      (() => {
+        const ids = ["asset-states-win", "asset-emotions-win", "asset-tie"];
+
+        return () => {
+          const nextId = ids.shift();
+
+          if (nextId === undefined) {
+            throw new Error("Expected another visual asset id");
+          }
+
+          return nextId;
+        };
+      })(),
+    );
+
+    expect(catalog.mappings).toEqual([
+      { assetId: "asset-states-win", state: "working" },
+      { assetId: "asset-states-win", state: "waiting" },
+      { assetId: "asset-emotions-win", emotion: "curious" },
+      { assetId: "asset-emotions-win", emotion: "serious" },
+      { assetId: "asset-tie", emotion: "proud" },
+      { assetId: "asset-tie", emotion: "surprised" },
+    ]);
   });
 
   it("keeps only one default asset at a time", () => {

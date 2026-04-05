@@ -11,10 +11,20 @@ import {
 } from "../../../shared/visual-presets";
 import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
 
+// 파일명 자동 매핑 결과.
+// 세 필드 중 최대 한 개만 채워져요:
+//  - pair: 상태 1 + 감정 1 (state+emotion 결합 슬롯)
+//  - states: 상태 N개 (emotions 비어잇음)
+//  - emotions: 감정 M개 (states 비어잇음)
+// 혼합인데 1:1 이 아니면 카운트 큰 쪽을 택하고, 동점이면 감정이 이겨요.
 interface AutoVisualAssetAssignment {
-  emotion?: VisualEmotionPresetId;
+  emotions: VisualEmotionPresetId[];
   isDefault: boolean;
-  state?: VisualStatePresetId;
+  pair: {
+    emotion: VisualEmotionPresetId;
+    state: VisualStatePresetId;
+  } | null;
+  states: VisualStatePresetId[];
 }
 
 const visualAssetFilenameExtensionPattern = /\.[^.]+$/;
@@ -104,30 +114,56 @@ function parseVisualAssetFilenameAssignment(
     }
   }
 
-  if (states.size > 1 || emotions.size > 1) {
-    return isDefault ? { isDefault } : null;
-  }
-
-  const [state] = states;
-  const [emotion] = emotions;
-
-  if (!isDefault && state === undefined && emotion === undefined) {
+  if (!isDefault && states.size === 0 && emotions.size === 0) {
     return null;
   }
 
-  const assignment: AutoVisualAssetAssignment = {
+  // 1:1 혼합은 state+emotion 결합 슬롯으로 묶어서 기존 동작 유지.
+  const [firstState] = states;
+  const [firstEmotion] = emotions;
+
+  if (
+    states.size === 1 &&
+    emotions.size === 1 &&
+    firstState !== undefined &&
+    firstEmotion !== undefined
+  ) {
+    return {
+      emotions: [],
+      isDefault,
+      pair: { emotion: firstEmotion, state: firstState },
+      states: [],
+    };
+  }
+
+  // 한쪽만 있으면 그 카테고리의 슬롯을 전부 차지.
+  // 혼합인데 1:1 아니면 카운트 큰 쪽만 반영, 동점이면 감정 우선.
+  const emotionsWin = emotions.size >= states.size;
+
+  if (emotionsWin && emotions.size > 0) {
+    return {
+      emotions: Array.from(emotions),
+      isDefault,
+      pair: null,
+      states: [],
+    };
+  }
+
+  if (states.size > 0) {
+    return {
+      emotions: [],
+      isDefault,
+      pair: null,
+      states: Array.from(states),
+    };
+  }
+
+  return {
+    emotions: [],
     isDefault,
+    pair: null,
+    states: [],
   };
-
-  if (state !== undefined) {
-    assignment.state = state;
-  }
-
-  if (emotion !== undefined) {
-    assignment.emotion = emotion;
-  }
-
-  return assignment;
 }
 
 function removeMatchingStateOnlyMappings(
@@ -206,37 +242,43 @@ export function mergePickedVisualAssets(
     }
 
     if (
-      filenameAssignment?.state !== undefined &&
-      filenameAssignment.emotion !== undefined
+      filenameAssignment !== null &&
+      filenameAssignment.pair !== null
     ) {
+      const { emotion, state } = filenameAssignment.pair;
+
       nextMappings = removeMatchingStateEmotionMappings(
         nextMappings,
-        filenameAssignment.state,
-        filenameAssignment.emotion,
+        state,
+        emotion,
       );
       nextMappings.push({
         assetId: nextAssetId,
-        emotion: filenameAssignment.emotion,
-        state: filenameAssignment.state,
+        emotion,
+        state,
       });
-    } else if (filenameAssignment?.state !== undefined) {
-      nextMappings = removeMatchingStateOnlyMappings(
-        nextMappings,
-        filenameAssignment.state,
-      );
-      nextMappings.push({
-        assetId: nextAssetId,
-        state: filenameAssignment.state,
-      });
-    } else if (filenameAssignment?.emotion !== undefined) {
-      nextMappings = removeMatchingEmotionOnlyMappings(
-        nextMappings,
-        filenameAssignment.emotion,
-      );
-      nextMappings.push({
-        assetId: nextAssetId,
-        emotion: filenameAssignment.emotion,
-      });
+    } else if (
+      filenameAssignment !== null &&
+      filenameAssignment.states.length > 0
+    ) {
+      for (const state of filenameAssignment.states) {
+        nextMappings = removeMatchingStateOnlyMappings(nextMappings, state);
+        nextMappings.push({
+          assetId: nextAssetId,
+          state,
+        });
+      }
+    } else if (
+      filenameAssignment !== null &&
+      filenameAssignment.emotions.length > 0
+    ) {
+      for (const emotion of filenameAssignment.emotions) {
+        nextMappings = removeMatchingEmotionOnlyMappings(nextMappings, emotion);
+        nextMappings.push({
+          assetId: nextAssetId,
+          emotion,
+        });
+      }
     }
 
     knownPaths.add(file.path);

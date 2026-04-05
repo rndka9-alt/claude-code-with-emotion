@@ -385,8 +385,13 @@ export function EmotionSection({
           이미지를 여기로 여러 장 드래그해서 바로 가져올 수 있어요.
         </p>
         <p className={managerSectionCopyClassName}>
-          자동 매칭 규칙: <code>working.png</code>, <code>happy.png</code>,{" "}
-          <code>working__happy.png</code>, <code>default__fallback.png</code>
+          자동 매칭 규칙: 토큰은 <code>__</code>(언더스코어 2개)로 구분해요. 한
+          카테고리만 여러 개 넣으면 해당 슬롯을 전부 차지하고, 상태·감정이
+          섞이면 1:1만 결합 슬롯으로 가요. 그 외엔 개수 큰 쪽만 반영되고
+          동점이면 감정이 이겨요. 예) <code>working.png</code>,{" "}
+          <code>happy.png</code>, <code>working__happy.png</code>,{" "}
+          <code>happy__angry__sad.png</code>,{" "}
+          <code>default__fallback.png</code>
         </p>
       </div>
       {catalog.assets.length === 0 ? (
