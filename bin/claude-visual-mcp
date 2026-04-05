@@ -8,20 +8,15 @@ const {
   createVisualMcpChildEnv,
   resolveVisualMcpRuntime,
 } = require("./lib/claude-visual-mcp-state");
-const { getHelperBinFilename } = require("./lib/helper-bin-resolver");
 
 const SERVER_NAME = "claude-code-with-emotion-visuals";
 const SERVER_VERSION = "0.1.0";
 const helperDir = __dirname;
 const nodeRuntimePath = process.execPath;
-const statusHelperPath = path.join(
-  helperDir,
-  getHelperBinFilename("claude-status"),
-);
-const visualStateHelperPath = path.join(
-  helperDir,
-  getHelperBinFilename("claude-visual-state"),
-);
+// 우리 .cjs 헬퍼들은 helperDir 에 같이 놓여 잇어서 확장자 업는 이름으로 바로 찾는다.
+// getHelperBinFilename 은 PATH 노출용 shim 이름(.cmd 등)을 돌려주기 때문에 node 로는 실행 불가.
+const statusHelperPath = path.join(helperDir, "claude-status");
+const visualStateHelperPath = path.join(helperDir, "claude-visual-state");
 
 let inputBuffer = Buffer.alloc(0);
 let negotiatedProtocolVersion = "2024-11-05";

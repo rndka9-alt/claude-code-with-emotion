@@ -1,0 +1,5 @@
+* text=auto
+
+# Windows shim 파일은 cmd.exe 가 확실히 실행하도록 CRLF 보장
+*.cmd text eol=crlf
+*.bat text eol=crlf

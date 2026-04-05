@@ -574,13 +574,35 @@ function createUpdate(eventName, payload, hookState) {
   return null;
 }
 
-function publishStatus(update) {
+// helperBinDir 가 주입댄 정상 경로에선 node 로 확장자 업는 .cjs 를 직접 실행한다 — 플랫폼 무관.
+// helperBinDir 가 누락댄 방어적 폴백에선 PATH 에 설치댄 shim(윈도우는 .cmd)에 기대는데,
+// 윈도우 .cmd 실행엔 shell 경유가 필요.
+function spawnHelperBin(baseName, args, spawnOptions) {
   const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
-  const statusHelperName = getHelperBinFilename("claude-status");
-  const statusCommand =
-    typeof helperBinDir === "string" && helperBinDir.length > 0
-      ? join(helperBinDir, statusHelperName)
-      : statusHelperName;
+
+  if (typeof helperBinDir === "string" && helperBinDir.length > 0) {
+    const cjsPath = join(helperBinDir, baseName);
+    return {
+      result: spawnSync(
+        process.execPath,
+        [cjsPath, ...args],
+        spawnOptions,
+      ),
+      command: `${process.execPath} ${cjsPath}`,
+    };
+  }
+
+  const commandName = getHelperBinFilename(baseName);
+  return {
+    result: spawnSync(commandName, args, {
+      ...spawnOptions,
+      shell: process.platform === "win32",
+    }),
+    command: commandName,
+  };
+}
+
+function publishStatus(update) {
   const args = [
     "--state",
     update.state,
@@ -594,7 +616,7 @@ function publishStatus(update) {
     update.intensity,
   ];
 
-  const result = spawnSync(statusCommand, args, {
+  const { result, command } = spawnHelperBin("claude-status", args, {
     stdio: "ignore",
   });
 
@@ -604,11 +626,11 @@ function publishStatus(update) {
 
   if (typeof result.error?.message === "string") {
     appendTrace(
-      `claude-status invocation failed command=${statusCommand} error=${result.error.message}`,
+      `claude-status invocation failed command=${command} error=${result.error.message}`,
     );
   } else {
     appendTrace(
-      `claude-status invocation failed command=${statusCommand} status=${result.status}`,
+      `claude-status invocation failed command=${command} status=${result.status}`,
     );
   }
 }
@@ -617,16 +639,11 @@ function publishStatus(update) {
 // 이전 세션의 한마디가 다음 세션 패널에 그대로 남는다. 세션 경계(SessionStart) 에서
 // overlay 파일에 {"line": null} 을 찍어 스토어의 visualOverlay.line 을 비워준다.
 function clearVisualOverlayLine() {
-  const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
-  const visualStateHelperName = getHelperBinFilename("claude-visual-state");
-  const visualStateCommand =
-    typeof helperBinDir === "string" && helperBinDir.length > 0
-      ? join(helperBinDir, visualStateHelperName)
-      : visualStateHelperName;
-
-  const result = spawnSync(visualStateCommand, ["--clear-line"], {
-    stdio: "ignore",
-  });
+  const { result, command } = spawnHelperBin(
+    "claude-visual-state",
+    ["--clear-line"],
+    { stdio: "ignore" },
+  );
 
   if (result.status === 0) {
     return;
@@ -634,11 +651,11 @@ function clearVisualOverlayLine() {
 
   if (typeof result.error?.message === "string") {
     appendTrace(
-      `claude-visual-state invocation failed command=${visualStateCommand} error=${result.error.message}`,
+      `claude-visual-state invocation failed command=${command} error=${result.error.message}`,
     );
   } else {
     appendTrace(
-      `claude-visual-state invocation failed command=${visualStateCommand} status=${result.status}`,
+      `claude-visual-state invocation failed command=${command} status=${result.status}`,
     );
   }
 }
