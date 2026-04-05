@@ -22,9 +22,6 @@ function isSemanticState(value: string): value is AssistantSemanticState {
     value === "tool_failed" ||
     value === "compacting" ||
     value === "completed" ||
-    value === "surprised" ||
-    value === "sad" ||
-    value === "happy" ||
     value === "error"
   );
 }

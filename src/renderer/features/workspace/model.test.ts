@@ -30,7 +30,8 @@ describe("workspaceReducer", () => {
 
     expect(nextState.tabs).toHaveLength(2);
     expect(nextState.activeTabId).toBe("session-2");
-    expect(nextState.assistantStatus.visualState).toBe("happy");
+    expect(nextState.assistantStatus.visualState).toBe("completed");
+    expect(nextState.assistantStatus.emotion).toBe("happy");
   });
 
   it("activates an existing tab and keeps unknown tabs ignored", () => {

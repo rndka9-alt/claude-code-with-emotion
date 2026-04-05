@@ -1,4 +1,7 @@
-import type { AssistantSemanticState } from "../../../shared/assistant-status";
+import type {
+  AssistantEmotionalState,
+  AssistantSemanticState,
+} from "../../../shared/assistant-status";
 
 export type SessionLifecycle = "bootstrapping" | "ready";
 
@@ -15,6 +18,9 @@ export interface SessionTab {
 
 export interface AssistantStatus {
   visualState: AssistantSemanticState;
+  // lifecycle 상태(visualState) 와 감정 오버레이(emotion) 는 독립 축으로 따로 들고다닌다.
+  // UI 조작 직후의 "해피 기분" 같은 짧은 무드를 표현하려면 여기서 emotion 을 얹는다.
+  emotion?: AssistantEmotionalState;
   line: string;
   currentTask: string;
   statusSinceMs: number;
@@ -95,9 +101,13 @@ function createAssistantStatus(
   line: string,
   currentTask: string,
   nowMs: number,
+  emotion?: AssistantEmotionalState,
 ): AssistantStatus {
+  // exactOptionalPropertyTypes 이 켜져 잇어서 undefined 를 직접 박으면 타입 안 맞음.
+  // emotion 이 잇을 때만 스프레드로 필드를 얹어 준다.
   return {
     visualState,
+    ...(emotion !== undefined ? { emotion } : {}),
     line,
     currentTask,
     statusSinceMs: nowMs,
@@ -129,10 +139,11 @@ function createClosedTabAssistantStatus(
   }
 
   return createAssistantStatus(
-    "happy",
+    "completed",
     "탭 하나 정리햇어요. 꽤 깔끔하죠...!",
     `Closed "${closedTabTitle}"`,
     nowMs,
+    "happy",
   );
 }
 
@@ -343,12 +354,13 @@ function updateTabTitleState(
       tab.id === action.tabId ? { ...tab, title: normalizedTitle } : tab,
     ),
     assistantStatus: createAssistantStatus(
-      action.source === "manual" ? "happy" : "working",
+      action.source === "manual" ? "completed" : "working",
       action.source === "manual"
         ? "탭 이름 바꿧어요. 더 알아보기 쉬워요...!"
         : "터미널 타이틀을 탭 이름으로 동기화햇어요...!",
       `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
       action.nowMs,
+      action.source === "manual" ? "happy" : undefined,
     ),
   };
 }
@@ -411,10 +423,11 @@ function createTabState(
     activeTabId: nextTab.id,
     nextTabNumber: state.nextTabNumber + 1,
     assistantStatus: createAssistantStatus(
-      "happy",
+      "completed",
       "새 탭 하나 추가햇어요. 멀티세션 기분 좋다...!",
       `Bootstrapping "${nextTab.title}"`,
       action.nowMs,
+      "happy",
     ),
   };
 }

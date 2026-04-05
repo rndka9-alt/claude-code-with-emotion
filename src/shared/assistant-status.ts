@@ -1,3 +1,6 @@
+// 여기엔 순수 lifecycle 상태만 둔다. 기분·감정 토큰(happy/sad/surprised) 은
+// AssistantEmotionalState 전담 영역이라 여기 넣으면 카테고리 혼용이 댐.
+// 훅은 이제 state+emotion 두 축을 따로 emit 한다.
 export type AssistantSemanticState =
   | "disconnected"
   | "thinking"
@@ -8,9 +11,6 @@ export type AssistantSemanticState =
   | "tool_failed"
   | "compacting"
   | "completed"
-  | "surprised"
-  | "sad"
-  | "happy"
   | "error";
 
 export type AssistantEmotionalState =

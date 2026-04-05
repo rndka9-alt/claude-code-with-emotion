@@ -36,22 +36,7 @@ describe("visual presets", () => {
     });
   });
 
-  it("normalizes emotional semantic states into the future two-axis contract", () => {
-    expect(normalizeAssistantSemanticState("happy")).toEqual({
-      state: "completed",
-      emotion: "happy",
-    });
-    expect(normalizeAssistantSemanticState("sad")).toEqual({
-      state: "waiting",
-      emotion: "sad",
-    });
-    expect(normalizeAssistantSemanticState("surprised")).toEqual({
-      state: "waiting",
-      emotion: "surprised",
-    });
-  });
-
-  it("lets explicit assistant emotions override the legacy semantic fallback", () => {
+  it("combines explicit emotion with the passthrough lifecycle state", () => {
     expect(
       normalizeAssistantVisualSelection({
         state: "working",
@@ -60,6 +45,15 @@ describe("visual presets", () => {
     ).toEqual({
       state: "working",
       emotion: "sad",
+    });
+    expect(
+      normalizeAssistantVisualSelection({
+        state: "completed",
+        emotion: "happy",
+      }),
+    ).toEqual({
+      state: "completed",
+      emotion: "happy",
     });
   });
 });

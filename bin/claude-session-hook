@@ -405,7 +405,10 @@ function createUpdate(eventName, payload, hookState) {
   if (eventName === "PermissionDenied") {
     return {
       activity: "우회 경로를 찾는 중",
-      state: "sad",
+      // state·emotion 분리 emit: 베이스 lifecycle 은 waiting(권한 막혀 멈춤),
+      // 감정 색칠만 sad 로 올린다. 레거시 "sad" 숏컷 토큰은 호환용으로만 남겨둠.
+      state: "waiting",
+      emotion: "sad",
       line: "권한이 막혀서 다른 길 찾는 중이에요...!",
       task: summarizePermission(payload),
       intensity: "medium",
@@ -445,7 +448,10 @@ function createUpdate(eventName, payload, hookState) {
 
     return {
       activity: "새 알림 확인 중",
-      state: "surprised",
+      // state·emotion 분리 emit: 베이스 lifecycle 은 waiting(외부 이벤트 관찰),
+      // 감정 색칠만 surprised 로 올린다.
+      state: "waiting",
+      emotion: "surprised",
       line: "새 알림이 와서 확인 중이에요...!",
       task: summarizeNotification(payload),
       intensity: "medium",
@@ -518,7 +524,9 @@ function createUpdate(eventName, payload, hookState) {
   if (eventName === "TaskCompleted") {
     return {
       activity: "작업 마무리 중",
-      state: "happy",
+      // state·emotion 분리 emit: lifecycle 은 completed, 감정은 happy 오버레이.
+      state: "completed",
+      emotion: "happy",
       line: "작업 하나를 마무리햇어요...!",
       task: summarizeBackgroundTask(payload, "Background task completed"),
       intensity: "medium",
@@ -655,6 +663,12 @@ function publishStatus(update) {
     "--intensity",
     update.intensity,
   ];
+
+  // emotion 은 선택 필드라 값이 잇을 때만 전달한다 — downstream 은 undefined 를 받으면
+  // "이전 emotion 유지" 가 아니라 "없음" 으로 해석하므로, 보내지 않는 것이 안전.
+  if (typeof update.emotion === "string" && update.emotion.length > 0) {
+    args.push("--emotion", update.emotion);
+  }
 
   const { result, command } = spawnHelperBin("claude-status", args, {
     stdio: "ignore",

@@ -194,7 +194,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   const visibleTabs = getVisibleTabs(state);
   const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
     activityLabel: "작업중",
-    emotion: null,
+    emotion: state.assistantStatus.emotion ?? null,
     overlayLine: null,
     state: state.assistantStatus.visualState,
     line: state.assistantStatus.line,

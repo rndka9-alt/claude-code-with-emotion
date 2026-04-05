@@ -33,9 +33,6 @@ const avatarBackgroundVariableByState: Record<
   compacting: "--color-avatar-working",
   // completed 는 기분 좋은 마무리라 happy 의 업비트 색과 동일 톤을 재사용.
   completed: "--color-avatar-happy",
-  surprised: "--color-avatar-surprised",
-  sad: "--color-avatar-sad",
-  happy: "--color-avatar-happy",
   error: "--color-avatar-error",
 };
 

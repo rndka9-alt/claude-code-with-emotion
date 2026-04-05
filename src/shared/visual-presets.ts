@@ -364,18 +364,6 @@ export function normalizeAssistantSemanticState(
     return { state: "completed", emotion: null };
   }
 
-  if (state === "surprised") {
-    return { state: "waiting", emotion: "surprised" };
-  }
-
-  if (state === "sad") {
-    return { state: "waiting", emotion: "sad" };
-  }
-
-  if (state === "happy") {
-    return { state: "completed", emotion: "happy" };
-  }
-
   return { state: "error", emotion: null };
 }
 

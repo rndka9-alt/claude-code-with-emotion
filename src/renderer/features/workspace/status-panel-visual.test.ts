@@ -53,12 +53,12 @@ describe("resolveStatusPanelVisual", () => {
     });
   });
 
-  it("falls back through normalized emotion-aware states", () => {
+  it("falls back to an emotion-only asset when no state+emotion mapping exists", () => {
     const visual = resolveStatusPanelVisual(
       {
         ...baseSnapshot,
         emotion: "happy",
-        state: "happy",
+        state: "completed",
       },
       {
         version: 1,

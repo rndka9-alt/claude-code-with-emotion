@@ -94,13 +94,14 @@ describe("claude-session-hook", () => {
     expect(status.currentTask).toBe("Waiting on permission for Bash");
   });
 
-  it("maps Notification into a surprised transient state", () => {
+  it("maps Notification into a waiting+surprised two-axis payload", () => {
     const result = invokeHook("Notification", {
       message: "Build completed successfully",
     });
     const status = readStatusFile(result.statusFilePath);
 
-    expect(status.state).toBe("surprised");
+    expect(status.state).toBe("waiting");
+    expect(status.emotion).toBe("surprised");
     expect(status.line).toBe("새 알림이 와서 확인 중이에요...!");
     expect(status.currentTask).toBe(
       "Notification: Build completed successfully",
@@ -163,13 +164,14 @@ describe("claude-session-hook", () => {
     expect(status.currentTask).toBe("Compact completed: auto");
   });
 
-  it("maps TaskCompleted into a happy transient state", () => {
+  it("maps TaskCompleted into a completed+happy two-axis payload", () => {
     const result = invokeHook("TaskCompleted", {
       task_subject: "Finished updating the renderer layout",
     });
     const status = readStatusFile(result.statusFilePath);
 
-    expect(status.state).toBe("happy");
+    expect(status.state).toBe("completed");
+    expect(status.emotion).toBe("happy");
     expect(status.line).toBe("작업 하나를 마무리햇어요...!");
     expect(status.currentTask).toBe(
       "Task: Finished updating the renderer layout",
