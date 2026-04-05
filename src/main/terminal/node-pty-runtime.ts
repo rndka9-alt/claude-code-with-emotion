@@ -41,8 +41,15 @@ export function ensureNodePtySpawnHelpersExecutable(
     const mode = statSync(helperPath).mode;
 
     if ((mode & 0o111) !== 0o111) {
-      chmodSync(helperPath, mode | 0o111);
-      updatedHelperPaths.push(helperPath);
+      // asar unpack 경로는 Electron fs 패치가 read 쪽만 리다이렉트하고 chmod 같은 write 계열은
+      // 원본 asar 가상 경로로 내려보내 ENOTDIR 로 실패한다. 번들에 동봉되는 spawn-helper 는
+      // 이미 실행 권한을 가진 상태로 패키징되므로 chmod 실패는 무시 가능한 신호로 취급한다.
+      try {
+        chmodSync(helperPath, mode | 0o111);
+        updatedHelperPaths.push(helperPath);
+      } catch {
+        // noop — 파일이 실제로 실행 불가능하다면 이후 spawn 단계에서 EACCES 로 재감지된다
+      }
     }
   }
 

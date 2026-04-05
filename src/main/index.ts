@@ -269,7 +269,12 @@ function registerTerminalBridge(
   themeStore: ThemeStore,
 ): void {
   const assistantStatusTraceFilePath = runtimeLog.filePath;
-  const assistantStatusHelperBinDir = path.join(app.getAppPath(), "bin");
+  // 패키징된 앱에선 bin/ 이 app.asar 밖 Contents/Resources/bin/ 에 놓인다.
+  // bin 스크립트들은 Claude CLI hook 이나 child_process.spawn 으로 외부에서 직접 실행되므로
+  // Electron 의 asar fs 패치가 적용되지 않는 환경에서도 접근 가능한 실제 파일 경로가 필요.
+  const assistantStatusHelperBinDir = app.isPackaged
+    ? path.join(process.resourcesPath, "bin")
+    : path.join(app.getAppPath(), "bin");
   const visualAssetCatalogFilePath = path.join(
     app.getPath("userData"),
     "visual-assets.json",

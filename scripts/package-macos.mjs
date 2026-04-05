@@ -12,6 +12,7 @@ import {
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import * as asar from "@electron/asar";
 
 const APP_NAME = "Claude Code With Emotion";
 const APP_IDENTIFIER = "studio.moodlamp.claude-code-with-emotion";
@@ -26,13 +27,6 @@ function replacePlistValue(contents, key, value) {
     pattern,
     `<key>${key}</key>\n\t<string>${value}</string>`,
   );
-}
-
-function copyRuntimeTree(source, destination) {
-  cpSync(source, destination, {
-    recursive: true,
-    force: true,
-  });
 }
 
 // Electron.app 번들 복사엔 macOS 네이티브 ditto 를 사용한다.
@@ -56,11 +50,13 @@ const electronAppTemplatePath = path.join(
 const outputDir = path.join(distDir, "macos");
 const bundlePath = path.join(outputDir, `${APP_NAME}.app`);
 const resourcesPath = path.join(bundlePath, "Contents", "Resources");
-const resourcesAppPath = path.join(resourcesPath, "app");
 const executableDir = path.join(bundlePath, "Contents", "MacOS");
 const infoPlistPath = path.join(bundlePath, "Contents", "Info.plist");
 const customIconPath = path.join(projectRoot, "assets", "icon.icns");
 const bundleIconPath = path.join(resourcesPath, "electron.icns");
+const defaultAppAsarPath = path.join(resourcesPath, "default_app.asar");
+const stagingDir = path.join(distDir, "staging");
+const asarPath = path.join(resourcesPath, "app.asar");
 
 if (!existsSync(electronAppTemplatePath)) {
   throw new Error(
@@ -71,6 +67,12 @@ if (!existsSync(electronAppTemplatePath)) {
 rmSync(outputDir, { recursive: true, force: true });
 mkdirSync(outputDir, { recursive: true });
 copyAppBundle(electronAppTemplatePath, bundlePath);
+
+// Electron 템플릿이 기본으로 싣는 default_app.asar 는 "앱이 없을 때 보여주는 환영창"이라
+// 우리 app.asar 를 넣은 뒤에도 남아잇으면 리소스 낭비가 된다.
+if (existsSync(defaultAppAsarPath)) {
+  rmSync(defaultAppAsarPath, { force: true });
+}
 
 const executableSource = path.join(executableDir, "Electron");
 const executableTarget = path.join(executableDir, APP_NAME);
@@ -95,7 +97,12 @@ if (existsSync(customIconPath)) {
   copyFileSync(customIconPath, bundleIconPath);
 }
 
-mkdirSync(resourcesAppPath, { recursive: true });
+// --- asar 아카이브용 staging 디렉터리 구성 ---
+// 런타임에 실제로 필요한 파일만 모아서 asar 로 패키징한다.
+// renderer 측 의존성(react, xterm, lucide-react)은 vite 가 dist/renderer 번들에 흡수햇기 때문에
+// node_modules 에 남겨둘 외부 패키지는 main 이 require 하는 node-pty 하나뿐이다.
+rmSync(stagingDir, { recursive: true, force: true });
+mkdirSync(stagingDir, { recursive: true });
 
 const runtimePackageJson = {
   name: "claude-code-with-emotion",
@@ -105,34 +112,75 @@ const runtimePackageJson = {
 };
 
 writeFileSync(
-  path.join(resourcesAppPath, "package.json"),
+  path.join(stagingDir, "package.json"),
   `${JSON.stringify(runtimePackageJson, null, 2)}\n`,
   "utf8",
 );
 
-copyRuntimeTree(
-  path.join(projectRoot, "dist", "main"),
-  path.join(resourcesAppPath, "dist", "main"),
+// tsconfig.node.json 이 테스트 파일까지 컴파일해 dist 에 *.test.js 가 생기지만
+// 번들 런타임엔 쓸모없고 vitest 를 긁어들이는 원인이 되므로 staging 복사 시 제외한다.
+function isTestArtifact(src) {
+  return src.endsWith(".test.js") || src.endsWith(".test.js.map");
+}
+
+function copyDistSubdir(name) {
+  cpSync(
+    path.join(projectRoot, "dist", name),
+    path.join(stagingDir, "dist", name),
+    {
+      recursive: true,
+      force: true,
+      filter: (src) => !isTestArtifact(src),
+    },
+  );
+}
+
+copyDistSubdir("main");
+copyDistSubdir("preload");
+copyDistSubdir("renderer");
+copyDistSubdir("shared");
+
+// node-pty 는 pnpm 심볼릭 링크 너머 .pnpm/node-pty@x.x.x/node_modules/node-pty/ 에 실존하므로
+// dereference 로 링크를 따라가 실제 파일을 staging 안에 복사한다.
+// prebuilds/ 는 win32·linux 까지 모든 플랫폼 바이너리가 들어잇어 macOS 번들에선 ~58MB 낭비 →
+// darwin-* 만 남기도록 필터링한다.
+cpSync(
+  path.join(projectRoot, "node_modules", "node-pty"),
+  path.join(stagingDir, "node_modules", "node-pty"),
+  {
+    recursive: true,
+    force: true,
+    dereference: true,
+    filter: (src) => {
+      const prebuildsMatch = src.match(/\/prebuilds\/([^/]+)/);
+      if (prebuildsMatch && !prebuildsMatch[1].startsWith("darwin-")) {
+        return false;
+      }
+      return true;
+    },
+  },
 );
-copyRuntimeTree(
-  path.join(projectRoot, "dist", "preload"),
-  path.join(resourcesAppPath, "dist", "preload"),
-);
-copyRuntimeTree(
-  path.join(projectRoot, "dist", "renderer"),
-  path.join(resourcesAppPath, "dist", "renderer"),
-);
-copyRuntimeTree(
-  path.join(projectRoot, "dist", "shared"),
-  path.join(resourcesAppPath, "dist", "shared"),
-);
-copyRuntimeTree(
-  path.join(projectRoot, "node_modules"),
-  path.join(resourcesAppPath, "node_modules"),
-);
-copyRuntimeTree(
+
+// asar 패킹.
+// prebuilds/ 안의 .node 바이너리는 dlopen, spawn-helper 는 child_process spawn 대상이라
+// asar 내부에서 접근 불가 → unpackDir 로 실제 파일 시스템에 풀어둔다.
+// (Electron 이 app.asar.unpacked/ 경로로 자동 리다이렉트)
+await asar.createPackageWithOptions(stagingDir, asarPath, {
+  unpackDir: "**/node-pty/{prebuilds,build}",
+});
+
+// staging 은 asar 에 담겻으니 정리
+rmSync(stagingDir, { recursive: true, force: true });
+
+// bin/ 스크립트들은 Claude CLI hook·MCP 설정을 통해 외부 프로세스에서 execve 로 직접 실행되므로
+// asar 밖 실제 파일 경로에 놓아야 한다. Contents/Resources/bin/ 에 그대로 배치.
+cpSync(
   path.join(projectRoot, "bin"),
-  path.join(resourcesAppPath, "bin"),
+  path.join(resourcesPath, "bin"),
+  {
+    recursive: true,
+    force: true,
+  },
 );
 
 console.log(`Packaged unsigned macOS app at ${bundlePath}`);
