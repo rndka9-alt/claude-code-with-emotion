@@ -371,7 +371,12 @@ function registerTerminalBridge(
       return;
     }
 
-    const statusStore = new AssistantStatusStore();
+    const statusStore = new AssistantStatusStore(Date.now(), (message) => {
+      runtimeLog.write(
+        "assistant-status-store",
+        `session=${sessionId} ${message}`,
+      );
+    });
     const statusFilePath = resolveStatusFilePath(sessionId);
     const statusFileBridge = new AssistantStatusFileBridge(
       statusFilePath,
@@ -659,6 +664,10 @@ function registerTerminalBridge(
   ipcMain.on(DIAGNOSTICS_CHANNELS.rendererEvent, rendererDiagnosticListener);
 
   mainWindow.on("closed", () => {
+    runtimeLog.write(
+      "window-lifecycle",
+      `closed fired — removing ipc handlers (remaining windows=${BrowserWindow.getAllWindows().length})`,
+    );
     unsubscribeTheme();
     unsubscribeVisualAssets();
     for (const sessionId of [...sessionStatusStores.keys()]) {
@@ -676,11 +685,13 @@ function registerTerminalBridge(
     ipcMain.removeHandler(MCP_SETUP_CHANNELS.remove);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getCatalog);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.getAvailableOptions);
+    ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.importFiles);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.pickFiles);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.printAvailableOptions);
     ipcMain.removeHandler(VISUAL_ASSET_CHANNELS.saveCatalog);
     ipcMain.removeHandler(APP_THEME_CHANNELS.getSelection);
     ipcMain.removeHandler(APP_THEME_CHANNELS.saveSelection);
+    ipcMain.removeHandler(LINKS_CHANNELS.openExternal);
     ipcMain.removeHandler(TERMINAL_CHANNELS.bootstrap);
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);
@@ -758,6 +769,11 @@ void app.whenReady().then(() => {
   registerTerminalBridge(mainWindow, runtimeLog, themeStore);
 
   app.on("activate", () => {
+    const openCount = BrowserWindow.getAllWindows().length;
+    runtimeLog.write(
+      "window-lifecycle",
+      `activate fired — hasOpenWindows=${openCount > 0} count=${openCount}`,
+    );
     if (!hasOpenWindows()) {
       const nextMainWindow = createMainWindow(
         themeStore.getSelection(),
@@ -766,12 +782,20 @@ void app.whenReady().then(() => {
 
       attachWindowDiagnostics(nextMainWindow, runtimeLog);
       registerTerminalBridge(nextMainWindow, runtimeLog, themeStore);
+      runtimeLog.write(
+        "window-lifecycle",
+        "activate: new window created + bridge re-registered",
+      );
     }
   });
-});
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  app.on("window-all-closed", () => {
+    runtimeLog.write(
+      "window-lifecycle",
+      `window-all-closed fired — platform=${process.platform} willQuit=${process.platform !== "darwin"}`,
+    );
+    if (process.platform !== "darwin") {
+      app.quit();
+    }
+  });
 });
