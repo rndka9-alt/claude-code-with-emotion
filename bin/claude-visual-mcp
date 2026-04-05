@@ -8,13 +8,20 @@ const {
   createVisualMcpChildEnv,
   resolveVisualMcpRuntime,
 } = require("./lib/claude-visual-mcp-state");
+const { getHelperBinFilename } = require("./lib/helper-bin-resolver");
 
 const SERVER_NAME = "claude-code-with-emotion-visuals";
 const SERVER_VERSION = "0.1.0";
 const helperDir = __dirname;
 const nodeRuntimePath = process.execPath;
-const statusHelperPath = path.join(helperDir, "claude-status");
-const visualStateHelperPath = path.join(helperDir, "claude-visual-state");
+const statusHelperPath = path.join(
+  helperDir,
+  getHelperBinFilename("claude-status"),
+);
+const visualStateHelperPath = path.join(
+  helperDir,
+  getHelperBinFilename("claude-visual-state"),
+);
 
 let inputBuffer = Buffer.alloc(0);
 let negotiatedProtocolVersion = "2024-11-05";

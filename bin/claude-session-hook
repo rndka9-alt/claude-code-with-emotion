@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const { dirname, join } = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { getHelperBinFilename } = require("./lib/helper-bin-resolver");
 
 function appendTrace(message) {
   const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
@@ -575,10 +576,11 @@ function createUpdate(eventName, payload, hookState) {
 
 function publishStatus(update) {
   const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
+  const statusHelperName = getHelperBinFilename("claude-status");
   const statusCommand =
     typeof helperBinDir === "string" && helperBinDir.length > 0
-      ? join(helperBinDir, "claude-status")
-      : "claude-status";
+      ? join(helperBinDir, statusHelperName)
+      : statusHelperName;
   const args = [
     "--state",
     update.state,
@@ -616,10 +618,11 @@ function publishStatus(update) {
 // overlay 파일에 {"line": null} 을 찍어 스토어의 visualOverlay.line 을 비워준다.
 function clearVisualOverlayLine() {
   const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
+  const visualStateHelperName = getHelperBinFilename("claude-visual-state");
   const visualStateCommand =
     typeof helperBinDir === "string" && helperBinDir.length > 0
-      ? join(helperBinDir, "claude-visual-state")
-      : "claude-visual-state";
+      ? join(helperBinDir, visualStateHelperName)
+      : visualStateHelperName;
 
   const result = spawnSync(visualStateCommand, ["--clear-line"], {
     stdio: "ignore",

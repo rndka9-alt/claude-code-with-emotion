@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { getPlatformHelperBinResolver } from "../platform/helper-bin-resolver";
 
 interface ClaudeMcpServerConfig {
   command: string;
@@ -25,7 +26,11 @@ function getClaudeVisualMcpConfigDir(helperBinDir: string): string {
 export function createClaudeVisualMcpConfig(
   helperBinDir: string,
 ): ClaudeMcpConfig {
-  const visualMcpServerPath = path.join(helperBinDir, "claude-visual-mcp");
+  const resolver = getPlatformHelperBinResolver();
+  const visualMcpServerPath = path.join(
+    helperBinDir,
+    resolver.getHelperBinFilename("claude-visual-mcp"),
+  );
 
   return {
     mcpServers: {

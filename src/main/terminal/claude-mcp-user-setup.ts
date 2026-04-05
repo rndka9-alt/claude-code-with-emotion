@@ -1,27 +1,27 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { splitPathList } from "../platform/platform-paths";
+import { getPlatformHelperBinResolver } from "../platform/helper-bin-resolver";
 import type { VisualMcpSetupStatus } from "../../shared/mcp-setup-bridge";
 
 const VISUAL_MCP_SERVER_NAME = "claude-code-with-emotion-visuals";
 
+// PATH 탐색 + 확장자 후보는 어댑터에게 맡기되, "--version 이 0 으로 끝나야 진짜 claude" 라는
+// 세만틱은 그대로 유지해야 해서 어댑터 위에 추가 verify 레이어를 얹는다.
 function resolveClaudeBinary(pathValue: string | undefined): string | null {
-  const segments = splitPathList(pathValue);
+  const resolver = getPlatformHelperBinResolver();
+  const candidate = resolver.findExecutableInPath("claude", pathValue);
 
-  for (const segment of segments) {
-    if (segment.length === 0) {
-      continue;
-    }
+  if (candidate === null) {
+    return null;
+  }
 
-    const candidate = path.join(segment, "claude");
-    const check = spawnSync(candidate, ["--version"], {
-      encoding: "utf8",
-      stdio: "ignore",
-    });
+  const check = spawnSync(candidate, ["--version"], {
+    encoding: "utf8",
+    stdio: "ignore",
+  });
 
-    if (check.status === 0) {
-      return candidate;
-    }
+  if (check.status === 0) {
+    return candidate;
   }
 
   return null;
@@ -50,8 +50,13 @@ function createUserScopedVisualMcpJson(
   helperBinDir: string,
   stateFilePath: string,
 ): string {
+  const resolver = getPlatformHelperBinResolver();
+
   return JSON.stringify({
-    command: path.join(helperBinDir, "claude-visual-mcp"),
+    command: path.join(
+      helperBinDir,
+      resolver.getHelperBinFilename("claude-visual-mcp"),
+    ),
     args: [],
     env: {
       PATH: process.env.PATH ?? "",

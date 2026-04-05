@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { getPlatformHelperBinResolver } from "../platform/helper-bin-resolver";
 import { getPlatformShellAdapter } from "../platform/platform-shell-adapter";
 
 type ClaudeHookEvent =
@@ -53,7 +54,11 @@ export function buildClaudeHookCommand(
   helperBinDir: string,
   eventName: ClaudeHookEvent,
 ): string {
-  const hookScriptPath = path.join(helperBinDir, "claude-session-hook");
+  const helperBinResolver = getPlatformHelperBinResolver();
+  const hookScriptPath = path.join(
+    helperBinDir,
+    helperBinResolver.getHelperBinFilename("claude-session-hook"),
+  );
   const shellAdapter = getPlatformShellAdapter();
 
   return `${shellAdapter.quoteForHookCommand(hookScriptPath)} ${shellAdapter.quoteForHookCommand(eventName)}`;
