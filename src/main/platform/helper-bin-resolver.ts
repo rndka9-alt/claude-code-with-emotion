@@ -1,4 +1,5 @@
 import { createPosixHelperBinResolver } from "./posix-helper-bin-resolver";
+import { createWindowsHelperBinResolver } from "./windows-helper-bin-resolver";
 
 // 번들 헬퍼 스크립트(ours) 의 파일명, 그리고 외부 바이너리(claude 등) 의 PATH 탐색은
 // 플랫폼마다 확장자·실행 가능성 판단 규칙이 다르다. 이 어댑터가 그 차이를 흡수한다.
@@ -13,7 +14,9 @@ export interface HelperBinResolver {
   getHelperBinFilename(baseName: string): string;
 }
 
-// 현재는 POSIX 만 구현. 윈도우 어댑터는 후속 작업에서 추가.
 export function getPlatformHelperBinResolver(): HelperBinResolver {
+  if (process.platform === "win32") {
+    return createWindowsHelperBinResolver();
+  }
   return createPosixHelperBinResolver();
 }

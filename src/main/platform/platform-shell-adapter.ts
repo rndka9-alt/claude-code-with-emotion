@@ -1,4 +1,5 @@
 import { createPosixShellAdapter } from "./posix-shell-adapter";
+import { createWindowsShellAdapter } from "./windows-shell-adapter";
 
 export interface ShellLaunchConfig {
   env: Record<string, string>;
@@ -16,8 +17,9 @@ export interface PlatformShellAdapter {
   quoteForHookCommand(value: string): string;
 }
 
-// 현재는 POSIX(macOS/Linux) 어댑터만 존재. 윈도우 어댑터는 스텝① 범위 밖이라 미구현 상태로 두고,
-// 이 리졸버에 분기만 추가하면 되도록 자리를 잡아둔다.
 export function getPlatformShellAdapter(): PlatformShellAdapter {
+  if (process.platform === "win32") {
+    return createWindowsShellAdapter();
+  }
   return createPosixShellAdapter();
 }
