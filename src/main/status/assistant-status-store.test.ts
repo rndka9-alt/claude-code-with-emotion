@@ -79,6 +79,36 @@ describe("AssistantStatusStore", () => {
     }
   });
 
+  it("keeps the minimum gap after a trailing emit", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(7_000);
+      const emitted: string[] = [];
+      store.subscribe((snapshot) => {
+        emitted.push(snapshot.state);
+      });
+
+      store.applyUpdate({ state: "thinking", line: "A" }, "test");
+      store.applyUpdate({ state: "working", line: "B" }, "test");
+
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      // leading + trailing 까지 발사댐
+      expect(emitted).toEqual(["thinking", "working"]);
+
+      // trailing 직후 바로 들어온 변경은 leading 으로 즉시 터지면 안 댐
+      vi.advanceTimersByTime(100);
+      store.applyUpdate({ state: "responding", line: "C" }, "test");
+      expect(emitted).toEqual(["thinking", "working"]);
+
+      // 직전 emit 으로부터 STATE_THROTTLE_MS 가 채워질 때 발사대야 함
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS - 100);
+      expect(emitted).toEqual(["thinking", "working", "responding"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shares the throttle window between state and visual overlay emits", async () => {
     vi.useFakeTimers();
     try {

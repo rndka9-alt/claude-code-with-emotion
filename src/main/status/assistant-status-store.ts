@@ -14,7 +14,7 @@ export class AssistantStatusStore {
   private currentSnapshot: AssistantStatusSnapshot;
   private readonly listeners = new Set<SnapshotListener>();
   private stateThrottleTimer: NodeJS.Timeout | null = null;
-  private hasPendingStateEmit = false;
+  private lastEmitMs = Number.NEGATIVE_INFINITY;
   private visualOverlay: AssistantVisualOverlayUpdate = {};
 
   constructor(nowMs: number = Date.now()) {
@@ -42,9 +42,9 @@ export class AssistantStatusStore {
     this.currentSnapshot = this.applyOverlay(nextSnapshot, source);
 
     // 상태 변경이 너무 빠르게 반복대면 패널 라벨이 휙휙 바뀌어 읽기 힘들어서
-    // 0.7s leading+trailing throttle 을 건다. state·emotion 이 같은 창을 공유하니
-    // 창 안에 들어온 갱신들은 모두 currentSnapshot 에 누적댔다가 trailing emit 때
-    // 최신 상태로 한 번에 나간다.
+    // emit 간 간격을 STATE_THROTTLE_MS 이상으로 강제한다. state·emotion 이
+    // 같은 창을 공유하니 창 안에 들어온 갱신들은 모두 currentSnapshot 에
+    // 누적댓다가 예약된 trailing emit 때 최신 상태로 한 번에 나간다.
     this.scheduleThrottledEmit();
   }
 
@@ -120,19 +120,30 @@ export class AssistantStatusStore {
   }
 
   private scheduleThrottledEmit(): void {
-    if (this.stateThrottleTimer === null) {
-      this.emit();
-      this.hasPendingStateEmit = false;
-      this.stateThrottleTimer = setTimeout(() => {
-        this.stateThrottleTimer = null;
-        if (this.hasPendingStateEmit) {
-          this.hasPendingStateEmit = false;
-          this.emit();
-        }
-      }, AssistantStatusStore.STATE_THROTTLE_MS);
-    } else {
-      this.hasPendingStateEmit = true;
+    // 연이은 emit 사이 간격을 항상 STATE_THROTTLE_MS 이상으로 보장한다.
+    // 이전 구현은 trailing emit 직후 타이머를 풀어버려서, 바로 뒤에 들어온
+    // 변경이 leading edge 로 즉시 터지며 1초 간격이 무너지는 문제가 잇엇다.
+    if (this.stateThrottleTimer !== null) {
+      // 이미 trailing emit 이 예약대잇다. 변경은 currentSnapshot 에 반영댓으니
+      // 예약된 timer 가 깨어날 때 최신 값을 알아서 실어간다.
+      return;
     }
+
+    const now = Date.now();
+    const sinceLastEmit = now - this.lastEmitMs;
+
+    if (sinceLastEmit >= AssistantStatusStore.STATE_THROTTLE_MS) {
+      this.emit();
+      this.lastEmitMs = now;
+      return;
+    }
+
+    const delay = AssistantStatusStore.STATE_THROTTLE_MS - sinceLastEmit;
+    this.stateThrottleTimer = setTimeout(() => {
+      this.stateThrottleTimer = null;
+      this.emit();
+      this.lastEmitMs = Date.now();
+    }, delay);
   }
 
   private clearStateThrottleTimer(): void {
@@ -140,6 +151,5 @@ export class AssistantStatusStore {
       clearTimeout(this.stateThrottleTimer);
       this.stateThrottleTimer = null;
     }
-    this.hasPendingStateEmit = false;
   }
 }
