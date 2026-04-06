@@ -9,7 +9,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as asar from "@electron/asar";
@@ -140,10 +140,20 @@ copyDistSubdir("preload");
 copyDistSubdir("renderer");
 copyDistSubdir("shared");
 
+// node-pty 네이티브 바이너리를 Electron 헤더 기준으로 재컴파일한다.
+// npm 배포 prebuild 는 일반 Node.js 용이라, Electron 의 수정된 V8/GC 와
+// 미묘한 ABI 불일치가 생겨 런타임에 V8 CHECK 실패(SIGTRAP)를 일으킬 수 잇다.
+console.log("Rebuilding node-pty for Electron…");
+execSync(
+  `npx --yes @electron/rebuild --only node-pty --module-dir "${projectRoot}"`,
+  { stdio: "inherit", cwd: projectRoot },
+);
+
 // node-pty 는 pnpm 심볼릭 링크 너머 .pnpm/node-pty@x.x.x/node_modules/node-pty/ 에 실존하므로
 // dereference 로 링크를 따라가 실제 파일을 staging 안에 복사한다.
 // prebuilds/ 는 win32·linux 까지 모든 플랫폼 바이너리가 들어잇어 macOS 번들에선 ~58MB 낭비 →
 // darwin-* 만 남기도록 필터링한다.
+// rebuild 이후에는 build/Release/ 에 Electron 전용 .node 가 생기므로 함께 복사된다.
 cpSync(
   path.join(projectRoot, "node_modules", "node-pty"),
   path.join(stagingDir, "node_modules", "node-pty"),
