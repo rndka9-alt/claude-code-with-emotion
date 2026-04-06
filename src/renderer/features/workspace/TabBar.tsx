@@ -6,10 +6,12 @@ import { useTabTitleEditor } from "./use-tab-title-editor";
 
 interface TabBarProps {
   activeTabId: string;
+  notifiedTabIds: ReadonlySet<string>;
   tabs: SessionTab[];
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
+  onDismissNotification: (tabId: string) => void;
   onRenameTab: (tabId: string, title: string) => void;
   onReorderTab: (tabId: string, destinationIndex: number) => void;
 }
@@ -22,10 +24,12 @@ type TabToneStyle = CSSProperties & {
 
 export function TabBar({
   activeTabId,
+  notifiedTabIds,
   tabs,
   onActivateTab,
   onCloseTab,
   onCreateTab,
+  onDismissNotification,
   onRenameTab,
   onReorderTab,
 }: TabBarProps): ReactElement {
@@ -105,6 +109,7 @@ export function TabBar({
           const isEditing = tab.id === editingTabId;
           const isDragging = tab.id === draggingTabId;
           const isDropIndicatorTarget = tab.id === dropIndicatorTabId;
+          const hasNotification = notifiedTabIds.has(tab.id);
           const tabToneStyle: TabToneStyle = {
             "--tab-background": isActive
               ? "var(--color-tab-background-active)"
@@ -200,22 +205,42 @@ export function TabBar({
                 )}
               </button>
 
-              <button
-                aria-label={`Close ${tab.title}`}
-                className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] text-tab-close-foreground opacity-0 shadow-[-10px_0_10px_var(--tab-background)] transition-[opacity,background-color,color,box-shadow] duration-150 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-surface-hover hover:text-text-highlight hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onCloseTab(tab.id);
-                }}
-                style={tabToneStyle}
-                type="button"
-              >
-                <X
-                  aria-hidden="true"
-                  className="h-[11px] w-[11px]"
-                  strokeWidth={2.25}
-                />
-              </button>
+              {hasNotification ? (
+                <button
+                  aria-label={`Dismiss notification for ${tab.title}`}
+                  className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] shadow-[-10px_0_10px_var(--tab-background)] transition-[background-color,color,box-shadow] duration-150 hover:bg-surface-hover hover:text-text-highlight hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDismissNotification(tab.id);
+                  }}
+                  style={tabToneStyle}
+                  type="button"
+                >
+                  <span className="absolute h-[7px] w-[7px] rounded-full bg-tab-notification transition-opacity duration-150 group-hover:opacity-0" />
+                  <X
+                    aria-hidden="true"
+                    className="h-[11px] w-[11px] text-tab-close-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                    strokeWidth={2.25}
+                  />
+                </button>
+              ) : (
+                <button
+                  aria-label={`Close ${tab.title}`}
+                  className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] text-tab-close-foreground opacity-0 shadow-[-10px_0_10px_var(--tab-background)] transition-[opacity,background-color,color,box-shadow] duration-150 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-surface-hover hover:text-text-highlight hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onCloseTab(tab.id);
+                  }}
+                  style={tabToneStyle}
+                  type="button"
+                >
+                  <X
+                    aria-hidden="true"
+                    className="h-[11px] w-[11px]"
+                    strokeWidth={2.25}
+                  />
+                </button>
+              )}
             </div>
           );
         })}

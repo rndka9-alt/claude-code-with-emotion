@@ -28,6 +28,7 @@ function AppContent(): ReactElement {
     closeTab,
     currentThemeId,
     createTab,
+    dismissNotification,
     dismissMcpSetupPrompt,
     dropVisualAssets,
     handleLaunchClaude,
@@ -37,6 +38,7 @@ function AppContent(): ReactElement {
     installVisualMcp,
     mcpSetupError,
     mcpSetupStatus,
+    notifiedTabIds,
     openSettingsDialog,
     paneSizes,
     pickVisualAssets,
@@ -74,9 +76,11 @@ function AppContent(): ReactElement {
     <div className="flex h-full min-h-full flex-col overflow-hidden bg-app-bg">
       <TabBar
         activeTabId={activeTabId}
+        notifiedTabIds={notifiedTabIds}
         onActivateTab={activateTab}
         onCloseTab={closeTab}
         onCreateTab={createTab}
+        onDismissNotification={dismissNotification}
         onRenameTab={(tabId, title) => {
           updateTabTitle(tabId, title, "manual");
         }}

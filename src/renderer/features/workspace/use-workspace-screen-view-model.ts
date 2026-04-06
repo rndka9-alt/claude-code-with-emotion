@@ -17,6 +17,7 @@ import { resolveStatusPanelVisual } from "./status-panel-visual";
 import { useAssistantStatusBridge } from "./use-assistant-status-bridge";
 import { useAppTheme } from "./use-app-theme";
 import { useVisualAssetCatalog } from "./use-visual-asset-catalog";
+import { useTabNotifications } from "./use-tab-notifications";
 import { useWorkspaceState } from "./use-workspace-state";
 import {
   findVisualAssetEmotionOwner,
@@ -115,6 +116,7 @@ export interface WorkspaceScreenViewModel {
   assistantSnapshot: AssistantStatusSnapshot;
   closeSettingsDialog: () => void;
   closeTab: (tabId: string) => void;
+  dismissNotification: (tabId: string) => void;
   currentThemeId: AppThemeId;
   createTab: () => void;
   dismissMcpSetupPrompt: () => void;
@@ -125,6 +127,7 @@ export interface WorkspaceScreenViewModel {
   isSettingsDialogOpen: boolean;
   mcpSetupError: string | null;
   mcpSetupStatus: VisualMcpSetupStatus | null;
+  notifiedTabIds: ReadonlySet<string>;
   installVisualMcp: () => void;
   openSettingsDialog: () => void;
   pickVisualAssets: () => void;
@@ -178,6 +181,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     resizePane,
     updateTabTitle,
   } = useWorkspaceState();
+  const { notifiedTabIds, dismissNotification } = useTabNotifications(
+    state.tabs,
+    state.activeTabId,
+  );
   const { currentThemeId, setThemeId, themeOptions } = useAppTheme();
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isMcpSetupPromptDismissed, setIsMcpSetupPromptDismissed] = useState(
@@ -356,6 +363,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     },
     closeTab,
     currentThemeId,
+    dismissNotification,
     createTab,
     dismissMcpSetupPrompt: () => {
       setIsMcpSetupPromptDismissed(true);
@@ -387,6 +395,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     installVisualMcp,
     mcpSetupError,
     mcpSetupStatus,
+    notifiedTabIds,
     openSettingsDialog: () => {
       setIsSettingsDialogOpen(true);
     },
