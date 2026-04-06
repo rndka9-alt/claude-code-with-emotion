@@ -7,6 +7,7 @@ import {
 } from "../platform/platform-paths";
 import { getPlatformShellAdapter } from "../platform/platform-shell-adapter";
 import { ensureClaudeHooksSettingsFile } from "./claude-hooks-settings";
+import { stripScreenHardstatus } from "./strip-screen-hardstatus";
 import { TerminalOutputStore } from "./terminal-output-store";
 import type {
   TerminalBootstrapRequest,
@@ -144,7 +145,11 @@ export function createRuntimeEnv(
     HEADLINE_INFO_MODE: env.HEADLINE_INFO_MODE ?? "prompt",
     HEADLINE_LINE_MODE: env.HEADLINE_LINE_MODE ?? "off",
     HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? "false",
-    TERM: "xterm-256color",
+    // xterm.js는 DA2에서 xterm 276을 자칭하지만 modifyOtherKeys 키 인코딩을 미지원.
+    // TERM=xterm* 이면 vim 9.0+가 mok2 termcap을 로드해 키 입력이 먹통이 되고,
+    // codex·claude code 등 CLI 도구가 xterm 전용 시퀀스를 남겨 찌꺼기가 보인다.
+    // screen-256color는 256색을 유지하면서 이 문제들을 회피한다.
+    TERM: "screen-256color",
     TERM_PROGRAM: "claude-code-with-emotion",
   };
 }
@@ -227,10 +232,11 @@ export class TerminalSessionManager {
     outputStore.reset();
 
     const dataSubscription = runtime.onData((data) => {
-      const outputVersion = outputStore.append(data);
+      const filtered = stripScreenHardstatus(data);
+      const outputVersion = outputStore.append(filtered);
 
       this.emitOutput(request.sessionId, {
-        data,
+        data: filtered,
         outputVersion,
       });
     });
