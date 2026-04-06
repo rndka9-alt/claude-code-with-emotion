@@ -308,12 +308,19 @@ function registerTerminalBridge(
     "assistant-visual-overlay",
   );
   const resolveStatusFilePath = (sessionId: string): string =>
-    path.join(sessionStatusRootDir, `${sessionId}.json`);
+    path.join(sessionStatusRootDir, `${process.pid}-${sessionId}.json`);
   const resolveOverlayFilePath = (sessionId: string): string =>
-    path.join(sessionOverlayRootDir, `${sessionId}.json`);
-  // 탭은 앱 재시작마다 새로 생기고 persist 하지 않으므로, 이전 실행이 크래시 등으로
-  // 남긴 세션 파일은 전부 좀비다. 정상 종료 경로는 disposeSessionStatusBridges 가
-  // 파일 단위로 치우고, 비정상 종료 복구는 여기서 디렉토리 통째로 훑어 정리한다.
+    path.join(sessionOverlayRootDir, `${process.pid}-${sessionId}.json`);
+  // 파일명이 {pid}-{sessionId}.json 형태이므로, 해당 PID 가 아직 살아 잇으면
+  // 다른 인스턴스가 소유한 파일이라 건드리면 안 된다. 죽은 PID 의 파일만 좀비로 간주해 정리한다.
+  const isProcessAlive = (pid: number): boolean => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
   const clearStaleSessionArtifactDir = (dir: string, label: string): void => {
     if (!fs.existsSync(dir)) {
       return;
@@ -332,6 +339,16 @@ function registerTerminalBridge(
     }
 
     for (const entry of entries) {
+      const ownerPid = Number.parseInt(entry, 10);
+
+      if (!Number.isNaN(ownerPid) && isProcessAlive(ownerPid)) {
+        runtimeLog.write(
+          label,
+          `skipping live-process artifact path=${entry} pid=${ownerPid}`,
+        );
+        continue;
+      }
+
       const entryPath = path.join(dir, entry);
 
       try {

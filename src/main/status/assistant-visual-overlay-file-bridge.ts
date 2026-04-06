@@ -122,7 +122,14 @@ export class AssistantVisualOverlayFileBridge {
   }
 
   private readOverlayFile(): void {
-    const fileContents = fs.readFileSync(this.overlayFilePath, "utf8").trim();
+    let fileContents: string;
+    try {
+      fileContents = fs.readFileSync(this.overlayFilePath, "utf8").trim();
+    } catch {
+      // 세션 종료 등으로 파일이 이미 삭제된 경우 watch 이벤트가 뒤늦게 도착할 수 있음
+      this.logEvent?.("overlay file missing, skipping read");
+      return;
+    }
 
     if (fileContents.length === 0) {
       this.logEvent?.("read ignored empty payload");
