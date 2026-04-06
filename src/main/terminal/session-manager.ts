@@ -144,10 +144,7 @@ export function createRuntimeEnv(
     HEADLINE_INFO_MODE: env.HEADLINE_INFO_MODE ?? "prompt",
     HEADLINE_LINE_MODE: env.HEADLINE_LINE_MODE ?? "off",
     HEADLINE_DO_CLOCK: env.HEADLINE_DO_CLOCK ?? "false",
-    // vim 9.0+ 는 TERM 이 xterm 계열이면 modifyOtherKeys 프로토콜을 활성화한다.
-    // xterm.js 가 이 프로토콜의 키 인코딩을 지원하지 않아 vim 키 입력이 먹통이 되므로
-    // xterm 을 감지하지 않는 screen-256color 를 사용한다.
-    TERM: "screen-256color",
+    TERM: "xterm-256color",
     TERM_PROGRAM: "claude-code-with-emotion",
   };
 }
