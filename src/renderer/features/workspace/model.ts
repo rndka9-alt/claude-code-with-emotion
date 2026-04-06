@@ -14,6 +14,7 @@ export interface SessionTab {
   command: string;
   lifecycle: SessionLifecycle;
   createdAtMs: number;
+  isManuallyRenamed: boolean;
 }
 
 export interface AssistantStatus {
@@ -86,6 +87,7 @@ function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
     command: "",
     lifecycle: "bootstrapping",
     createdAtMs: nowMs,
+    isManuallyRenamed: false,
   };
 }
 
@@ -348,19 +350,28 @@ function updateTabTitleState(
     return state;
   }
 
+  // 유저가 직접 지은 이름은 터미널 OSC 시퀀스로 덮어쓰지 않는다.
+  if (action.source === "terminal" && tabToRename.isManuallyRenamed) {
+    return state;
+  }
+
+  const isManuallyRenamed = action.source === "manual";
+
   return {
     ...state,
     tabs: state.tabs.map((tab) =>
-      tab.id === action.tabId ? { ...tab, title: normalizedTitle } : tab,
+      tab.id === action.tabId
+        ? { ...tab, title: normalizedTitle, isManuallyRenamed }
+        : tab,
     ),
     assistantStatus: createAssistantStatus(
-      action.source === "manual" ? "completed" : "working",
-      action.source === "manual"
+      isManuallyRenamed ? "completed" : "working",
+      isManuallyRenamed
         ? "탭 이름 바꿧어요. 더 알아보기 쉬워요...!"
         : "터미널 타이틀을 탭 이름으로 동기화햇어요...!",
       `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
       action.nowMs,
-      action.source === "manual" ? "happy" : undefined,
+      isManuallyRenamed ? "happy" : undefined,
     ),
   };
 }

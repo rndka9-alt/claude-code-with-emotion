@@ -168,6 +168,31 @@ describe("workspaceReducer", () => {
       "터미널 타이틀을 탭 이름으로 동기화햇어요...!",
     );
   });
+
+  it("preserves a manually renamed title from terminal overwrites", () => {
+    const initial = createInitialWorkspaceState(20_000);
+    const renamed = workspaceReducer(initial, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "my docs",
+      nowMs: 21_000,
+      source: "manual",
+    });
+
+    expect(renamed.tabs[0]?.title).toBe("my docs");
+    expect(renamed.tabs[0]?.isManuallyRenamed).toBe(true);
+
+    const afterTerminal = workspaceReducer(renamed, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "user@host:~/project",
+      nowMs: 22_000,
+      source: "terminal",
+    });
+
+    expect(afterTerminal.tabs[0]?.title).toBe("my docs");
+    expect(afterTerminal).toBe(renamed);
+  });
 });
 
 describe("formatElapsedLabel", () => {
