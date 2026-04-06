@@ -46,7 +46,7 @@ describe("createRuntimeEnv", () => {
     );
 
     expect(env.PWD).toBe("/tmp/app");
-    expect(env.TERM).toBe("xterm-256color");
+    expect(env.TERM).toBe("screen-256color");
     expect(env.TERM_PROGRAM).toBe("claude-code-with-emotion");
     expect(env.HEADLINE_INFO_MODE).toBe("prompt");
     expect(env.HEADLINE_LINE_MODE).toBe("off");
