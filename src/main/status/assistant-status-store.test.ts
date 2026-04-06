@@ -54,7 +54,7 @@ describe("AssistantStatusStore", () => {
     expect(store.getSnapshot().line).toBe("Base state");
   });
 
-  it("expires the overlay emotion after trailing emit delivers it and the next hook state arrives", () => {
+  it("keeps overlay emotion alive across state changes while TTL is active", () => {
     vi.useFakeTimers();
     try {
       const store = new AssistantStatusStore(2_000);
@@ -67,9 +67,7 @@ describe("AssistantStatusStore", () => {
 
       expect(store.getSnapshot().emotion).toBe("happy");
 
-      // 감정 overlay 는 trailing emit 으로 구독자에게 한 번 전달댄 뒤에야 만료대야 한다.
-      // 그래야 MCP overlay 호출이 PreToolUse·PostToolUse 훅 사이에 끼여도 감정이
-      // 최소 한 번은 패널에 뜨고, 그 뒤 state 전용 에셋이 나올 자리를 내준다.
+      // TTL 안에서 state 가 바뀌어도 감정은 살아남는다
       vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
 
       store.applyUpdate(
@@ -78,13 +76,57 @@ describe("AssistantStatusStore", () => {
       );
 
       expect(store.getSnapshot().state).toBe("waiting");
-      expect(store.getSnapshot().emotion).toBeNull();
+      expect(store.getSnapshot().emotion).toBe("happy");
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it("preserves an overlay emotion set between state updates within the same throttle window", () => {
+  it("auto-clears emotion after TTL expires", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(2_000);
+      const emitted: Array<{ state: string; emotion: string | null }> = [];
+      store.subscribe((snapshot) => {
+        emitted.push({ state: snapshot.state, emotion: snapshot.emotion });
+      });
+
+      store.applyUpdate(
+        { state: "working", line: "Base" },
+        "assistant-command",
+      );
+      store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
+
+      // leading emit (working) + overlay 는 throttle 창 안에서 큐잉
+      expect(emitted).toEqual([{ state: "working", emotion: null }]);
+
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      // trailing emit 에서 감정 포함 상태가 나감
+      expect(emitted).toEqual([
+        { state: "working", emotion: null },
+        { state: "working", emotion: "happy" },
+      ]);
+
+      // TTL 만료 시점까지 나머지 시간을 전진
+      vi.advanceTimersByTime(
+        AssistantStatusStore.EMOTION_TTL_MS -
+          AssistantStatusStore.STATE_THROTTLE_MS,
+      );
+
+      // TTL 만료 → 감정 자동 클리어, state 전용 에셋 복귀
+      // TTL 타이머가 scheduleThrottledEmit 을 타므로 throttle 간격 뒤에 나감
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      const last = emitted[emitted.length - 1];
+      expect(last?.emotion).toBeNull();
+      expect(last?.state).toBe("working");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("preserves emotion across multiple state changes within TTL window", () => {
     vi.useFakeTimers();
     try {
       const store = new AssistantStatusStore(9_000);
@@ -93,9 +135,7 @@ describe("AssistantStatusStore", () => {
         emitted.push({ state: snapshot.state, emotion: snapshot.emotion });
       });
 
-      // MCP set_visual_overlay 호출 시나리오: PreToolUse → applyVisualOverlay → PostToolUse 가
-      // 같은 throttle 창에 몰리면, 예전엔 감정이 trailing emit 전에 증발해서 패널에 한 번도 못
-      // 떳엇다. pending 플래그가 그 창 안의 감정을 지켜주는지 검증한다.
+      // T=0: leading emit [working, null], overlay curious 세팅 (TTL 3초, T=3000에 만료)
       store.applyUpdate(
         { state: "working", line: "tool start" },
         "assistant-command",
@@ -106,29 +146,35 @@ describe("AssistantStatusStore", () => {
         "assistant-command",
       );
 
-      // 창 여는 leading emit 만 나가고 감정은 아직 보류
       expect(emitted).toEqual([{ state: "working", emotion: null }]);
 
+      // T=1000: trailing edge — 감정이 TTL 안이라 살아남음
       vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
 
-      // trailing edge 에서 마지막 state + 창 안에서 세팅된 감정이 한 쌍으로 나간다
       expect(emitted).toEqual([
         { state: "working", emotion: null },
         { state: "thinking", emotion: "curious" },
       ]);
 
-      // 한 번 노출댄 뒤엔 다음 state 훅에서 정상적으로 만료댄다
+      // T=2000: 또 다른 state 변경 — TTL 아직 안 끝남 (3000 > 2000)
       vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
       store.applyUpdate(
         { state: "waiting", line: "done" },
         "assistant-command",
       );
 
-      expect(emitted).toEqual([
-        { state: "working", emotion: null },
-        { state: "thinking", emotion: "curious" },
-        { state: "waiting", emotion: null },
-      ]);
+      // T=2000 시점에서 sinceLastEmit=1000>=1000 이라 즉시 emit, 감정 살아잇음
+      expect(emitted[emitted.length - 1]).toEqual({
+        state: "waiting",
+        emotion: "curious",
+      });
+
+      // T=3000+: TTL 만료 → 감정 자동 클리어
+      vi.advanceTimersByTime(AssistantStatusStore.EMOTION_TTL_MS);
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      const last = emitted[emitted.length - 1];
+      expect(last?.emotion).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -249,5 +295,54 @@ describe("AssistantStatusStore", () => {
 
     expect(store.getSnapshot().line).toBe("Base hook line");
     expect(store.getSnapshot().overlayLine).toBeNull();
+  });
+
+  it("resets TTL when a new emotion replaces an existing one", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(2_000);
+
+      store.applyUpdate(
+        { state: "working", line: "Base" },
+        "assistant-command",
+      );
+      store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
+
+      // TTL 의 절반 시점에서 새 감정으로 교체
+      vi.advanceTimersByTime(AssistantStatusStore.EMOTION_TTL_MS / 2);
+      store.applyVisualOverlay({ emotion: "excited" }, "visual-overlay");
+
+      expect(store.getSnapshot().emotion).toBe("excited");
+
+      // 원래 TTL 이 만료댓을 시점에도 새 감정은 살아잇어야 함
+      vi.advanceTimersByTime(AssistantStatusStore.EMOTION_TTL_MS / 2);
+      expect(store.getSnapshot().emotion).toBe("excited");
+
+      // 새 TTL 이 만료대면 비로소 사라짐
+      vi.advanceTimersByTime(AssistantStatusStore.EMOTION_TTL_MS / 2);
+      // 만료 후 emit 이 throttle 타므로 한 틱 더
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      expect(store.getSnapshot().emotion).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clears emotion immediately when neutral is set (no TTL)", () => {
+    const store = new AssistantStatusStore(2_000);
+
+    store.applyUpdate(
+      { state: "working", line: "Base" },
+      "assistant-command",
+    );
+    store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
+
+    expect(store.getSnapshot().emotion).toBe("happy");
+
+    store.applyVisualOverlay({ emotion: "neutral" }, "visual-overlay");
+
+    // neutral 은 TTL 없이 즉시 반영
+    expect(store.getSnapshot().emotion).toBe("neutral");
   });
 });
