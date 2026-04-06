@@ -15,6 +15,8 @@ export interface SessionTab {
   lifecycle: SessionLifecycle;
   createdAtMs: number;
   isManuallyRenamed: boolean;
+  /** 터미널 OSC 시퀀스로 마지막에 받은 타이틀. 수동 이름을 지울 때 복원용. */
+  terminalTitle: string;
 }
 
 export interface AssistantStatus {
@@ -88,6 +90,7 @@ function createSessionTab(tabNumber: number, nowMs: number): SessionTab {
     lifecycle: "bootstrapping",
     createdAtMs: nowMs,
     isManuallyRenamed: false,
+    terminalTitle: "",
   };
 }
 
@@ -339,29 +342,67 @@ function updateTabTitleState(
   action: Extract<WorkspaceAction, { type: "updateTabTitle" }>,
 ): WorkspaceState {
   const normalizedTitle = action.title.trim();
+  const tabToUpdate = state.tabs.find((tab) => tab.id === action.tabId);
 
-  if (normalizedTitle.length === 0) {
+  if (tabToUpdate === undefined) {
     return state;
   }
 
-  const tabToRename = state.tabs.find((tab) => tab.id === action.tabId);
+  // 수동 편집에서 타이틀을 전부 지우면 잠금을 해제하고 캐싱된 터미널 타이틀로 복원한다.
+  if (normalizedTitle.length === 0) {
+    if (action.source !== "manual" || !tabToUpdate.isManuallyRenamed) {
+      return state;
+    }
 
-  if (tabToRename === undefined || tabToRename.title === normalizedTitle) {
+    const restoredTitle = tabToUpdate.terminalTitle || tabToUpdate.title;
+
+    return {
+      ...state,
+      tabs: state.tabs.map((tab) =>
+        tab.id === action.tabId
+          ? { ...tab, title: restoredTitle, isManuallyRenamed: false }
+          : tab,
+      ),
+      assistantStatus: createAssistantStatus(
+        "completed",
+        "이름 잠금 풀렷어요. 터미널이 알아서 채워넣을 거예요...!",
+        `Unlocked terminal title sync for "${restoredTitle}"`,
+        action.nowMs,
+        "happy",
+      ),
+    };
+  }
+
+  if (tabToUpdate.title === normalizedTitle) {
     return state;
   }
 
   // 유저가 직접 지은 이름은 터미널 OSC 시퀀스로 덮어쓰지 않는다.
-  if (action.source === "terminal" && tabToRename.isManuallyRenamed) {
-    return state;
+  // 단, terminalTitle 캐시는 항상 최신으로 유지한다.
+  if (action.source === "terminal" && tabToUpdate.isManuallyRenamed) {
+    if (tabToUpdate.terminalTitle === normalizedTitle) {
+      return state;
+    }
+
+    return {
+      ...state,
+      tabs: state.tabs.map((tab) =>
+        tab.id === action.tabId
+          ? { ...tab, terminalTitle: normalizedTitle }
+          : tab,
+      ),
+    };
   }
 
   const isManuallyRenamed = action.source === "manual";
+  const terminalTitle =
+    action.source === "terminal" ? normalizedTitle : tabToUpdate.terminalTitle;
 
   return {
     ...state,
     tabs: state.tabs.map((tab) =>
       tab.id === action.tabId
-        ? { ...tab, title: normalizedTitle, isManuallyRenamed }
+        ? { ...tab, title: normalizedTitle, isManuallyRenamed, terminalTitle }
         : tab,
     ),
     assistantStatus: createAssistantStatus(
@@ -369,7 +410,7 @@ function updateTabTitleState(
       isManuallyRenamed
         ? "탭 이름 바꿧어요. 더 알아보기 쉬워요...!"
         : "터미널 타이틀을 탭 이름으로 동기화햇어요...!",
-      `Renamed "${tabToRename.title}" to "${normalizedTitle}"`,
+      `Renamed "${tabToUpdate.title}" to "${normalizedTitle}"`,
       action.nowMs,
       isManuallyRenamed ? "happy" : undefined,
     ),

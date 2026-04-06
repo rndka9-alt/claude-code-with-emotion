@@ -130,6 +130,7 @@ describe("TerminalSurface", () => {
       lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
       isManuallyRenamed: false,
+      terminalTitle: "",
     };
     const { rerender } = render(
       <TerminalSurface
@@ -166,6 +167,7 @@ describe("TerminalSurface", () => {
       lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
       isManuallyRenamed: false,
+      terminalTitle: "",
     };
     const { container } = render(
       <TerminalSurface
@@ -223,6 +225,7 @@ describe("TerminalSurface", () => {
           lifecycle: "bootstrapping",
           createdAtMs: Date.now(),
           isManuallyRenamed: false,
+      terminalTitle: "",
         }}
       />,
     );
@@ -270,6 +273,7 @@ describe("TerminalSurface", () => {
       lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
       isManuallyRenamed: false,
+      terminalTitle: "",
     };
     const firstRender = render(
       <TerminalSurface

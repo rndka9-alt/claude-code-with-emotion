@@ -191,7 +191,76 @@ describe("workspaceReducer", () => {
     });
 
     expect(afterTerminal.tabs[0]?.title).toBe("my docs");
-    expect(afterTerminal).toBe(renamed);
+    expect(afterTerminal.tabs[0]?.terminalTitle).toBe("user@host:~/project");
+  });
+
+  it("caches terminal title even when manually renamed", () => {
+    const initial = createInitialWorkspaceState(20_000);
+
+    const withTerminal = workspaceReducer(initial, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "user@host:~/project",
+      nowMs: 20_500,
+      source: "terminal",
+    });
+
+    expect(withTerminal.tabs[0]?.terminalTitle).toBe("user@host:~/project");
+
+    const renamed = workspaceReducer(withTerminal, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "my docs",
+      nowMs: 21_000,
+      source: "manual",
+    });
+
+    // 수동 이름으로 바꿔도 terminalTitle 캐시는 유지
+    expect(renamed.tabs[0]?.terminalTitle).toBe("user@host:~/project");
+
+    const afterSecondOsc = workspaceReducer(renamed, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "user@host:~/other",
+      nowMs: 22_000,
+      source: "terminal",
+    });
+
+    // 수동 잠금 중에도 terminalTitle 캐시는 최신으로 갱신
+    expect(afterSecondOsc.tabs[0]?.title).toBe("my docs");
+    expect(afterSecondOsc.tabs[0]?.terminalTitle).toBe("user@host:~/other");
+  });
+
+  it("restores terminal title when manual title is cleared", () => {
+    const initial = createInitialWorkspaceState(20_000);
+
+    const withTerminal = workspaceReducer(initial, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "user@host:~/project",
+      nowMs: 20_500,
+      source: "terminal",
+    });
+    const renamed = workspaceReducer(withTerminal, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "my docs",
+      nowMs: 21_000,
+      source: "manual",
+    });
+
+    // 타이틀을 비우면 캐싱된 터미널 타이틀로 복원 + 잠금 해제
+    const cleared = workspaceReducer(renamed, {
+      type: "updateTabTitle",
+      tabId: "session-1",
+      title: "   ",
+      nowMs: 22_000,
+      source: "manual",
+    });
+
+    expect(cleared.tabs[0]?.title).toBe("user@host:~/project");
+    expect(cleared.tabs[0]?.isManuallyRenamed).toBe(false);
+    expect(cleared.tabs[0]?.terminalTitle).toBe("user@host:~/project");
   });
 });
 
