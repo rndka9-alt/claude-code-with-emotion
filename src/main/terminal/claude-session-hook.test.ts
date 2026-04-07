@@ -82,6 +82,18 @@ function readStatusFile(statusFilePath: string): Record<string, unknown> {
   return parsed;
 }
 
+function readOverlayFile(overlayFilePath: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(
+    fs.readFileSync(overlayFilePath, "utf8"),
+  );
+
+  if (!isObjectRecord(parsed)) {
+    throw new Error("Expected overlay file to contain an object payload");
+  }
+
+  return parsed;
+}
+
 describe("claude-session-hook", () => {
   it("maps PermissionRequest into the permission_wait state", () => {
     const result = invokeHook("PermissionRequest", {
@@ -101,11 +113,14 @@ describe("claude-session-hook", () => {
     const status = readStatusFile(result.statusFilePath);
 
     expect(status.state).toBe("waiting");
-    expect(status.emotion).toBe("surprised");
+    expect(status.emotion).toBeUndefined();
     expect(status.line).toBe("새 알림이 와서 확인 중이에요...!");
     expect(status.currentTask).toBe(
       "Notification: Build completed successfully",
     );
+
+    const overlay = readOverlayFile(result.overlayFilePath);
+    expect(overlay.emotion).toBe("surprised");
   });
 
   it("routes permission_prompt Notification into the permission_wait state", () => {
@@ -171,11 +186,14 @@ describe("claude-session-hook", () => {
     const status = readStatusFile(result.statusFilePath);
 
     expect(status.state).toBe("completed");
-    expect(status.emotion).toBe("happy");
+    expect(status.emotion).toBeUndefined();
     expect(status.line).toBe("작업 하나를 마무리햇어요...!");
     expect(status.currentTask).toBe(
       "Task: Finished updating the renderer layout",
     );
+
+    const overlay = readOverlayFile(result.overlayFilePath);
+    expect(overlay.emotion).toBe("happy");
   });
 
   it("maps interrupted stop signals into the interrupted state", () => {
@@ -243,12 +261,12 @@ describe("claude-session-hook", () => {
     expect(status.line).toBe("Claude 연결 완료! 다음 입력을 기다리고 잇어요...!");
   });
 
-  it("does not touch the overlay file for non-SessionStart events", () => {
+  it("does not touch the overlay file for events without emotion", () => {
     const result = invokeHook("UserPromptSubmit", {
       prompt: "룩앳미",
     });
 
-    // claude-visual-state 가 호출댄 적이 읍스니 overlay 파일은 생성되지 않아야 한다.
+    // emotion 필드가 읍는 이벤트는 overlay 파일을 건드리지 않아야 한다.
     expect(fs.existsSync(result.overlayFilePath)).toBe(false);
   });
 

@@ -664,15 +664,37 @@ function publishStatus(update) {
     update.intensity,
   ];
 
-  // emotion 은 선택 필드라 값이 잇을 때만 전달한다 — downstream 은 undefined 를 받으면
-  // "이전 emotion 유지" 가 아니라 "없음" 으로 해석하므로, 보내지 않는 것이 안전.
-  if (typeof update.emotion === "string" && update.emotion.length > 0) {
-    args.push("--emotion", update.emotion);
-  }
+  // emotion 은 base state(claude-status)가 아닌 visual overlay(claude-visual-state)로
+  // 보낸다. overlay 경로에는 TTL 타이머가 잇어서 후속 이벤트 없이도 자동 만료대,
+  // Notification 등이 마지막 이벤트일 때 surprised 가 영원히 남는 문제를 방지한다.
 
   const { result, command } = spawnHelperBin("claude-status", args, {
     stdio: "ignore",
   });
+
+  if (result.status !== 0) {
+    if (typeof result.error?.message === "string") {
+      appendTrace(
+        `claude-status invocation failed command=${command} error=${result.error.message}`,
+      );
+    } else {
+      appendTrace(
+        `claude-status invocation failed command=${command} status=${result.status}`,
+      );
+    }
+  }
+
+  if (typeof update.emotion === "string" && update.emotion.length > 0) {
+    publishVisualOverlayEmotion(update.emotion);
+  }
+}
+
+function publishVisualOverlayEmotion(emotion) {
+  const { result, command } = spawnHelperBin(
+    "claude-visual-state",
+    ["--emotion", emotion],
+    { stdio: "ignore" },
+  );
 
   if (result.status === 0) {
     return;
@@ -680,11 +702,11 @@ function publishStatus(update) {
 
   if (typeof result.error?.message === "string") {
     appendTrace(
-      `claude-status invocation failed command=${command} error=${result.error.message}`,
+      `claude-visual-state emotion failed command=${command} error=${result.error.message}`,
     );
   } else {
     appendTrace(
-      `claude-status invocation failed command=${command} status=${result.status}`,
+      `claude-visual-state emotion failed command=${command} status=${result.status}`,
     );
   }
 }
