@@ -173,8 +173,8 @@ export function TabBar({
                   <input
                     aria-label={`${tab.title} title editor`}
                     className="m-0 w-full border-none bg-transparent p-0 text-inherit outline-none"
-                    onBlur={() => {
-                      finishRenaming(tab.id);
+                    onBlur={(event) => {
+                      finishRenaming(tab.id, event.currentTarget.value);
                     }}
                     onChange={(event) => {
                       setDraftTitle(event.target.value);
@@ -185,7 +185,7 @@ export function TabBar({
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
-                        finishRenaming(tab.id);
+                        finishRenaming(tab.id, event.currentTarget.value);
                       }
 
                       if (event.key === "Escape") {

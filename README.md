@@ -232,5 +232,3 @@ If terminal bootstrapping fails, check the same log for `terminal-helper` entrie
 - `src/renderer`: React UI, pane layout, xterm surfaces, status panel
 - `src/shared`: shared IPC contracts and semantic status types
 - `bin/claude-status`: helper command injected into terminal session `PATH`
-- `docs/implementation-plan.md`: running milestone checklist
-- `docs/architecture-review.md`: current architecture review and remaining gaps

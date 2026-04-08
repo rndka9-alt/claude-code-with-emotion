@@ -16,28 +16,30 @@ describe("stripScreenHardstatus", () => {
     expect(stripScreenHardstatus(osc)).toBe(osc);
   });
 
-  it("screen 하드스테이터스 시퀀스를 제거한다", () => {
-    expect(stripScreenHardstatus("\x1bkcd\x1b\\")).toBe("");
+  it("screen 하드스테이터스 시퀀스를 OSC 타이틀 시퀀스로 변환한다", () => {
+    expect(stripScreenHardstatus("\x1bkcd\x1b\\")).toBe("\x1b]0;cd\x07");
   });
 
   it("시퀀스 앞뒤의 텍스트는 보존한다", () => {
     expect(stripScreenHardstatus("before\x1bkgrep\x1b\\after")).toBe(
-      "beforeafter",
+      "before\x1b]0;grep\x07after",
     );
   });
 
-  it("한 chunk에 시퀀스가 여러 번 오면 전부 제거한다", () => {
+  it("한 chunk에 시퀀스가 여러 번 오면 전부 변환한다", () => {
     const input = "\x1bkcd\x1b\\output\x1bkvim\x1b\\more";
-    expect(stripScreenHardstatus(input)).toBe("outputmore");
+    expect(stripScreenHardstatus(input)).toBe(
+      "\x1b]0;cd\x07output\x1b]0;vim\x07more",
+    );
   });
 
-  it("시퀀스 내용이 빈 문자열이어도 제거한다", () => {
-    expect(stripScreenHardstatus("\x1bk\x1b\\")).toBe("");
+  it("시퀀스 내용이 빈 문자열이어도 빈 타이틀로 변환한다", () => {
+    expect(stripScreenHardstatus("\x1bk\x1b\\")).toBe("\x1b]0;\x07");
   });
 
-  it("시퀀스 내용에 특수문자가 포함되어도 제거한다", () => {
+  it("시퀀스 내용에 특수문자가 포함되어도 그대로 변환한다", () => {
     expect(
       stripScreenHardstatus("\x1bk~/workspace/project\x1b\\"),
-    ).toBe("");
+    ).toBe("\x1b]0;~/workspace/project\x07");
   });
 });

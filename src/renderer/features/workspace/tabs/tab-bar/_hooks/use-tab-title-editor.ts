@@ -4,7 +4,7 @@ export interface TabTitleEditorState {
   draftTitle: string;
   editInputRef: React.RefObject<HTMLInputElement | null>;
   editingTabId: string | null;
-  finishRenaming: (tabId: string) => void;
+  finishRenaming: (tabId: string, title?: string) => void;
   setDraftTitle: (title: string) => void;
   setEditingTabId: (tabId: string | null) => void;
   startRenaming: (tabId: string, title: string) => void;
@@ -28,8 +28,8 @@ export function useTabTitleEditor(
     draftTitle,
     editInputRef,
     editingTabId,
-    finishRenaming: (tabId) => {
-      onRenameTab(tabId, draftTitle);
+    finishRenaming: (tabId, title = draftTitle) => {
+      onRenameTab(tabId, title);
       setEditingTabId(null);
     },
     setDraftTitle,
