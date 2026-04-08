@@ -98,15 +98,23 @@ export function useTabDragReorder(
 
   tabsRef.current = tabs;
 
-  const tabCountRef = useRef(tabs.length);
+  const tabOrderRef = useRef(tabs.map((tab) => tab.id));
 
   useLayoutEffect(() => {
-    const prevCount = tabCountRef.current;
-    tabCountRef.current = tabs.length;
+    const prevOrder = tabOrderRef.current;
+    const nextOrder = tabs.map((tab) => tab.id);
+    tabOrderRef.current = nextOrder;
 
-    // 탭 추가/삭제 시에는 FLIP 애니메이션 불필요 — 순서 변경일 때만 실행
-    if (prevCount !== tabs.length) {
+    // 탭 추가·삭제 시 이전 위치 캐시를 비운다
+    if (prevOrder.length !== nextOrder.length) {
       previousPositionsRef.current = new Map();
+      return;
+    }
+
+    // 탭 이름·속성만 바뀌고 순서가 동일하면 FLIP 불필요.
+    // 애니메이션 도중 getBoundingClientRect 가 중간값을 읽어
+    // deltaX 가 눈덩이처럼 불어나는 피드백 루프를 방지한다.
+    if (nextOrder.every((id, index) => prevOrder[index] === id)) {
       return;
     }
 

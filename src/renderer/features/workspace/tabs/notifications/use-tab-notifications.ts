@@ -30,6 +30,10 @@ export function useTabNotifications(
   const activeTabIdRef = useRef(activeTabId);
   activeTabIdRef.current = activeTabId;
 
+  // 탭 ID 목록이 바뀔 때만 구독·정리 이펙트를 재실행하도록 안정화.
+  // 타이틀 등 속성 변경은 구독에 영향이 없으므로 불필요한 해제·재생성을 방지한다.
+  const tabIdsKey = tabs.map((tab) => tab.id).join("\0");
+
   // 탭 활성화 시 해당 탭 알림 자동 제거
   useEffect(() => {
     setNotifiedTabIds((current) => {
@@ -45,15 +49,16 @@ export function useTabNotifications(
     const bridge = window.claudeApp?.assistantStatus;
     if (bridge === undefined) return;
 
-    const unsubscribers = tabs.map((tab) =>
-      bridge.onSnapshot({ sessionId: tab.id }, (snapshot) => {
-        if (tab.id === activeTabIdRef.current) return;
+    const subscribedTabIds = tabIdsKey.split("\0");
+    const unsubscribers = subscribedTabIds.map((tabId) =>
+      bridge.onSnapshot({ sessionId: tabId }, (snapshot) => {
+        if (tabId === activeTabIdRef.current) return;
 
         if (ATTENTION_STATES.has(snapshot.state)) {
           setNotifiedTabIds((current) => {
-            if (current.has(tab.id)) return current;
+            if (current.has(tabId)) return current;
             const next = new Set(current);
-            next.add(tab.id);
+            next.add(tabId);
             return next;
           });
         }
@@ -65,11 +70,11 @@ export function useTabNotifications(
         unsubscribe();
       }
     };
-  }, [tabs]);
+  }, [tabIdsKey]);
 
   // 닫힌 탭의 stale 알림 정리
   useEffect(() => {
-    const tabIdSet = new Set(tabs.map((tab) => tab.id));
+    const tabIdSet = new Set(tabIdsKey.split("\0"));
 
     setNotifiedTabIds((current) => {
       let hasStale = false;
@@ -91,7 +96,7 @@ export function useTabNotifications(
 
       return next;
     });
-  }, [tabs]);
+  }, [tabIdsKey]);
 
   return {
     notifiedTabIds,
