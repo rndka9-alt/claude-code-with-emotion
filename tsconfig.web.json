@@ -6,7 +6,8 @@
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "jsx": "react-jsx",
     "types": ["vite/client", "vitest/globals"],
-    "noEmit": true
+    "noEmit": true,
+    "composite": true
   },
   "include": [
     "src/renderer/**/*.ts",

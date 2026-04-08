@@ -6,7 +6,8 @@
     "lib": ["ES2022", "DOM"],
     "types": ["node", "vitest/globals"],
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "composite": true
   },
   "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts"]
 }
