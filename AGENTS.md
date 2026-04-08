@@ -18,18 +18,24 @@
 4. `index.ts` and `index.tsx` are re-export only. Do not put runtime logic in them.
 5. Do not use `export *` in module entry files. Re-export only the functions, types, and components that are intentionally public.
 6. Keep implementation details private. Code outside a module must not import its internal files directly.
-7. Split code by responsibility. Do not force one function per file, but split when a file starts carrying multiple responsibilities.
-8. Types, constants, and small helpers should stay near the code that owns them until real reuse appears.
-9. Avoid vague names such as `common`, `misc`, or `helper`.
-10. Keep module dependencies directional. Avoid circular imports between sibling modules.
+7. Inside the same parent module, sibling submodules may import each other only through each sibling's public entry.
+8. Do not import another submodule's internal files directly, even from inside the same parent module.
+9. Split code by responsibility. Do not force one function per file, but split when a file starts carrying multiple responsibilities.
+10. Types, constants, and small helpers should stay near the code that owns them until real reuse appears.
+11. Avoid vague names such as `common`, `misc`, or `helper`.
+12. Keep module dependencies directional. Avoid circular imports between sibling modules.
 
 ## Renderer Rules
 
 Use ownership and UI responsibility as the main grouping rule.
 
 - Prefer feature-oriented names such as `tabs`, `status-panel`, `visual-asset-manager`, `dialog`, or `tab-bar`.
-- Small hooks that are private to one UI module should stay under that module, for example `tab-bar/hooks`.
-- `components`, `hooks`, `model`, `utils`, `types`, `constants`, and `internal` are valid as secondary structure inside a renderer module.
+- Small hooks that are private to one UI module should stay under that module, for example `tab-bar/_hooks`.
+- Form- or usage-oriented folders such as `hooks`, `components`, and `utils` should be visually marked with an underscore prefix:
+  - `_hooks`
+  - `_components`
+  - `_utils`
+- `model`, `types`, `constants`, and `internal` are valid as secondary structure inside a renderer module when they improve clarity.
 - Do not promote every small custom hook into a standalone top-level module just because it has a name.
 
 ## Main And Shared Rules
@@ -38,7 +44,8 @@ Use domain or service responsibility as the main grouping rule.
 
 - Prefer names such as `session`, `runtime`, `claude-mcp`, `diagnostics`, `platform`, `status`, or `window`.
 - Do not use `utils`, `types`, or `constants` as the primary top-level split when the code can first be grouped by responsibility.
-- `utils`, `types`, `constants`, and `internal` are secondary structure inside a responsibility-focused module.
+- `_utils` is secondary structure inside a responsibility-focused module when technical helpers need to be grouped by usage or form.
+- `types`, `constants`, and `internal` are secondary structure inside a responsibility-focused module.
 
 Good:
 
@@ -56,6 +63,15 @@ terminal/
   utils/
   types/
   constants/
+```
+
+Good:
+
+```text
+tab-bar/
+  index.ts
+  TabBar.tsx
+  _hooks/
 ```
 
 ## Promotion Rules
