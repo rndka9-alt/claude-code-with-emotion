@@ -14,7 +14,7 @@
     "build:main": "tsc -p tsconfig.node.json",
     "package:macos": "pnpm build && node ./scripts/package-macos.mjs",
     "typecheck": "tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.node.json --noEmit",
-    "test": "vitest run",
+    "test": "pnpm typecheck && vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"
   },

@@ -1,3 +1,5 @@
+export const MULTILINE_TERMINAL_INPUT = "\x0a";
+
 export interface TerminalShortcutKeyEvent {
   altKey: boolean;
   ctrlKey: boolean;
@@ -9,6 +11,44 @@ export interface TerminalShortcutKeyEvent {
 }
 
 export type SessionNavigationDirection = "previous" | "next";
+
+export function isMultilineKey(event: TerminalShortcutKeyEvent): boolean {
+  return (
+    event.key === "Enter" &&
+    (event.shiftKey || event.altKey) &&
+    !event.ctrlKey &&
+    !event.metaKey
+  );
+}
+
+export function shouldSendMultilineData(
+  event: TerminalShortcutKeyEvent,
+): boolean {
+  return (
+    isMultilineKey(event) &&
+    (event.type === undefined || event.type === "keydown") &&
+    event.repeat !== true
+  );
+}
+
+export function handleTerminalShortcut(
+  event: TerminalShortcutKeyEvent,
+  sendData: (data: string) => void,
+): boolean {
+  if (!isMultilineKey(event)) {
+    return true;
+  }
+
+  // keydown(비-repeat)에서만 데이터 전송, keypress·keyup은 전파만 차단
+  if (
+    (event.type === undefined || event.type === "keydown") &&
+    event.repeat !== true
+  ) {
+    sendData(MULTILINE_TERMINAL_INPUT);
+  }
+
+  return false;
+}
 
 export function shouldCreateSessionShortcut(
   event: TerminalShortcutKeyEvent,
