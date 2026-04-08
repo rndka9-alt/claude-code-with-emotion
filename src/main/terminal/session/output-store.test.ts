@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { TerminalOutputStore } from "./terminal-output-store";
+import { TerminalOutputStore } from "./output-store";
 
 describe("TerminalOutputStore", () => {
   it("tracks snapshots and flushes terminal output to disk", () => {

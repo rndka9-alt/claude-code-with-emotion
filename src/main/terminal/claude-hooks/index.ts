@@ -1,0 +1,1 @@
+export { ensureClaudeHooksSettingsFile } from "./settings";

@@ -1,7 +1,7 @@
 import {
   createRuntimeEnv,
   TerminalSessionManager,
-} from "./session-manager";
+} from "./manager";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,7 +9,7 @@ import type {
   TerminalBootstrapRequest,
   TerminalInputRequest,
   TerminalResizeRequest,
-} from "../../shared/terminal-bridge";
+} from "../../../shared/terminal-bridge";
 
 interface FakeRuntimeRecord {
   cols: number;

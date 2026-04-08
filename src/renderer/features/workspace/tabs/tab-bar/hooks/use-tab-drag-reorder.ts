@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
-import type { SessionTab } from "../model";
+import type { SessionTab } from "../../../model";
 
 const DRAG_START_DISTANCE_PX = 6;
 const DROP_THRESHOLD_RATIO = 0.3;

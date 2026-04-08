@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { AssistantSemanticState } from "../../../../shared/assistant-status";
+import type { AssistantSemanticState } from "../../../../../shared/assistant-status";
 
 /**
  * 비활성 탭에서 "유저가 봐야 할" 상태로 전환되면 알림을 띄운다.

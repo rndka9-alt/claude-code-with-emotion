@@ -4,7 +4,7 @@ import path from "node:path";
 import {
   createClaudeVisualMcpConfig,
   ensureClaudeVisualMcpConfigFile,
-} from "./claude-mcp-config";
+} from "./config";
 
 describe("claude visual mcp config", () => {
   it("creates a stdio MCP config for the visual helper server", () => {

@@ -1,2 +1,2 @@
-export { TabBar } from "./TabBar";
-export { useTabNotifications } from "./use-tab-notifications";
+export { TabBar } from "./tab-bar";
+export { useTabNotifications } from "./notifications";

@@ -4,8 +4,8 @@ import {
   getPlatformHelperBinResolver,
   joinPathList,
   splitPathList,
-} from "../platform";
-import type { VisualMcpSetupStatus } from "../../shared/mcp-setup-bridge";
+} from "../../platform";
+import type { VisualMcpSetupStatus } from "../../../shared/mcp-setup-bridge";
 
 const VISUAL_MCP_SERVER_NAME = "claude-code-with-emotion-visuals";
 

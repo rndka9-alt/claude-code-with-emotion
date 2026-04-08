@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../shared/terminal-history";
+import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../../shared/terminal-history";
 
 export interface TerminalOutputSnapshot {
   output: string;

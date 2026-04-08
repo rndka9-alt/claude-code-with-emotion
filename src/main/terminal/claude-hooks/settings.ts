@@ -4,7 +4,7 @@ import path from "node:path";
 import {
   getPlatformHelperBinResolver,
   getPlatformShellAdapter,
-} from "../platform";
+} from "../../platform";
 
 type ClaudeHookEvent =
   | "SessionStart"

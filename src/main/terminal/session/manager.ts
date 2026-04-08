@@ -5,17 +5,17 @@ import {
   getPlatformShellAdapter,
   joinPathList,
   resolveHomeDir,
-} from "../platform";
-import { ensureClaudeHooksSettingsFile } from "./claude-hooks-settings";
+} from "../../platform";
+import { ensureClaudeHooksSettingsFile } from "../claude-hooks";
 import { stripScreenHardstatus } from "./strip-screen-hardstatus";
-import { TerminalOutputStore } from "./terminal-output-store";
+import { TerminalOutputStore } from "./output-store";
 import type {
   TerminalBootstrapRequest,
   TerminalBootstrapResponse,
   TerminalCloseRequest,
   TerminalInputRequest,
   TerminalResizeRequest,
-} from "../../shared/terminal-bridge";
+} from "../../../shared/terminal-bridge";
 
 interface TerminalDisposable {
   dispose: () => void;

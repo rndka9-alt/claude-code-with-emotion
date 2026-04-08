@@ -5,7 +5,7 @@ import {
   buildClaudeHookCommand,
   createClaudeHooksSettings,
   ensureClaudeHooksSettingsFile,
-} from "./claude-hooks-settings";
+} from "./settings";
 
 describe("claude hooks settings", () => {
   it("builds absolute hook commands for Claude event hooks", () => {
