@@ -59,10 +59,10 @@ export function TabBar({
     if (!strip) return;
 
     // 가로 스크롤 전용 탭 스트립이라 휠 입력을 항상 우리가 가로 이동으로 흡수한다
-    // 중간중간 브라우저 기본 스크롤과 수동 스크롤이 섞이면 관성 끝에서 움찔하는 현상이 생겨서
-    // deltaX가 있으면 deltaX를, 없으면 deltaY를 써서 일관되게 한 방향으로만 이동시킨다
+    // 트랙패드는 대각선 입력 시 deltaX·deltaY가 동시에 발생하므로 합산해야
+    // 한쪽만 취사선택할 때 생기는 버벅임을 방지할 수 있다
     const handleWheel = (event: WheelEvent) => {
-      const delta = event.deltaX !== 0 ? event.deltaX : event.deltaY;
+      const delta = event.deltaX + event.deltaY;
       if (delta === 0) return;
       event.preventDefault();
       strip.scrollLeft += delta;
