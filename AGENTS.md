@@ -97,6 +97,19 @@ If it is large enough to deserve structure, give it its own entry point even whe
 - Internal tests are allowed for complex pure logic, branch-heavy transforms, or regression-prone logic.
 - Do not couple tests to file layout unless there is a strong reason.
 
+## Type Safety Rules
+
+- Do not use type assertions such as `as`, non-null assertions such as `!`, or double assertions to silence compile errors.
+- Prefer type guards, null checks, discriminated unions, and control-flow narrowing to prove types to TypeScript.
+- If a runtime boundary requires validation, validate the value at the boundary instead of asserting deeper in the code path.
+
+## Verification And Reporting
+
+- After making changes, run `pnpm test` to verify both type errors and tests before reporting completion.
+- If `pnpm test` cannot be run, or if it fails, report that clearly instead of implying the work is fully verified.
+- If you discover type errors, test failures, or worktree changes that were not caused by the current session's work, report them to the user explicitly.
+- Do not silently overwrite, revert, or "clean up" unrelated changes just to make the current task pass.
+
 ## Refactoring Standard
 
 - Create structure only when it improves boundaries and ownership.

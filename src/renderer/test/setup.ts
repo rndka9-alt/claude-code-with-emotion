@@ -35,7 +35,11 @@ if (typeof window.matchMedia !== "function") {
 }
 
 if (typeof window.PointerEvent === "undefined") {
-  window.PointerEvent = MouseEvent as typeof PointerEvent;
+  Object.defineProperty(window, "PointerEvent", {
+    configurable: true,
+    writable: true,
+    value: MouseEvent,
+  });
 }
 
 Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {

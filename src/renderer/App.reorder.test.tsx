@@ -1,6 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { App } from "./App";
 
+function requireParentElement(element: HTMLElement): HTMLElement {
+  if (!(element.parentElement instanceof HTMLElement)) {
+    throw new Error("Expected tab button to have an HTMLElement parent.");
+  }
+
+  return element.parentElement;
+}
+
 describe("App tab reordering", () => {
   it("reorders tabs live while dragging in the tab strip", () => {
     render(<App />);
@@ -17,22 +25,29 @@ describe("App tab reordering", () => {
     const middleTab = screen.getByRole("tab", {
       name: "new session 2 · claude-code-with-emotion",
     });
+    const firstTabContainer = requireParentElement(firstTab);
+    const middleTabContainer = requireParentElement(middleTab);
+    const thirdTabContainer = requireParentElement(thirdTab);
 
     const tabRects = new Map<HTMLElement, DOMRect>([
-      [firstTab.parentElement as HTMLElement, new DOMRect(0, 0, 180, 28)],
-      [middleTab.parentElement as HTMLElement, new DOMRect(182, 0, 180, 28)],
-      [thirdTab.parentElement as HTMLElement, new DOMRect(364, 0, 180, 28)],
+      [firstTabContainer, new DOMRect(0, 0, 180, 28)],
+      [middleTabContainer, new DOMRect(182, 0, 180, 28)],
+      [thirdTabContainer, new DOMRect(364, 0, 180, 28)],
     ]);
     const originalGetBoundingClientRect =
       HTMLElement.prototype.getBoundingClientRect;
 
     HTMLElement.prototype.getBoundingClientRect =
       function getBoundingClientRect(): DOMRect {
-        return tabRects.get(this as HTMLElement) ?? new DOMRect(0, 0, 0, 0);
+        if (!(this instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        return tabRects.get(this) ?? new DOMRect(0, 0, 0, 0);
       };
 
     try {
-      fireEvent.pointerDown(thirdTab.parentElement as HTMLElement, {
+      fireEvent.pointerDown(thirdTabContainer, {
         button: 0,
         clientX: 430,
         clientY: 12,
@@ -74,22 +89,29 @@ describe("App tab reordering", () => {
     const middleTab = screen.getByRole("tab", {
       name: "new session 2 · claude-code-with-emotion",
     });
+    const firstTabContainer = requireParentElement(firstTab);
+    const middleTabContainer = requireParentElement(middleTab);
+    const thirdTabContainer = requireParentElement(thirdTab);
 
     const tabRects = new Map<HTMLElement, DOMRect>([
-      [firstTab.parentElement as HTMLElement, new DOMRect(0, 0, 180, 28)],
-      [middleTab.parentElement as HTMLElement, new DOMRect(182, 0, 180, 28)],
-      [thirdTab.parentElement as HTMLElement, new DOMRect(364, 0, 180, 28)],
+      [firstTabContainer, new DOMRect(0, 0, 180, 28)],
+      [middleTabContainer, new DOMRect(182, 0, 180, 28)],
+      [thirdTabContainer, new DOMRect(364, 0, 180, 28)],
     ]);
     const originalGetBoundingClientRect =
       HTMLElement.prototype.getBoundingClientRect;
 
     HTMLElement.prototype.getBoundingClientRect =
       function getBoundingClientRect(): DOMRect {
-        return tabRects.get(this as HTMLElement) ?? new DOMRect(0, 0, 0, 0);
+        if (!(this instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        return tabRects.get(this) ?? new DOMRect(0, 0, 0, 0);
       };
 
     try {
-      fireEvent.pointerDown(thirdTab.parentElement as HTMLElement, {
+      fireEvent.pointerDown(thirdTabContainer, {
         button: 0,
         clientX: 430,
         clientY: 12,

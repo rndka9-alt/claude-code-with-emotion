@@ -53,6 +53,17 @@ vi.mock("@xterm/xterm", () => {
   };
 });
 
+function requireElement<TElement extends Element>(
+  element: TElement | null,
+  message: string,
+): TElement {
+  if (element === null) {
+    throw new Error(message);
+  }
+
+  return element;
+}
+
 describe("TerminalSurface", () => {
   let openExternal: ReturnType<typeof vi.fn>;
 
@@ -184,7 +195,9 @@ describe("TerminalSurface", () => {
     expect(terminal).toBeDefined();
     expect(viewport).not.toBeNull();
 
-    fireEvent.mouseDown(viewport!);
+    fireEvent.mouseDown(
+      requireElement(viewport, "Expected terminal viewport to exist."),
+    );
 
     expect(terminal?.focus).toHaveBeenCalledTimes(2);
   });

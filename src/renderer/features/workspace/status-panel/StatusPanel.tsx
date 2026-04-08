@@ -72,12 +72,12 @@ export function StatusPanel({
   const visibleLine = statusLine.length > 0 ? statusLine : assistantStatus.line;
 
   // MCP 한마디(overlayLine)가 활성화된 경우 활동 라벨을 별도 span으로 분리해 투명도 적용
+  const overlayMainText =
+    typeof assistantStatus.overlayLine === "string"
+      ? assistantStatus.overlayLine.trim()
+      : null;
   const hasOverlayLine =
-    typeof assistantStatus.overlayLine === "string" &&
-    assistantStatus.overlayLine.trim().length > 0;
-  const overlayMainText = hasOverlayLine
-    ? assistantStatus.overlayLine!.trim()
-    : null;
+    overlayMainText !== null && overlayMainText.length > 0;
   const overlayActivitySuffix =
     hasOverlayLine &&
     typeof assistantStatus.activityLabel === "string" &&
