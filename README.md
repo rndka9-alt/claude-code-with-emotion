@@ -2,16 +2,42 @@
 
 macOS Electron desktop app that embeds Claude Code in vertically stacked terminal panes and keeps a fixed assistant status panel pinned to the bottom of the window.
 
-## What ships today
+## Core Features
 
-- Electron `main` / `preload` / React renderer split
-- Chrome-style top tab bar with app-owned session titles
-- Vertically stacked terminal panes with drag resizing
-- `xterm.js` terminals wired through a typed preload bridge
-- `node-pty` shell sessions that start in an interactive shell inside the selected workspace
-- Fixed bottom status panel with semantic state-to-visual mapping
-- Internal `claude-status` helper command for updating assistant state from inside a terminal session
-- A `claude` wrapper on session `PATH` that updates the bottom status panel when a Claude session starts, moves through hooks, or exits
+This app wraps Claude Code in an Electron shell and wires together terminal hooks, helper commands, and a user-scope MCP server so Claude's current state can drive an in-app visual status panel.
+
+- Embedded Claude Code workspace with Chrome-style tabs and vertically stacked terminal panes
+- `node-pty` shell sessions that bootstrap inside the selected workspace and expose typed terminal IPC through Electron `main` / `preload` / renderer boundaries
+- A session-level `claude` wrapper that injects Claude hook settings and visual-tool usage prompts before launching the real Claude Code CLI
+- Internal helper commands on session `PATH`, including `claude-status` and `claude-visual-state`, so Claude or the user can update semantic state, overlay emotion, and one-line copy from inside the shell
+- A user-scope stdio MCP server, `bin/claude-visual-mcp`, that exposes visual option discovery and overlay updates to Claude Code
+- Bottom status panel that resolves semantic state plus optional emotion into app-owned visuals, status lines, and avatar assets
+- In-app visual asset manager for importing local image assets, setting a default asset, mapping state and emotion presets, and editing per-state lines / per-emotion descriptions
+- Persisted visual asset catalog and imported asset library under Electron `userData`, with content-hash reuse and automatic pruning of unreferenced assets
+- Built-in app themes, theme persistence, tab notifications, toast feedback, runtime diagnostics, and one-click MCP installation status handling
+
+## How It Works
+
+1. The renderer opens one or more app-managed terminal sessions through a typed preload bridge.
+2. Each session is backed by `node-pty` and starts with an app-controlled environment that places helper binaries on `PATH`.
+3. When Claude is launched from that terminal, the wrapper injects Claude hook configuration plus prompt guidance for the visual MCP tools.
+4. Claude hooks and helper commands write semantic state and visual overlay data into app-managed files.
+5. The Electron main process watches and bridges that state into the renderer.
+6. The renderer resolves `state + emotion -> emotion -> state -> default` against the visual asset catalog and renders the bottom status panel accordingly.
+
+## What Ships Today
+
+- Electron `main` / `preload` / React renderer split with typed IPC contracts
+- Chrome-style top tab bar with app-owned titles, rename support, drag reordering, and notification badges
+- Vertically stacked terminal panes with drag resizing and focus management
+- `xterm.js` terminal surfaces backed by app-managed `node-pty` sessions
+- Fixed bottom status panel with collapse / expand toggle
+- Claude lifecycle tracking through injected hook settings
+- User-scope visual MCP registration flow with in-app install prompt and status checks
+- Visual asset manager dialog for asset import, mapping, and theme selection
+- Built-in theme presets with persisted selection
+- Toast-based user feedback for workspace and asset-management actions
+- Runtime diagnostics appended to `.runtime-logs/electron-dev.log`
 
 ## Requirements
 
@@ -77,17 +103,17 @@ Notes:
 - This is a local unsigned bundle intended for development and manual testing.
 - Code signing, notarization, and update delivery are still outside the current scope.
 
-## Assistant Status Helper
+## Assistant Status Helpers
 
-Each embedded shell session gets a `claude-status` command on `PATH`.
+Each embedded shell session gets `claude-status` and `claude-visual-state` on `PATH`.
 
-Example:
+`claude-status` updates the semantic assistant state and optional overlay copy:
 
 ```bash
 claude-status --state thinking --line "로그 읽는 중..." --task "Inspecting failing test" --intensity high
 ```
 
-You can optionally add an emotion layer when the current visual catalog supports it:
+You can optionally add an emotion layer:
 
 ```bash
 claude-status --state working --emotion sad --line "우회 경로 찾는 중..." --task "Permission workaround"
@@ -99,13 +125,13 @@ You can also pass a JSON payload:
 claude-status '{"state":"happy","line":"붙엇다!","currentTask":"Build passed"}'
 ```
 
-And you can inspect which visual presets are currently mapped in the user catalog:
+And you can inspect which visual presets are currently mapped in the catalog:
 
 ```bash
 claude-status --list-visual-options
 ```
 
-For emotion-only visual overrides, each embedded shell session also gets:
+`claude-visual-state` is focused on overlay-only updates:
 
 ```bash
 claude-visual-state --emotion happy
@@ -117,7 +143,7 @@ claude-visual-state --reset
 
 `neutral` clears the overlay and lets the current semantic state render by itself again.
 
-The status panel now renders its copy in two layers:
+The status panel renders two layers of copy:
 
 - the hook-driven `activityLabel`, shown by itself like `(자료를 찾는 중)` when no custom line exists
 - an optional MCP-driven in-character one-line utterance, rendered as `문제를 좀 더 파볼게요! (자료를 찾는 중)`
@@ -137,18 +163,9 @@ Supported semantic states:
 
 The assistant chooses the semantic state and message. The app chooses how that state is rendered in the bottom panel.
 
-The next asset-system layer is being built around shared preset catalogs:
+## Claude Hook Integration
 
-- lifecycle-oriented visual `state` presets that stay aligned with Claude hook outputs
-- optional `emotion` presets that can refine the visual without changing the underlying task state
-- a resolver order of `state + emotion` -> `state` -> `emotion` -> default asset
-- a persisted `visual-assets.json` catalog in Electron `userData`, exposed through a typed preload bridge for the upcoming import/mapping UI and MCP surface
-- renderer-side status visuals that normalize Claude's current semantic state and load a mapped local image when the catalog has a match
-- a first-pass in-app visual asset manager, opened from the avatar area, for picking local files and mapping them to state or emotion presets
-- exact `state + emotion` pair mappings in that manager, matching the resolver priority of `state + emotion -> state -> emotion -> default`
-- imported visual assets are copied into an app-managed library under Electron `userData`, reused by content hash when the same file is imported again, and pruned when no catalog entry references them anymore
-
-When Claude itself is launched through the embedded terminal, the app also injects a Claude Code hook settings file so coarse state transitions can be tracked automatically:
+When Claude is launched through an embedded terminal, the app injects a Claude Code hook settings file so coarse state transitions can be tracked automatically:
 
 - `SessionStart` -> `waiting`
 - `UserPromptSubmit` -> `thinking`
@@ -168,13 +185,45 @@ When Claude itself is launched through the embedded terminal, the app also injec
 - `StopFailure` -> `error`
 - `SessionEnd` -> `disconnected`
 
-The hook helper also keeps a tiny temp state file so a `PermissionRequest` followed by a new `UserPromptSubmit` or `SessionEnd` without any `PreToolUse` can be treated as a soft permission cancel instead of getting stuck in a waiting state.
+The hook helper also keeps a small temp state file so a `PermissionRequest` followed by `UserPromptSubmit` or `SessionEnd` without any `PreToolUse` can be treated as a soft permission cancel instead of getting stuck in a waiting state.
 
 All helper writes and hook transitions are traced into `.runtime-logs/electron-dev.log`.
 
+## Visual Asset System
+
+The visual asset system is built around shared preset catalogs and app-managed local assets.
+
+Current behavior:
+
+- lifecycle-oriented visual `state` presets stay aligned with Claude hook outputs
+- optional `emotion` presets refine the visual without changing the underlying semantic state
+- resolver priority is `state + emotion -> emotion -> state -> default`
+- the persisted `visual-assets.json` catalog lives under Electron `userData`
+- imported local image assets are copied into an app-managed library under Electron `userData`
+- re-importing the same file reuses the existing stored asset by content hash
+- removing the last reference to an imported asset prunes it from the managed library
+- the renderer resolves both the image asset and the per-state / per-emotion text metadata from the same catalog
+
+The in-app visual asset manager currently supports:
+
+- choosing a default avatar asset
+- mapping exact `state + emotion` pairs
+- mapping state-only assets
+- mapping emotion-only assets
+- editing per-state status lines
+- editing per-emotion descriptions
+- selecting the current app theme
+
+Built-in theme presets currently include:
+
+- `current-dark`
+- `iterm-beige`
+- `gruvbox-dark`
+- `gruvbox-light`
+
 ## Visual Emotion MCP
 
-The repo now includes an emotion-focused stdio MCP server at:
+The repo includes an emotion-focused stdio MCP server at:
 
 ```text
 bin/claude-visual-mcp
@@ -185,15 +234,15 @@ Current tools:
 - `get_available_visual_options`
 - `set_visual_overlay` (set `emotion`, `line`, or both; pass `emotion: "neutral"` or `line: null` to clear)
 
-The MCP surface now splits its guidance across dedicated prompt files in `bin/prompts/`, so emotion selection and one-line copy rules can evolve independently without bloating the server script.
+The MCP surface splits its guidance across dedicated prompt files in `bin/prompts/`, so emotion selection and one-line copy rules can evolve independently without bloating the server script.
 
-When Claude is launched through the embedded terminal, the wrapper appends a session-level visual-tool usage prompt, loaded from dedicated files in `bin/prompts/`, so Claude gets explicit guidance about when to call the emotion and one-line tools.
+When Claude is launched through an embedded terminal, the wrapper appends a session-level visual-tool usage prompt, loaded from `bin/prompts/`, so Claude gets explicit guidance about when to call the emotion and one-line tools.
 
-The app now expects the visual MCP server to be installed once at Claude's `user` scope. If that setup is missing, the status panel shows an install prompt and can run the one-time Claude MCP registration for you.
+The app expects the visual MCP server to be installed once at Claude's `user` scope. If that setup is missing, the status panel shows an install prompt and can run the one-time Claude MCP registration for you.
 
-### MCP troubleshooting (when tools do not appear in Claude Code CLI)
+### MCP Troubleshooting
 
-The local visual MCP server is now intended to live at Claude's `user` scope.
+The local visual MCP server is intended to live at Claude's `user` scope.
 
 - If the status panel still shows the install prompt, the one-time user-scope setup has not completed yet.
 - The globally registered server stays effectively dormant outside the app because it reads a runtime state file from the app's `userData` directory before exposing tools.
@@ -223,12 +272,31 @@ When `pnpm dev` is running:
 
 If the window goes black, reproducing the issue and then sharing the newest lines from that log file is usually enough for debugging.
 
-If terminal bootstrapping fails, check the same log for `terminal-helper` entries. The app now reports which `node-pty` `spawn-helper` binary it found and whether it had to repair its execute permissions.
+If terminal bootstrapping fails, check the same log for `terminal-helper` entries. The app reports which `node-pty` `spawn-helper` binary it found and whether it had to repair its execute permissions.
 
 ## Project Layout
 
-- `src/main`: Electron main process, PTY sessions, status bridge
+- `src/main`: Electron main process composition root and IPC wiring
+- `src/main/diagnostics`: runtime log creation and diagnostic forwarding
+- `src/main/platform`: platform-specific shell adapters, helper-bin resolution, and path helpers
+- `src/main/status`: assistant status store plus file bridges for semantic state and overlay state
+- `src/main/terminal`: PTY session bootstrap, Claude wrapper setup, Claude hook / MCP installation support, and terminal runtime helpers
+- `src/main/theme`: persisted app theme selection
+- `src/main/visual-assets`: persisted visual asset catalog and managed asset library
+- `src/main/window`: window bounds persistence
 - `src/preload`: typed Electron bridge exposed to the renderer
-- `src/renderer`: React UI, pane layout, xterm surfaces, status panel
-- `src/shared`: shared IPC contracts and semantic status types
-- `bin/claude-status`: helper command injected into terminal session `PATH`
+- `src/renderer`: React app shell
+- `src/renderer/features/toast`: toast controller and viewport
+- `src/renderer/features/workspace`: workspace-facing UI and screen view-model
+- `src/renderer/features/workspace/tabs`: tab bar, tab notifications, and title editing / drag behaviors
+- `src/renderer/features/workspace/terminal`: pane stack, terminal surfaces, session registry, and terminal interaction hooks
+- `src/renderer/features/workspace/status-panel`: status-panel presentation and line / visual resolution
+- `src/renderer/features/workspace/visual-asset-manager`: visual asset manager dialog, mapping editors, and catalog helpers
+- `src/shared`: shared IPC contracts, theme definitions, semantic status types, visual preset definitions, and visual asset resolution helpers
+- `bin/claude`: wrapper command placed on session `PATH` before launching Claude Code
+- `bin/claude-status`: semantic status helper command injected into terminal sessions
+- `bin/claude-visual-state`: overlay-only helper command injected into terminal sessions
+- `bin/claude-session-hook`: Claude hook entrypoint used by the injected hook settings
+- `bin/claude-visual-mcp`: stdio MCP server for visual option discovery and overlay updates
+- `bin/prompts`: prompt fragments used by the wrapper and MCP server
+- `scripts/package-macos.mjs`: local unsigned macOS app packaging script
