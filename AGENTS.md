@@ -32,7 +32,9 @@
 
 6. Types, constants, and helpers that are used by only one function or component should stay as close to that implementation as possible. Promote them to shared module members only after real reuse appears.
 
-7. Allowed subfolders inside a module should use explicit names. Prefer:
+7. First group submodules by responsibility or domain, not by technical bucket. Prefer names that explain what the code does, such as `session`, `runtime`, `claude-mcp`, `status-panel`, or `visual-asset-manager`.
+
+8. Allowed subfolders inside a module should use explicit names when they are needed as secondary structure inside a responsibility-focused module. Prefer:
    - `components`
    - `hooks`
    - `model`
@@ -41,17 +43,19 @@
    - `constants`
    - `internal`
 
-8. Avoid vague folder names such as `common`, `misc`, or `helper`.
+9. Do not use folders like `utils`, `types`, or `constants` as the primary top-level split of a feature when the code can first be grouped by responsibility.
 
-9. When a subfolder grows its own responsibility and internal structure, promote it to a submodule.
+10. Avoid vague folder names such as `common`, `misc`, or `helper`.
+
+11. When a subfolder grows its own responsibility and internal structure, promote it to a submodule.
    - A submodule may be public to the app, or private to its parent module.
    - Even private submodules should expose their own entry point when they become large enough.
 
-10. Code outside a parent module must not import from that parent module's private submodules or internal files.
+12. Code outside a parent module must not import from that parent module's private submodules or internal files.
 
-11. Tests should primarily target a module's public API and key user-visible flows. Internal tests are allowed for complex pure logic, branch-heavy transformations, or regression-prone logic.
+13. Tests should primarily target a module's public API and key user-visible flows. Internal tests are allowed for complex pure logic, branch-heavy transformations, or regression-prone logic.
 
-12. Keep module dependencies directional. Avoid circular imports between sibling modules.
+14. Keep module dependencies directional. Avoid circular imports between sibling modules.
 
 ## Promotion Heuristics
 
@@ -91,6 +95,24 @@ Bad:
 ```ts
 export * from "./TerminalSurface";
 export * from "./types";
+```
+
+Good:
+
+```text
+terminal/
+  claude-mcp/
+  session/
+  runtime/
+```
+
+Bad:
+
+```text
+terminal/
+  utils/
+  types/
+  constants/
 ```
 
 ## Testing Guidance
