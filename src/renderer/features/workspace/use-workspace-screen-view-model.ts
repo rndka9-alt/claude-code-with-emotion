@@ -12,13 +12,10 @@ import type { VisualAssetCatalog } from "../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
 import { useToast } from "../toast/ToastProvider";
 import { getActiveTab, getVisibleTabs } from "./model";
-import { formatStatusPanelLine } from "./status-panel-line";
-import { resolveStatusPanelVisual } from "./status-panel-visual";
+import { formatStatusPanelLine, resolveStatusPanelVisual } from "./status-panel";
+import { useTabNotifications } from "./tabs";
 import { useAssistantStatusBridge } from "./use-assistant-status-bridge";
 import { useAppTheme } from "./use-app-theme";
-import { useVisualAssetCatalog } from "./use-visual-asset-catalog";
-import { useTabNotifications } from "./use-tab-notifications";
-import { useWorkspaceState } from "./use-workspace-state";
 import {
   findVisualAssetEmotionOwner,
   findVisualAssetStateEmotionOwner,
@@ -28,10 +25,12 @@ import {
   setVisualAssetDefault,
   setVisualAssetEmotionDescription,
   setVisualAssetEmotionMapping,
-  setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
+  setVisualAssetStateLine,
   setVisualAssetStateMapping,
-} from "./visual-asset-catalog-edits";
+  useVisualAssetCatalog,
+} from "./visual-asset-manager";
+import { useWorkspaceState } from "./use-workspace-state";
 
 function findEmotionLabel(emotionId: VisualEmotionPresetId): string {
   return (

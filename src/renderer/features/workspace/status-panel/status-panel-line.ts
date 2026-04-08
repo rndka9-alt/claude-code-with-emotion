@@ -1,13 +1,13 @@
-import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import {
   createEmptyVisualAssetCatalog,
   resolveVisualStateLine,
   type VisualAssetCatalog,
-} from "../../../shared/visual-assets";
+} from "../../../../shared/visual-assets";
 import {
   getDefaultVisualStateLine,
   normalizeAssistantVisualSelection,
-} from "../../../shared/visual-presets";
+} from "../../../../shared/visual-presets";
 
 export function formatStatusPanelLine(
   assistantStatus: AssistantStatusSnapshot,

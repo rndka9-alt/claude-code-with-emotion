@@ -12,7 +12,7 @@ import {
   STATE_PRESETS,
   type VisualStatePresetId,
 } from "../../../../shared/visual-presets";
-import { createStatusPanelAssetUrl } from "../status-panel-visual";
+import { createStatusPanelAssetUrl } from "../status-panel";
 import {
   managerIconClassName,
   managerInputClassName,

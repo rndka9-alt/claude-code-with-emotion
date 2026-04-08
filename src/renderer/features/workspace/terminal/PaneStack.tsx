@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { ReactElement } from "react";
-import type { SessionTab } from "./model";
+import type { SessionTab } from "../model";
 import { TerminalSurface } from "./TerminalSurface";
 
 interface PaneStackProps {

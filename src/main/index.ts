@@ -11,21 +11,22 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 import { createApplicationMenuTemplate } from "./application-menu";
+import { createRuntimeLog, resolveRuntimeLogPath, type RuntimeLog } from "./diagnostics";
 import {
-  createRuntimeLog,
-  resolveRuntimeLogPath,
-  type RuntimeLog,
-} from "./diagnostics/runtime-log";
-import { AssistantVisualOverlayFileBridge } from "./status/assistant-visual-overlay-file-bridge";
-import { AssistantStatusFileBridge } from "./status/assistant-status-file-bridge";
-import { AssistantStatusStore } from "./status/assistant-status-store";
-import { ensureNodePtySpawnHelpersExecutable } from "./terminal/node-pty-runtime";
-import { createTerminalSessionManager } from "./terminal/session-manager";
-import { VisualAssetStore } from "./visual-assets/visual-asset-store";
+  AssistantStatusFileBridge,
+  AssistantStatusStore,
+  AssistantVisualOverlayFileBridge,
+} from "./status";
 import {
-  WindowBoundsStore,
-  type WindowBounds,
-} from "./window/window-bounds-store";
+  createTerminalSessionManager,
+  ensureNodePtySpawnHelpersExecutable,
+  getVisualMcpSetupStatus,
+  installVisualMcpUserSetup,
+  removeVisualMcpUserSetup,
+} from "./terminal";
+import { ThemeStore } from "./theme";
+import { VisualAssetStore } from "./visual-assets";
+import { WindowBoundsStore, type WindowBounds } from "./window";
 import { APP_THEME_CHANNELS } from "../shared/app-theme-bridge";
 import {
   ASSISTANT_STATUS_CHANNELS,
@@ -52,12 +53,6 @@ import {
 import { VISUAL_ASSET_CHANNELS } from "../shared/visual-assets-bridge";
 import type { VisualAssetCatalog } from "../shared/visual-assets";
 import { getAppThemeDefinition, type AppThemeSelection } from "../shared/theme";
-import { ThemeStore } from "./theme/theme-store";
-import {
-  getVisualMcpSetupStatus,
-  installVisualMcpUserSetup,
-  removeVisualMcpUserSetup,
-} from "./terminal/claude-mcp-user-setup";
 
 const WINDOW_SIZE = {
   width: 920,

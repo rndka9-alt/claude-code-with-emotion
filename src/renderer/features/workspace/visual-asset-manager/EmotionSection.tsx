@@ -13,7 +13,7 @@ import {
   type VisualEmotionPresetId,
   type VisualStatePresetId,
 } from "../../../../shared/visual-presets";
-import { createStatusPanelAssetUrl } from "../status-panel-visual";
+import { createStatusPanelAssetUrl } from "../status-panel";
 import {
   managerChipClassName,
   managerIconButtonClassName,

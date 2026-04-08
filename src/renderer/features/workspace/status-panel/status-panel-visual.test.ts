@@ -1,4 +1,4 @@
-import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import { resolveStatusPanelVisual } from "./status-panel-visual";
 
 const baseSnapshot: AssistantStatusSnapshot = {

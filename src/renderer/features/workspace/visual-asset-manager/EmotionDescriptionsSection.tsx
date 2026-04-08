@@ -16,7 +16,7 @@ import {
   EMOTION_PRESETS,
   type VisualEmotionPresetId,
 } from "../../../../shared/visual-presets";
-import { createStatusPanelAssetUrl } from "../status-panel-visual";
+import { createStatusPanelAssetUrl } from "../status-panel";
 import {
   managerIconClassName,
   managerInputClassName,

@@ -1,7 +1,7 @@
 import type {
   AssistantEmotionalState,
   AssistantSemanticState,
-} from "../../../shared/assistant-status";
+} from "../../../../shared/assistant-status";
 
 export type SessionLifecycle = "bootstrapping" | "ready";
 

@@ -4,7 +4,7 @@ import {
   getVisibleTabs,
   resizePaneSizes,
   workspaceReducer,
-} from "./model";
+} from "./index";
 
 describe("workspaceReducer", () => {
   it("uses the app workspace cwd for new sessions", () => {

@@ -1,6 +1,6 @@
 import { type CSSProperties, type ReactElement, useEffect } from "react";
 import { Plus, X } from "lucide-react";
-import type { SessionTab } from "./model";
+import type { SessionTab } from "../model";
 import { useTabDragReorder } from "./use-tab-drag-reorder";
 import { useTabTitleEditor } from "./use-tab-title-editor";
 

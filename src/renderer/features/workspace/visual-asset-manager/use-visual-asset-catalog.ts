@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import {
   createEmptyVisualAssetCatalog,
   type VisualAssetCatalog,
-} from "../../../shared/visual-assets";
-import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
+} from "../../../../shared/visual-assets";
+import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
 
 export interface VisualAssetCatalogViewModel {
   catalog: VisualAssetCatalog;

@@ -1,23 +1,23 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { ImagePlus, X } from "lucide-react";
-import type { VisualAssetCatalog } from "../../../shared/visual-assets";
+import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import type {
   VisualEmotionPresetId,
   VisualStatePresetId,
-} from "../../../shared/visual-presets";
-import type { AppThemeId, AppThemeOption } from "../../../shared/theme";
-import { EmotionDescriptionsSection } from "./visual-asset-manager/EmotionDescriptionsSection";
-import { EmotionSection } from "./visual-asset-manager/EmotionSection";
-import { GeneralSection } from "./visual-asset-manager/GeneralSection";
+} from "../../../../shared/visual-presets";
+import type { AppThemeId, AppThemeOption } from "../../../../shared/theme";
+import { EmotionDescriptionsSection } from "./EmotionDescriptionsSection";
+import { EmotionSection } from "./EmotionSection";
+import { GeneralSection } from "./GeneralSection";
 import {
   getManagerTabClassName,
   managerActionButtonClassName,
   managerIconButtonClassName,
   managerIconClassName,
   managerSectionCopyClassName,
-} from "./visual-asset-manager/shared";
-import { StatusLinesSection } from "./visual-asset-manager/StatusLinesSection";
-import { ThemeSection } from "./visual-asset-manager/ThemeSection";
+} from "./shared";
+import { StatusLinesSection } from "./StatusLinesSection";
+import { ThemeSection } from "./ThemeSection";
 
 interface VisualAssetManagerDialogProps {
   availableThemes: AppThemeOption[];

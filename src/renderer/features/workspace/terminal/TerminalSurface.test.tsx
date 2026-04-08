@@ -1,5 +1,5 @@
 import { fireEvent, render, waitFor } from "@testing-library/react";
-import type { TerminalOutputEvent } from "../../../shared/terminal-bridge";
+import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
 import { TerminalSurface } from "./TerminalSurface";
 import { handleTerminalExternalBrowserClick } from "./terminal-session-registry";
 

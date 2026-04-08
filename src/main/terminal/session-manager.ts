@@ -2,10 +2,10 @@ import path from "node:path";
 import { spawn } from "node-pty";
 import type { IPty } from "node-pty";
 import {
+  getPlatformShellAdapter,
   joinPathList,
   resolveHomeDir,
-} from "../platform/platform-paths";
-import { getPlatformShellAdapter } from "../platform/platform-shell-adapter";
+} from "../platform";
 import { ensureClaudeHooksSettingsFile } from "./claude-hooks-settings";
 import { stripScreenHardstatus } from "./strip-screen-hardstatus";
 import { TerminalOutputStore } from "./terminal-output-store";

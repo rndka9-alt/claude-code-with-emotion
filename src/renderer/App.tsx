@@ -1,11 +1,13 @@
 import { Grip } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { ToastProvider } from "./features/toast/ToastProvider";
-import { PaneStack } from "./features/workspace/PaneStack";
-import { StatusPanel } from "./features/workspace/StatusPanel";
-import { TabBar } from "./features/workspace/TabBar";
-import { VisualAssetManagerDialog } from "./features/workspace/VisualAssetManagerDialog";
-import { useWorkspaceScreenViewModel } from "./features/workspace/use-workspace-screen-view-model";
+import {
+  PaneStack,
+  StatusPanel,
+  TabBar,
+  VisualAssetManagerDialog,
+  useWorkspaceScreenViewModel,
+} from "./features/workspace";
 
 export function App(): ReactElement {
   // ToastProvider 가 바깥에 둘러야 view-model 훅에서 useToast 를 쓸 수 있어요.

@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { getPlatformHelperBinResolver } from "../platform/helper-bin-resolver";
 import {
+  getPlatformHelperBinResolver,
   joinPathList,
   splitPathList,
-} from "../platform/platform-paths";
+} from "../platform";
 import type { VisualMcpSetupStatus } from "../../shared/mcp-setup-bridge";
 
 const VISUAL_MCP_SERVER_NAME = "claude-code-with-emotion-visuals";

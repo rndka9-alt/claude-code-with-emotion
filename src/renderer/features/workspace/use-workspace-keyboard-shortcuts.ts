@@ -4,7 +4,7 @@ import {
   getSessionNavigationDirection,
   shouldCreateSessionShortcut,
   shouldUseCloseSessionShortcut,
-} from "./terminal-keyboard";
+} from "./terminal";
 
 export function useWorkspaceKeyboardShortcuts(
   state: WorkspaceState,

@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getPlatformHelperBinResolver } from "../platform/helper-bin-resolver";
-import { getPlatformShellAdapter } from "../platform/platform-shell-adapter";
+import {
+  getPlatformHelperBinResolver,
+  getPlatformShellAdapter,
+} from "../platform";
 
 type ClaudeHookEvent =
   | "SessionStart"

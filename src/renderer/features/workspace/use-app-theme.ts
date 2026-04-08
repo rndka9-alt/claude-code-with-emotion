@@ -8,7 +8,7 @@ import {
   type AppThemeOption,
   type AppThemeSelection,
 } from "../../../shared/theme";
-import { syncAllTerminalThemes } from "./terminal-session-registry";
+import { syncAllTerminalThemes } from "./terminal";
 
 export interface AppThemeViewModel {
   currentThemeId: AppThemeId;

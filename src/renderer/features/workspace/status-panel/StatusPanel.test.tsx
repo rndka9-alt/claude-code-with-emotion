@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import { StatusPanel } from "./StatusPanel";
 import type { StatusPanelVisual } from "./status-panel-visual";
 

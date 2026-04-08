@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { SessionTab } from "./model";
+import type { SessionTab } from "../model";
 import { disposeTerminalSessionsExcept } from "./terminal-session-registry";
 
 export function useTerminalSessionPruner(tabs: SessionTab[]): void {

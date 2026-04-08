@@ -58,7 +58,7 @@ Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
 });
 
 afterEach(() => {
-  return import("../features/workspace/terminal-session-registry").then(
+  return import("../features/workspace/terminal").then(
     ({ disposeAllTerminalSessions }) => {
       disposeAllTerminalSessions();
     },

@@ -1,8 +1,8 @@
 import { Terminal } from "@xterm/xterm";
-import type { TerminalOutputEvent } from "../../../shared/terminal-bridge";
-import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../../shared/terminal-history";
-import { APP_THEME_FALLBACKS } from "../../../shared/theme";
-import type { SessionTab } from "./model";
+import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
+import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../../../shared/terminal-history";
+import { APP_THEME_FALLBACKS } from "../../../../shared/theme";
+import type { SessionTab } from "../model";
 import { handleTerminalShortcut } from "./terminal-keyboard";
 
 interface TerminalSize {

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactElement } from "react";
 import { Play, Wrench } from "lucide-react";
-import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import { McpSetupPrompt } from "./McpSetupPrompt";
 import type { StatusPanelVisual } from "./status-panel-visual";
 

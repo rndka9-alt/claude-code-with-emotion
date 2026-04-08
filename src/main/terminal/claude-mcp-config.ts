@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getPlatformHelperBinResolver } from "../platform/helper-bin-resolver";
+import { getPlatformHelperBinResolver } from "../platform";
 
 interface ClaudeMcpServerConfig {
   command: string;

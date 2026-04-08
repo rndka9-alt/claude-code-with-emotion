@@ -1,11 +1,11 @@
-import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import {
   createEmptyVisualAssetCatalog,
   resolveVisualAsset,
   type VisualAssetCatalog,
   type VisualAssetResolution,
-} from "../../../shared/visual-assets";
-import { normalizeAssistantVisualSelection } from "../../../shared/visual-presets";
+} from "../../../../shared/visual-assets";
+import { normalizeAssistantVisualSelection } from "../../../../shared/visual-presets";
 
 export interface StatusPanelVisual {
   assetUrl: string;

@@ -2,14 +2,14 @@ import {
   type VisualAssetCatalog,
   type VisualAssetMapping,
   type VisualAssetRecord,
-} from "../../../shared/visual-assets";
+} from "../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
-} from "../../../shared/visual-presets";
-import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
+} from "../../../../shared/visual-presets";
+import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
 
 // 파일명 자동 매핑 결과.
 // 세 필드 중 최대 한 개만 채워져요:
