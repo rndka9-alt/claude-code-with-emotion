@@ -6,14 +6,14 @@ import {
   type ReactElement,
 } from "react";
 import { Search, Trash2 } from "lucide-react";
-import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+import type { VisualAssetCatalog } from "../../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
-} from "../../../../shared/visual-presets";
-import { createStatusPanelAssetUrl } from "../status-panel";
+} from "../../../../../shared/visual-presets";
+import { createStatusPanelAssetUrl } from "../../status-panel";
 import {
   managerChipClassName,
   managerIconButtonClassName,
@@ -21,7 +21,7 @@ import {
   managerSearchIconWrapperClassName,
   managerSearchInputClassName,
   managerSectionCopyClassName,
-} from "./shared";
+} from "../_utils";
 
 interface EmotionSectionProps {
   catalog: VisualAssetCatalog;

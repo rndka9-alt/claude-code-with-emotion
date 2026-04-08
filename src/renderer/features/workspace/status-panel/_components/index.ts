@@ -1,0 +1,1 @@
+export { McpSetupPrompt } from "./McpSetupPrompt";

@@ -4,8 +4,8 @@ import {
   isAppThemeId,
   type AppThemeId,
   type AppThemeOption,
-} from "../../../../shared/theme";
-import { managerSectionCopyClassName } from "./shared";
+} from "../../../../../shared/theme";
+import { managerSectionCopyClassName } from "../_utils";
 
 interface ThemeSectionProps {
   availableThemes: AppThemeOption[];

@@ -1,8 +1,7 @@
 import { type CSSProperties, type ReactElement, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import type { SessionTab } from "../../model";
-import { useTabDragReorder } from "./hooks/use-tab-drag-reorder";
-import { useTabTitleEditor } from "./hooks/use-tab-title-editor";
+import { useTabDragReorder, useTabTitleEditor } from "./_hooks";
 
 interface TabBarProps {
   activeTabId: string;

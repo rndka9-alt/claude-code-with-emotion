@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import type { SessionTab } from "../model";
-import { disposeTerminalSessionsExcept } from "./terminal-session-registry";
+import type { SessionTab } from "../../model";
+import { disposeTerminalSessionsExcept } from "../terminal-session-registry";
 
 export function useTerminalSessionPruner(tabs: SessionTab[]): void {
   const previousSessionIdsRef = useRef<string[]>(tabs.map((tab) => tab.id));

@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
-import type { AppThemeId, AppThemeOption } from "../../../shared/theme";
-import type { VisualMcpSetupStatus } from "../../../shared/mcp-setup-bridge";
+import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
+import type { AppThemeId, AppThemeOption } from "../../../../shared/theme";
+import type { VisualMcpSetupStatus } from "../../../../shared/mcp-setup-bridge";
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
-} from "../../../shared/visual-presets";
-import type { VisualAssetCatalog } from "../../../shared/visual-assets";
-import type { VisualAssetPickerFile } from "../../../shared/visual-assets-bridge";
-import { useToast } from "../toast/ToastProvider";
-import { getActiveTab, getVisibleTabs } from "./model";
-import { formatStatusPanelLine, resolveStatusPanelVisual } from "./status-panel";
-import { useTabNotifications } from "./tabs";
+} from "../../../../shared/visual-presets";
+import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
+import { useToast } from "../../toast/ToastProvider";
+import { getActiveTab, getVisibleTabs } from "../model";
+import { formatStatusPanelLine, resolveStatusPanelVisual } from "../status-panel";
+import { useTabNotifications } from "../tabs";
 import { useAssistantStatusBridge } from "./use-assistant-status-bridge";
 import { useAppTheme } from "./use-app-theme";
 import {
@@ -29,7 +29,7 @@ import {
   setVisualAssetStateLine,
   setVisualAssetStateMapping,
   useVisualAssetCatalog,
-} from "./visual-asset-manager";
+} from "../visual-asset-manager";
 import { useWorkspaceState } from "./use-workspace-state";
 
 function findEmotionLabel(emotionId: VisualEmotionPresetId): string {

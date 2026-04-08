@@ -6,20 +6,20 @@ import {
   type ReactElement,
 } from "react";
 import { CircleHelp, Image as ImageIcon, Search } from "lucide-react";
-import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+import type { VisualAssetCatalog } from "../../../../../shared/visual-assets";
 import {
   getDefaultVisualStateLine,
   STATE_PRESETS,
   type VisualStatePresetId,
-} from "../../../../shared/visual-presets";
-import { createStatusPanelAssetUrl } from "../status-panel";
+} from "../../../../../shared/visual-presets";
+import { createStatusPanelAssetUrl } from "../../status-panel";
 import {
   managerIconClassName,
   managerInputClassName,
   managerSearchIconWrapperClassName,
   managerSearchInputClassName,
   managerSectionCopyClassName,
-} from "./shared";
+} from "../_utils";
 
 interface StatusLinesSectionProps {
   catalog: VisualAssetCatalog;

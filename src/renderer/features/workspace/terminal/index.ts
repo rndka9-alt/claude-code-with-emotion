@@ -17,5 +17,7 @@ export {
   handleTerminalExternalBrowserClick,
   syncAllTerminalThemes,
 } from "./terminal-session-registry";
-export { useTerminalSessionPruner } from "./use-terminal-session-pruner";
-export { useWorkspaceTerminalExitSubscription } from "./use-terminal-exit-subscription";
+export {
+  useTerminalSessionPruner,
+  useWorkspaceTerminalExitSubscription,
+} from "./_hooks";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AssistantStatusSnapshot } from "../../../shared/assistant-status";
+import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 
 export function useAssistantStatusBridge(
   sessionId: string,

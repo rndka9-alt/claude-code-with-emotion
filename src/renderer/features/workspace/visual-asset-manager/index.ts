@@ -1,5 +1,5 @@
 export { VisualAssetManagerDialog } from "./VisualAssetManagerDialog";
-export { useVisualAssetCatalog } from "./use-visual-asset-catalog";
+export { useVisualAssetCatalog } from "./_hooks";
 export {
   findVisualAssetEmotionOwner,
   findVisualAssetStateEmotionOwner,

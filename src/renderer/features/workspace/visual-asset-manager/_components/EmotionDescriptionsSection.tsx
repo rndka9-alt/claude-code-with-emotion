@@ -11,19 +11,19 @@ import {
   Image as ImageIcon,
   Search,
 } from "lucide-react";
-import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+import type { VisualAssetCatalog } from "../../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
   type VisualEmotionPresetId,
-} from "../../../../shared/visual-presets";
-import { createStatusPanelAssetUrl } from "../status-panel";
+} from "../../../../../shared/visual-presets";
+import { createStatusPanelAssetUrl } from "../../status-panel";
 import {
   managerIconClassName,
   managerInputClassName,
   managerSearchIconWrapperClassName,
   managerSearchInputClassName,
   managerSectionCopyClassName,
-} from "./shared";
+} from "../_utils";
 
 interface EmotionDescriptionsSectionProps {
   catalog: VisualAssetCatalog;

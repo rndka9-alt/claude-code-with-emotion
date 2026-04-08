@@ -6,18 +6,20 @@ import type {
   VisualStatePresetId,
 } from "../../../../shared/visual-presets";
 import type { AppThemeId, AppThemeOption } from "../../../../shared/theme";
-import { EmotionDescriptionsSection } from "./EmotionDescriptionsSection";
-import { EmotionSection } from "./EmotionSection";
-import { GeneralSection } from "./GeneralSection";
+import {
+  EmotionDescriptionsSection,
+  EmotionSection,
+  GeneralSection,
+  StatusLinesSection,
+  ThemeSection,
+} from "./_components";
 import {
   getManagerTabClassName,
   managerActionButtonClassName,
   managerIconButtonClassName,
   managerIconClassName,
   managerSectionCopyClassName,
-} from "./shared";
-import { StatusLinesSection } from "./StatusLinesSection";
-import { ThemeSection } from "./ThemeSection";
+} from "./_utils";
 
 interface VisualAssetManagerDialogProps {
   availableThemes: AppThemeOption[];

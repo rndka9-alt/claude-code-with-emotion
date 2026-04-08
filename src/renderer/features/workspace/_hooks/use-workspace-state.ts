@@ -1,9 +1,9 @@
 import { useReducer } from "react";
-import { createInitialWorkspaceState, workspaceReducer } from "./model";
+import { createInitialWorkspaceState, workspaceReducer } from "../model";
 import {
   useTerminalSessionPruner,
   useWorkspaceTerminalExitSubscription,
-} from "./terminal";
+} from "../terminal";
 import { useWorkspaceKeyboardShortcuts } from "./use-workspace-keyboard-shortcuts";
 
 export interface WorkspaceViewModel {

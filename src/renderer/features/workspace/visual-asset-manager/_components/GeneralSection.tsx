@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { Wrench } from "lucide-react";
-import { managerSectionCopyClassName } from "./shared";
+import { managerSectionCopyClassName } from "../_utils";
 
 interface GeneralSectionProps {
   isInstallingVisualMcp: boolean;

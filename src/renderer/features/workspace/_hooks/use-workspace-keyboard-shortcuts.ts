@@ -1,10 +1,10 @@
 import { useEffect, type Dispatch } from "react";
-import type { WorkspaceAction, WorkspaceState } from "./model";
+import type { WorkspaceAction, WorkspaceState } from "../model";
 import {
   getSessionNavigationDirection,
   shouldCreateSessionShortcut,
   shouldUseCloseSessionShortcut,
-} from "./terminal";
+} from "../terminal";
 
 export function useWorkspaceKeyboardShortcuts(
   state: WorkspaceState,
