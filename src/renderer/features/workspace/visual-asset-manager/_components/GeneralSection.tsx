@@ -9,6 +9,17 @@ interface GeneralSectionProps {
   onInstallVisualMcp: () => void;
 }
 
+function formatBuildFingerprint(): string {
+  const date = new Date(__BUILD_TIMESTAMP__);
+  const yy = String(date.getFullYear()).slice(2);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mi = String(date.getMinutes()).padStart(2, "0");
+
+  return `${yy}${mm}${dd}.${hh}${mi}-${__BUILD_COMMIT__}`;
+}
+
 export function GeneralSection({
   isInstallingVisualMcp,
   mcpSetupError,
@@ -56,6 +67,12 @@ export function GeneralSection({
           ) : null}
         </div>
       )}
+
+      <div className="mt-3 border-t border-border-soft pt-4">
+        <p className="m-0 font-mono text-[11px] tracking-wide text-text-subtle select-all">
+          build {formatBuildFingerprint()}
+        </p>
+      </div>
     </section>
   );
 }
