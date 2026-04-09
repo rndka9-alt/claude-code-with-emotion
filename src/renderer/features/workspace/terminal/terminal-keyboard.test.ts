@@ -187,6 +187,21 @@ describe("terminal keyboard shortcuts", () => {
     ).toBe(false);
   });
 
+  it("does not treat cmd+t as a create-tab shortcut while composing", () => {
+    expect(
+      shouldCreateTabShortcut({
+        altKey: false,
+        ctrlKey: false,
+        isComposing: true,
+        key: "t",
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: "keydown",
+      }),
+    ).toBe(false);
+  });
+
   it("recognises cmd+d as a horizontal split shortcut", () => {
     expect(
       getSplitPaneDirection({
@@ -243,6 +258,21 @@ describe("terminal keyboard shortcuts", () => {
     ).toBe("previous");
   });
 
+  it("does not treat cmd+left as a tab navigation shortcut while composing", () => {
+    expect(
+      getTabNavigationDirection({
+        altKey: false,
+        ctrlKey: false,
+        isComposing: true,
+        key: "ArrowLeft",
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: "keydown",
+      }),
+    ).toBeNull();
+  });
+
   it("treats cmd+option+right as a pane navigation shortcut", () => {
     expect(
       getPaneNavigationDirection({
@@ -280,6 +310,21 @@ describe("terminal keyboard shortcuts", () => {
         metaKey: true,
         repeat: false,
         shiftKey: true,
+        type: "keydown",
+      }),
+    ).toBeNull();
+  });
+
+  it("does not treat cmd+option+right as a pane navigation shortcut while composing", () => {
+    expect(
+      getPaneNavigationDirection({
+        altKey: true,
+        ctrlKey: false,
+        isComposing: true,
+        key: "ArrowRight",
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
         type: "keydown",
       }),
     ).toBeNull();

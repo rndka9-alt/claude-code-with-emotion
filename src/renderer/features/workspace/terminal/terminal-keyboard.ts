@@ -8,6 +8,7 @@ export const MULTILINE_TERMINAL_INPUT = "\x0a";
 export interface TerminalShortcutKeyEvent {
   altKey: boolean;
   ctrlKey: boolean;
+  isComposing?: boolean;
   key: string;
   metaKey: boolean;
   repeat?: boolean;
@@ -58,6 +59,7 @@ export function shouldCreateTabShortcut(
   event: TerminalShortcutKeyEvent,
 ): boolean {
   return (
+    event.isComposing !== true &&
     (event.type === undefined || event.type === "keydown") &&
     event.repeat !== true &&
     event.key.toLowerCase() === "t" &&
@@ -72,6 +74,7 @@ export function getSplitPaneDirection(
   event: TerminalShortcutKeyEvent,
 ): PaneSplitDirection | null {
   const isCommandD =
+    event.isComposing !== true &&
     event.key.toLowerCase() === "d" &&
     event.metaKey &&
     !event.ctrlKey &&
@@ -92,7 +95,10 @@ export function shouldUseCloseSessionShortcut(
   event: TerminalShortcutKeyEvent,
 ): boolean {
   const isCommandW =
-    event.key.toLowerCase() === "w" && event.metaKey && !event.ctrlKey;
+    event.isComposing !== true &&
+    event.key.toLowerCase() === "w" &&
+    event.metaKey &&
+    !event.ctrlKey;
 
   return (
     (event.type === undefined || event.type === "keydown") &&
@@ -106,7 +112,11 @@ export function getTabNavigationDirection(
   event: TerminalShortcutKeyEvent,
 ): TabNavigationDirection | null {
   const isCommandArrow =
-    event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+    event.isComposing !== true &&
+    event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !event.shiftKey;
 
   if (
     (event.type !== undefined && event.type !== "keydown") ||
@@ -131,7 +141,11 @@ export function getPaneNavigationDirection(
   event: TerminalShortcutKeyEvent,
 ): PaneFocusDirection | null {
   const isCommandOptionArrow =
-    event.metaKey && event.altKey && !event.ctrlKey && !event.shiftKey;
+    event.isComposing !== true &&
+    event.metaKey &&
+    event.altKey &&
+    !event.ctrlKey &&
+    !event.shiftKey;
 
   if (
     (event.type !== undefined && event.type !== "keydown") ||
