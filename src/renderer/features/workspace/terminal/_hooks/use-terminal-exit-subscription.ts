@@ -13,8 +13,8 @@ export function useWorkspaceTerminalExitSubscription(
 
     return terminalsBridge.onExit((event) => {
       dispatch({
-        type: "closeTab",
-        tabId: event.sessionId,
+        type: "closeSession",
+        sessionId: event.sessionId,
         nowMs: Date.now(),
         reason: "exit",
       });

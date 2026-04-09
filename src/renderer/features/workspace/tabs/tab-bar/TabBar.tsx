@@ -1,12 +1,12 @@
 import { type CSSProperties, type ReactElement, useEffect } from "react";
 import { Plus, X } from "lucide-react";
-import type { SessionTab } from "../../model";
+import type { WorkspaceTab } from "../../model";
 import { useTabDragReorder, useTabTitleEditor } from "./_hooks";
 
 interface TabBarProps {
   activeTabId: string;
   notifiedTabIds: ReadonlySet<string>;
-  tabs: SessionTab[];
+  tabs: WorkspaceTab[];
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;

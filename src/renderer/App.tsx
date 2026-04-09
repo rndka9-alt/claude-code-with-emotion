@@ -33,6 +33,7 @@ function AppContent(): ReactElement {
     dismissNotification,
     dismissMcpSetupPrompt,
     dropVisualAssets,
+    focusSession,
     handleLaunchClaude,
     isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
@@ -58,12 +59,12 @@ function AppContent(): ReactElement {
     toggleEmotion,
     toggleState,
     toggleStateEmotion,
-    updateTabTitle,
+    renameTab,
+    syncSessionTitle,
     visualAssetCatalog,
-    visibleTabs,
+    visibleSessions,
   } = useWorkspaceScreenViewModel();
-  const panelId =
-    visibleTabs[0] !== undefined ? `panel-${visibleTabs[0].id}` : "panel-stack";
+  const panelId = activeTabId.length > 0 ? `panel-${activeTabId}` : "panel-stack";
   const statusPanelToggleLabel = isStatusPanelCollapsed
     ? "Expand assistant status panel"
     : "Collapse assistant status panel";
@@ -84,7 +85,7 @@ function AppContent(): ReactElement {
         onCreateTab={createTab}
         onDismissNotification={dismissNotification}
         onRenameTab={(tabId, title) => {
-          updateTabTitle(tabId, title, "manual");
+          renameTab(tabId, title);
         }}
         onReorderTab={reorderTab}
         tabs={tabs}
@@ -98,13 +99,17 @@ function AppContent(): ReactElement {
           role="tabpanel"
         >
           <PaneStack
+            focusedSessionId={
+              tabs.find((tab) => tab.id === activeTabId)?.focusedSessionId ?? null
+            }
+            onFocusSession={focusSession}
             onResizePane={resizePane}
             paneSizes={paneSizes}
-            onSyncTabTitle={(tabId, title) => {
-              updateTabTitle(tabId, title, "terminal");
+            onSyncSessionTitle={(sessionId, title) => {
+              syncSessionTitle(sessionId, title);
             }}
             terminalFocusRequestKey={terminalFocusRequestKey}
-            tabs={visibleTabs}
+            sessions={visibleSessions}
           />
         </section>
 

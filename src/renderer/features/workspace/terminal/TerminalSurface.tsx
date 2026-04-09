@@ -1,13 +1,14 @@
 import { useEffect, useRef } from "react";
 import type { ReactElement } from "react";
-import type { SessionTab } from "../model";
+import type { TerminalSession } from "../model";
 import { getTerminalSessionController } from "./terminal-session-registry";
 
 interface TerminalSurfaceProps {
   focusRequestKey: number;
   isActive: boolean;
-  session: SessionTab;
-  onTitleChange: (tabId: string, title: string) => void;
+  onFocusSession: (sessionId: string) => void;
+  onTitleChange: (sessionId: string, title: string) => void;
+  session: TerminalSession;
 }
 
 function supportsXtermRuntime(): boolean {
@@ -27,6 +28,7 @@ function supportsXtermRuntime(): boolean {
 export function TerminalSurface({
   focusRequestKey,
   isActive,
+  onFocusSession,
   onTitleChange,
   session,
 }: TerminalSurfaceProps): ReactElement {
@@ -83,6 +85,9 @@ export function TerminalSurface({
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <div
         className="terminal-surface__viewport m-0 flex h-full min-h-0 min-w-0 flex-1 items-stretch overflow-hidden border-0 bg-surface-terminal"
+        onPointerDownCapture={() => {
+          onFocusSession(session.id);
+        }}
         ref={hostRef}
       />
     </div>

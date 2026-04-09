@@ -1,21 +1,25 @@
 import { useEffect, useRef } from "react";
 import type { ReactElement } from "react";
-import type { SessionTab } from "../model";
+import type { TerminalSession } from "../model";
 import { TerminalSurface } from "./TerminalSurface";
 
 interface PaneStackProps {
   paneSizes: number[];
-  tabs: SessionTab[];
+  focusedSessionId: string | null;
+  onFocusSession: (sessionId: string) => void;
   onResizePane: (index: number, deltaRatio: number) => void;
-  onSyncTabTitle: (tabId: string, title: string) => void;
+  onSyncSessionTitle: (sessionId: string, title: string) => void;
+  sessions: TerminalSession[];
   terminalFocusRequestKey: number;
 }
 
 export function PaneStack({
   paneSizes,
-  tabs,
+  focusedSessionId,
+  onFocusSession,
   onResizePane,
-  onSyncTabTitle,
+  onSyncSessionTitle,
+  sessions,
   terminalFocusRequestKey,
 }: PaneStackProps): ReactElement {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -63,37 +67,38 @@ export function PaneStack({
       className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       ref={containerRef}
     >
-      {tabs.map((tab, index) => {
+      {sessions.map((session, index) => {
         const paneHeight = paneSizes[index];
         const paneStyle =
-          tabs.length > 1 && paneHeight !== undefined
+          sessions.length > 1 && paneHeight !== undefined
             ? { flexGrow: paneHeight, flexBasis: 0 }
             : undefined;
 
         return (
           <div
             className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
-            key={tab.id}
+            key={session.id}
             style={paneStyle}
           >
             <article
-              aria-label={tab.title}
+              aria-label={session.title}
               className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-surface-terminal"
-              data-active="true"
+              data-active={session.id === focusedSessionId}
             >
               <div className="flex h-full min-h-0 flex-1 overflow-hidden">
                 <TerminalSurface
                   focusRequestKey={terminalFocusRequestKey}
-                  isActive={true}
-                  onTitleChange={onSyncTabTitle}
-                  session={tab}
+                  isActive={session.id === focusedSessionId}
+                  onFocusSession={onFocusSession}
+                  onTitleChange={onSyncSessionTitle}
+                  session={session}
                 />
               </div>
             </article>
 
-            {index < tabs.length - 1 ? (
+            {index < sessions.length - 1 ? (
               <div
-                aria-label={`Resize ${tab.title}`}
+                aria-label={`Resize ${session.title}`}
                 className="basis-[10px] cursor-row-resize bg-border-ghost"
                 onPointerDown={(event) => {
                   dragStateRef.current = { index, lastY: event.clientY };

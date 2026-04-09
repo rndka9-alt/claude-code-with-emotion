@@ -11,13 +11,12 @@ export interface WorkspaceViewModel {
   activateTab: (tabId: string) => void;
   closeTab: (tabId: string) => void;
   createTab: () => void;
+  createSessionInTab: (tabId: string) => void;
+  focusSession: (tabId: string, sessionId: string) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
   resizePane: (index: number, deltaRatio: number) => void;
-  updateTabTitle: (
-    tabId: string,
-    title: string,
-    source: "manual" | "terminal",
-  ) => void;
+  renameTab: (tabId: string, title: string) => void;
+  syncSessionTitle: (sessionId: string, title: string) => void;
 }
 
 export function useWorkspaceState(): WorkspaceViewModel {
@@ -28,7 +27,7 @@ export function useWorkspaceState(): WorkspaceViewModel {
   );
   useWorkspaceTerminalExitSubscription(dispatch);
   useWorkspaceKeyboardShortcuts(state, dispatch);
-  useTerminalSessionPruner(state.tabs);
+  useTerminalSessionPruner(state.tabs.flatMap((tab) => tab.sessionIds));
 
   return {
     state,
@@ -36,14 +35,22 @@ export function useWorkspaceState(): WorkspaceViewModel {
       dispatch({ type: "activateTab", tabId, nowMs: Date.now() });
     },
     closeTab: (tabId: string) => {
+      const tab = state.tabs.find((candidateTab) => candidateTab.id === tabId);
+
+      if (tab === undefined) {
+        return;
+      }
+
       const terminalsBridge = window.claudeApp?.terminals;
 
       if (terminalsBridge !== undefined) {
-        void terminalsBridge.closeSession({ sessionId: tabId });
+        void terminalsBridge.closeSession({
+          sessionId: tab.focusedSessionId,
+        });
       }
 
       dispatch({
-        type: "closeTab",
+        type: "closeFocusedSession",
         tabId,
         nowMs: Date.now(),
         reason: "manual",
@@ -51,6 +58,20 @@ export function useWorkspaceState(): WorkspaceViewModel {
     },
     createTab: () => {
       dispatch({ type: "createTab", nowMs: Date.now() });
+    },
+    createSessionInTab: (tabId: string) => {
+      dispatch({
+        type: "createSessionInTab",
+        tabId,
+        nowMs: Date.now(),
+      });
+    },
+    focusSession: (tabId: string, sessionId: string) => {
+      dispatch({
+        type: "focusSession",
+        tabId,
+        sessionId,
+      });
     },
     reorderTab: (tabId: string, destinationIndex: number) => {
       dispatch({
@@ -63,13 +84,20 @@ export function useWorkspaceState(): WorkspaceViewModel {
     resizePane: (index: number, deltaRatio: number) => {
       dispatch({ type: "resizePane", index, deltaRatio });
     },
-    updateTabTitle: (tabId, title, source) => {
+    renameTab: (tabId, title) => {
       dispatch({
-        type: "updateTabTitle",
+        type: "renameTab",
         tabId,
         title,
         nowMs: Date.now(),
-        source,
+      });
+    },
+    syncSessionTitle: (sessionId, title) => {
+      dispatch({
+        type: "syncSessionTitle",
+        sessionId,
+        title,
+        nowMs: Date.now(),
       });
     },
   };

@@ -11,10 +11,16 @@ import {
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
 import { useToast } from "../../toast/ToastProvider";
-import { getActiveTab, getVisibleTabs } from "../model";
+import {
+  getActivePaneSizes,
+  getAllSessionIds,
+  getActiveTab,
+  getFocusedSession,
+  getVisibleSessions,
+} from "../model";
 import { formatStatusPanelLine, resolveStatusPanelVisual } from "../status-panel";
 import { useTabNotifications } from "../tabs";
-import { useAssistantStatusBridge } from "./use-assistant-status-bridge";
+import { useAssistantStatusStream } from "./use-assistant-status-stream";
 import { useAppTheme } from "./use-app-theme";
 import {
   findVisualAssetEmotionOwner,
@@ -131,6 +137,7 @@ export interface WorkspaceScreenViewModel {
   openSettingsDialog: () => void;
   pickVisualAssets: () => void;
   paneSizes: number[];
+  focusSession: (sessionId: string) => void;
   terminalFocusRequestKey: number;
   removeAsset: (assetId: string) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
@@ -161,13 +168,10 @@ export interface WorkspaceScreenViewModel {
     emotion: VisualEmotionPresetId,
     isEnabled: boolean,
   ) => void;
-  updateTabTitle: (
-    tabId: string,
-    title: string,
-    source: "manual" | "terminal",
-  ) => void;
+  renameTab: (tabId: string, title: string) => void;
+  syncSessionTitle: (sessionId: string, title: string) => void;
   visualAssetCatalog: ReturnType<typeof useVisualAssetCatalog>["catalog"];
-  visibleTabs: ReturnType<typeof getVisibleTabs>;
+  visibleSessions: ReturnType<typeof getVisibleSessions>;
 }
 
 export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
@@ -176,12 +180,17 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     state,
     closeTab,
     createTab,
+    focusSession,
     reorderTab,
     resizePane,
-    updateTabTitle,
+    renameTab,
+    syncSessionTitle,
   } = useWorkspaceState();
   const { notifiedTabIds, dismissNotification } = useTabNotifications(
-    state.tabs,
+    state.tabs.map((tab) => ({
+      id: tab.id,
+      notificationSessionId: tab.sessionIds[0] ?? null,
+    })),
     state.activeTabId,
   );
   const { currentThemeId, setThemeId, themeOptions } = useAppTheme();
@@ -197,7 +206,8 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     useState<VisualMcpSetupStatus | null>(null);
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
   const activeTab = getActiveTab(state);
-  const visibleTabs = getVisibleTabs(state);
+  const activeSession = getFocusedSession(state);
+  const visibleSessions = getVisibleSessions(state);
   const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
     activityLabel: "작업중",
     emotion: state.assistantStatus.emotion ?? null,
@@ -209,8 +219,9 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     intensity: "medium",
     source: "workspace",
   };
-  const assistantSnapshot = useAssistantStatusBridge(
-    activeTab?.id ?? "session-1",
+  const { activeSnapshot: assistantSnapshot } = useAssistantStatusStream(
+    getAllSessionIds(state),
+    activeSession?.id ?? null,
     fallbackAssistantSnapshot,
   );
   const {
@@ -309,7 +320,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   };
 
   const handleLaunchClaude = (): void => {
-    if (activeTab === null) {
+    if (activeSession === null) {
       return;
     }
 
@@ -320,7 +331,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     }
 
     void terminalsBridge.sendInput({
-      sessionId: activeTab.id,
+      sessionId: activeSession.id,
       data: "\u0015claude\r",
     });
     setTerminalFocusRequestKey((current) => current + 1);
@@ -398,7 +409,14 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     openSettingsDialog: () => {
       setIsSettingsDialogOpen(true);
     },
-    paneSizes: state.paneSizes,
+    paneSizes: getActivePaneSizes(state),
+    focusSession: (sessionId) => {
+      if (activeTab === null) {
+        return;
+      }
+
+      focusSession(activeTab.id, sessionId);
+    },
     terminalFocusRequestKey,
     pickVisualAssets: () => {
       importVisualAssets(pickVisualAssetFiles());
@@ -572,8 +590,9 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         });
       }
     },
-    updateTabTitle,
+    renameTab,
+    syncSessionTitle,
     visualAssetCatalog,
-    visibleTabs,
+    visibleSessions,
   };
 }

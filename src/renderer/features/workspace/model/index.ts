@@ -1,15 +1,19 @@
 export {
   createInitialWorkspaceState,
   formatElapsedLabel,
+  getActivePaneSizes,
   getActiveTab,
-  getVisibleTabs,
+  getAllSessionIds,
+  getFocusedSession,
+  getVisibleSessions,
   resizePaneSizes,
   workspaceReducer,
 } from "./workspace-state";
 export type {
   AssistantStatus,
   SessionLifecycle,
-  SessionTab,
+  TerminalSession,
+  WorkspaceTab,
   WorkspaceAction,
   WorkspaceState,
 } from "./workspace-state";

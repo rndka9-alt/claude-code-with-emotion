@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
-import type { SessionTab } from "../../model";
 import { disposeTerminalSessionsExcept } from "../terminal-session-registry";
 
-export function useTerminalSessionPruner(tabs: SessionTab[]): void {
-  const previousSessionIdsRef = useRef<string[]>(tabs.map((tab) => tab.id));
+export function useTerminalSessionPruner(sessionIds: string[]): void {
+  const previousSessionIdsRef = useRef<string[]>(sessionIds);
 
   useEffect(() => {
-    const nextSessionIds = tabs.map((tab) => tab.id);
+    const nextSessionIds = sessionIds;
     const previousSessionIds = previousSessionIdsRef.current;
 
     if (
@@ -20,5 +19,5 @@ export function useTerminalSessionPruner(tabs: SessionTab[]): void {
 
     disposeTerminalSessionsExcept(nextSessionIds);
     previousSessionIdsRef.current = nextSessionIds;
-  }, [tabs]);
+  }, [sessionIds]);
 }

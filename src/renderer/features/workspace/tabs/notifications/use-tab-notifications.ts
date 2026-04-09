@@ -21,7 +21,7 @@ export interface TabNotifications {
 }
 
 export function useTabNotifications(
-  tabs: ReadonlyArray<{ id: string }>,
+  tabs: ReadonlyArray<{ id: string; notificationSessionId: string | null }>,
   activeTabId: string,
 ): TabNotifications {
   const [notifiedTabIds, setNotifiedTabIds] = useState<ReadonlySet<string>>(
@@ -33,6 +33,9 @@ export function useTabNotifications(
   // 탭 ID 목록이 바뀔 때만 구독·정리 이펙트를 재실행하도록 안정화.
   // 타이틀 등 속성 변경은 구독에 영향이 없으므로 불필요한 해제·재생성을 방지한다.
   const tabIdsKey = tabs.map((tab) => tab.id).join("\0");
+  const notificationTargetsKey = tabs
+    .map((tab) => `${tab.id}:${tab.notificationSessionId ?? ""}`)
+    .join("\0");
 
   // 탭 활성화 시 해당 탭 알림 자동 제거
   useEffect(() => {
@@ -49,28 +52,36 @@ export function useTabNotifications(
     const bridge = window.claudeApp?.assistantStatus;
     if (bridge === undefined) return;
 
-    const subscribedTabIds = tabIdsKey.split("\0");
-    const unsubscribers = subscribedTabIds.map((tabId) =>
-      bridge.onSnapshot({ sessionId: tabId }, (snapshot) => {
-        if (tabId === activeTabIdRef.current) return;
+    const unsubscribers = tabs.flatMap((tab) => {
+      if (tab.notificationSessionId === null) {
+        return [];
+      }
 
-        if (ATTENTION_STATES.has(snapshot.state)) {
-          setNotifiedTabIds((current) => {
-            if (current.has(tabId)) return current;
-            const next = new Set(current);
-            next.add(tabId);
-            return next;
-          });
-        }
-      }),
-    );
+      return [
+        bridge.onSnapshot(
+          { sessionId: tab.notificationSessionId },
+          (snapshot) => {
+            if (tab.id === activeTabIdRef.current) return;
+
+            if (ATTENTION_STATES.has(snapshot.state)) {
+              setNotifiedTabIds((current) => {
+                if (current.has(tab.id)) return current;
+                const next = new Set(current);
+                next.add(tab.id);
+                return next;
+              });
+            }
+          },
+        ),
+      ];
+    });
 
     return () => {
       for (const unsubscribe of unsubscribers) {
         unsubscribe();
       }
     };
-  }, [tabIdsKey]);
+  }, [notificationTargetsKey]);
 
   // 닫힌 탭의 stale 알림 정리
   useEffect(() => {

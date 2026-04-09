@@ -140,13 +140,12 @@ describe("TerminalSurface", () => {
       command: "",
       lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
-      isManuallyRenamed: false,
-      terminalTitle: "",
     };
     const { rerender } = render(
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
+        onFocusSession={vi.fn()}
         onTitleChange={vi.fn()}
         session={session}
       />,
@@ -161,6 +160,7 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={1}
         isActive={true}
+        onFocusSession={vi.fn()}
         onTitleChange={vi.fn()}
         session={session}
       />,
@@ -177,13 +177,12 @@ describe("TerminalSurface", () => {
       command: "",
       lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
-      isManuallyRenamed: false,
-      terminalTitle: "",
     };
     const { container } = render(
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
+        onFocusSession={vi.fn()}
         onTitleChange={vi.fn()}
         session={session}
       />,
@@ -229,6 +228,7 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
+        onFocusSession={vi.fn()}
         onTitleChange={vi.fn()}
         session={{
           id: "session-1",
@@ -237,8 +237,6 @@ describe("TerminalSurface", () => {
           command: "",
           lifecycle: "bootstrapping",
           createdAtMs: Date.now(),
-          isManuallyRenamed: false,
-      terminalTitle: "",
         }}
       />,
     );
@@ -285,13 +283,12 @@ describe("TerminalSurface", () => {
       command: "",
       lifecycle: "bootstrapping" as const,
       createdAtMs: Date.now(),
-      isManuallyRenamed: false,
-      terminalTitle: "",
     };
     const firstRender = render(
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
+        onFocusSession={vi.fn()}
         onTitleChange={vi.fn()}
         session={session}
       />,
@@ -306,6 +303,7 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
+        onFocusSession={vi.fn()}
         onTitleChange={vi.fn()}
         session={session}
       />,

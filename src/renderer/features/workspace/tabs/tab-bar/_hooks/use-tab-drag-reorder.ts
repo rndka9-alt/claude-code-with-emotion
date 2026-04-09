@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
-import type { SessionTab } from "../../../model";
+import type { WorkspaceTab } from "../../../model";
 
 const DRAG_START_DISTANCE_PX = 6;
 const DROP_THRESHOLD_RATIO = 0.3;
@@ -32,11 +32,11 @@ export interface TabDragReorderHandlers {
 
 interface TabEntryWithElement {
   element: HTMLDivElement;
-  tab: SessionTab;
+  tab: WorkspaceTab;
 }
 
 function animateReorderedTabs(
-  tabs: SessionTab[],
+  tabs: WorkspaceTab[],
   elements: Map<string, HTMLDivElement>,
   previousPositions: Map<string, number>,
 ): Map<string, number> {
@@ -80,7 +80,7 @@ function animateReorderedTabs(
 }
 
 export function useTabDragReorder(
-  tabs: SessionTab[],
+  tabs: WorkspaceTab[],
   onReorderTab: (tabId: string, destinationIndex: number) => void,
 ): TabDragReorderHandlers {
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);

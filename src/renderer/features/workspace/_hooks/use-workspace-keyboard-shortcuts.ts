@@ -56,10 +56,6 @@ export function useWorkspaceKeyboardShortcuts(
         return;
       }
 
-      if (state.tabs.length <= 1) {
-        return;
-      }
-
       event.preventDefault();
       const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
 
@@ -70,11 +66,13 @@ export function useWorkspaceKeyboardShortcuts(
       const terminalsBridge = window.claudeApp?.terminals;
 
       if (terminalsBridge !== undefined) {
-        void terminalsBridge.closeSession({ sessionId: activeTab.id });
+        void terminalsBridge.closeSession({
+          sessionId: activeTab.focusedSessionId,
+        });
       }
 
       dispatch({
-        type: "closeTab",
+        type: "closeFocusedSession",
         tabId: activeTab.id,
         nowMs: Date.now(),
         reason: "manual",
