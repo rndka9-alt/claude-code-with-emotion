@@ -155,4 +155,40 @@ describe("useAssistantStatusStream", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("second burst");
   });
+
+  it("does not let an older disconnected app snapshot overwrite a newer pending fallback", async () => {
+    Object.defineProperty(window, "claudeApp", {
+      configurable: true,
+      value: {
+        assistantStatus: {
+          getSnapshot: vi.fn(() =>
+            Promise.resolve(
+              createSnapshot(10, {
+                source: "app",
+                state: "disconnected",
+                currentTask: "old disconnected",
+              }),
+            ),
+          ),
+          onSnapshot: vi.fn(() => () => {}),
+        },
+      },
+    });
+
+    render(
+      <TestHarness
+        fallbackSnapshot={createSnapshot(20, {
+          source: "workspace-launch-pending",
+          state: "working",
+          currentTask: "launch pending",
+        })}
+        focusedSessionId="session-1"
+        sessionIds={["session-1"]}
+      />,
+    );
+
+    await flushSnapshotTasks();
+
+    expect(screen.getByRole("status")).toHaveTextContent("launch pending");
+  });
 });

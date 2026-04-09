@@ -117,6 +117,22 @@ function shouldRestoreTerminalFocus(activeElement: Element | null): boolean {
   return !["INPUT", "SELECT", "TEXTAREA"].includes(activeElement.tagName);
 }
 
+function createClaudeLaunchPendingSnapshot(
+  nowMs: number,
+): AssistantStatusSnapshot {
+  return {
+    activityLabel: "Claude 세션 시작하는 중",
+    emotion: null,
+    overlayLine: null,
+    state: "working",
+    line: "Claude 세션 실행 중이에요...!",
+    currentTask: "Running Claude in the active terminal",
+    updatedAtMs: nowMs,
+    intensity: "medium",
+    source: "workspace-launch-pending",
+  };
+}
+
 export interface WorkspaceScreenViewModel {
   activateTab: (tabId: string) => void;
   activeTabId: string;
@@ -208,12 +224,20 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   const [mcpSetupStatus, setMcpSetupStatus] =
     useState<VisualMcpSetupStatus | null>(null);
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
+  const [pendingAssistantSnapshotsBySessionId, setPendingAssistantSnapshotsBySessionId] =
+    useState<Record<string, AssistantStatusSnapshot>>({});
   const activeTab = getActiveTab(state);
   const activeSession = getFocusedSession(state);
   const visibleSessions = getVisibleSessions(state);
   const fallbackAssistantSnapshot: AssistantStatusSnapshot =
-    createDefaultAssistantStatusSnapshot(state.assistantStatus.statusSinceMs);
-  const { activeSnapshot: assistantSnapshot } = useAssistantStatusStream(
+    activeSession !== null
+      ? (pendingAssistantSnapshotsBySessionId[activeSession.id] ??
+        createDefaultAssistantStatusSnapshot(state.assistantStatus.statusSinceMs))
+      : createDefaultAssistantStatusSnapshot(state.assistantStatus.statusSinceMs);
+  const {
+    activeSnapshot: assistantSnapshot,
+    snapshotsBySessionId,
+  } = useAssistantStatusStream(
     getAllSessionIds(state),
     activeSession?.id ?? null,
     fallbackAssistantSnapshot,
@@ -238,6 +262,36 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     assistantSnapshot,
     visualAssetCatalog,
   );
+
+  useEffect(() => {
+    const activeSessionIdSet = new Set(getAllSessionIds(state));
+
+    setPendingAssistantSnapshotsBySessionId((current) => {
+      let didChange = false;
+      const nextSnapshots: Record<string, AssistantStatusSnapshot> = {};
+
+      for (const [sessionId, snapshot] of Object.entries(current)) {
+        if (!activeSessionIdSet.has(sessionId)) {
+          didChange = true;
+          continue;
+        }
+
+        const liveSnapshot = snapshotsBySessionId[sessionId];
+
+        if (
+          liveSnapshot !== undefined &&
+          liveSnapshot.source !== "workspace-launch-pending"
+        ) {
+          didChange = true;
+          continue;
+        }
+
+        nextSnapshots[sessionId] = snapshot;
+      }
+
+      return didChange ? nextSnapshots : current;
+    });
+  }, [snapshotsBySessionId, state]);
 
   useEffect(() => {
     const bridge = window.claudeApp?.mcpSetup;
@@ -324,6 +378,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       return;
     }
 
+    setPendingAssistantSnapshotsBySessionId((current) => ({
+      ...current,
+      [activeSession.id]: createClaudeLaunchPendingSnapshot(Date.now()),
+    }));
     void terminalsBridge.sendInput({
       sessionId: activeSession.id,
       data: "\u0015claude\r",

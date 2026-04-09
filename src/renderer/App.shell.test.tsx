@@ -81,6 +81,24 @@ describe("App shell", () => {
     });
   });
 
+  it("shows a connected pending fallback right after launch is requested", async () => {
+    const sendInput = vi.fn().mockResolvedValue(undefined);
+    const { installDisconnectedClaudeApp } =
+      await import("./test-support/app-test-helpers");
+
+    installDisconnectedClaudeApp(sendInput);
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "실행하기" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/Claude 아직 미연결이에요\. 준비되면 바로 붙을게요/),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(/손 움직이는 중이에요/)).toBeInTheDocument();
+  });
+
   it("persists the selected app theme preset", async () => {
     const { installDisconnectedClaudeApp } =
       await import("./test-support/app-test-helpers");

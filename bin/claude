@@ -103,7 +103,7 @@ function main() {
       "--activity",
       "연결 대기 중",
       "--task",
-      "Waiting for the next Claude run",
+      "Waiting for Claude to start",
       "--intensity",
       "low",
     ]);

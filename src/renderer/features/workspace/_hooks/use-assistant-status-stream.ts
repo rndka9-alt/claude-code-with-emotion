@@ -25,6 +25,25 @@ export interface AssistantStatusStreamResult {
   snapshotsBySessionId: Readonly<Record<string, AssistantStatusSnapshot>>;
 }
 
+function shouldPromoteFallbackSnapshot(
+  existingSnapshot: AssistantStatusSnapshot | undefined,
+  fallbackSnapshot: AssistantStatusSnapshot,
+): boolean {
+  if (existingSnapshot === undefined) {
+    return true;
+  }
+
+  if (areSnapshotsEqual(existingSnapshot, fallbackSnapshot)) {
+    return false;
+  }
+
+  return (
+    existingSnapshot.source === "app" &&
+    existingSnapshot.state === "disconnected" &&
+    existingSnapshot.updatedAtMs < fallbackSnapshot.updatedAtMs
+  );
+}
+
 export function useAssistantStatusStream(
   sessionIds: string[],
   focusedSessionId: string | null,
@@ -57,15 +76,7 @@ export function useAssistantStatusStream(
       const existingSnapshot = current[focusedSessionId];
 
       if (
-        existingSnapshot !== undefined &&
-        existingSnapshot.updatedAtMs > fallbackSnapshot.updatedAtMs
-      ) {
-        return current;
-      }
-
-      if (
-        existingSnapshot !== undefined &&
-        areSnapshotsEqual(existingSnapshot, fallbackSnapshot)
+        !shouldPromoteFallbackSnapshot(existingSnapshot, fallbackSnapshot)
       ) {
         return current;
       }
@@ -120,6 +131,13 @@ export function useAssistantStatusStream(
     ): void {
       setSnapshotsBySessionId((current) => {
         const existingSnapshot = current[sessionId];
+
+        if (
+          existingSnapshot !== undefined &&
+          existingSnapshot.updatedAtMs > snapshot.updatedAtMs
+        ) {
+          return current;
+        }
 
         if (
           existingSnapshot !== undefined &&
