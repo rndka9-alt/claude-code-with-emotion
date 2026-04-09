@@ -1,4 +1,4 @@
-export { PaneStack } from "./PaneStack";
+export { TerminalLayout } from "./TerminalLayout";
 export { TerminalSurface } from "./TerminalSurface";
 export {
   getPaneNavigationDirection,

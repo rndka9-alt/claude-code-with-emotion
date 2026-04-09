@@ -34,13 +34,16 @@ export type WorkspaceLayoutNode = WorkspacePaneNode | WorkspaceSplitNode;
 
 export interface WorkspaceTab {
   id: string;
+  // 사용자가 보는 탭 레이블. 수동 rename 이 걸리면 이 값이 우선이다.
   title: string;
   focusedPaneId: string;
   focusedSessionId: string;
   isManuallyRenamed: boolean;
   layout: WorkspaceLayoutNode;
+  // 탭 레벨 알림과 기본 제목 sync 의 기준이 되는 대표 세션.
   primarySessionId: string;
-  terminalTitle: string;
+  // 대표 세션이 마지막으로 올린 터미널 제목. 수동 rename 해도 별도로 유지한다.
+  primarySessionTitle: string;
 }
 
 export interface AssistantStatus {
@@ -201,7 +204,7 @@ function createWorkspaceTab(
     isManuallyRenamed: false,
     layout: pane,
     primarySessionId: session.id,
-    terminalTitle: session.title,
+    primarySessionTitle: session.title,
   };
 }
 
@@ -317,7 +320,7 @@ function findFirstPane(layout: WorkspaceLayoutNode): WorkspacePaneNode {
   return findFirstPane(layout.children[0]);
 }
 
-function syncTabWithPrimarySession(
+function syncTabTitleWithPrimarySession(
   tab: WorkspaceTab,
   sessions: Record<string, TerminalSession>,
 ): WorkspaceTab {
@@ -336,14 +339,14 @@ function syncTabWithPrimarySession(
   if (tab.isManuallyRenamed) {
     return {
       ...tab,
-      terminalTitle: primarySession.title,
+      primarySessionTitle: primarySession.title,
     };
   }
 
   return {
     ...tab,
     title: primarySession.title,
-    terminalTitle: primarySession.title,
+    primarySessionTitle: primarySession.title,
   };
 }
 
@@ -862,7 +865,7 @@ function closeSessionState(
     return state;
   }
 
-  const nextTab = syncTabWithPrimarySession(
+  const nextTab = syncTabTitleWithPrimarySession(
     {
       ...tab,
       focusedPaneId: resolvedFocusedPane.id,
@@ -1100,7 +1103,7 @@ function renameTabState(
       return state;
     }
 
-    const restoredTitle = tabToUpdate.terminalTitle || tabToUpdate.title;
+    const restoredTitle = tabToUpdate.primarySessionTitle || tabToUpdate.title;
 
     return {
       ...state,
@@ -1161,13 +1164,13 @@ function syncSessionTitleState(
     if (
       owningTab !== null &&
       primarySessionId === action.sessionId &&
-      owningTab.terminalTitle !== normalizedTitle
+      owningTab.primarySessionTitle !== normalizedTitle
     ) {
       return {
         ...state,
         tabs: state.tabs.map((tab) =>
           tab.id === owningTab.id
-            ? { ...tab, terminalTitle: normalizedTitle }
+            ? { ...tab, primarySessionTitle: normalizedTitle }
             : tab,
         ),
       };
@@ -1191,7 +1194,7 @@ function syncSessionTitleState(
     };
   }
 
-  const nextTab = syncTabWithPrimarySession(owningTab, nextSessions);
+  const nextTab = syncTabTitleWithPrimarySession(owningTab, nextSessions);
 
   if (owningTab.isManuallyRenamed) {
     return {
@@ -1312,7 +1315,7 @@ function splitPaneState(
     return state;
   }
 
-  const nextTab = syncTabWithPrimarySession(
+  const nextTab = syncTabTitleWithPrimarySession(
     {
       ...tab,
       focusedPaneId: nextPane.id,

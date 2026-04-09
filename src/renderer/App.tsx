@@ -2,9 +2,9 @@ import { Grip } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { ToastProvider } from "./features/toast/ToastProvider";
 import {
-  PaneStack,
   StatusPanel,
   TabBar,
+  TerminalLayout,
   VisualAssetManagerDialog,
   useWorkspaceScreenViewModel,
 } from "./features/workspace";
@@ -99,7 +99,7 @@ function AppContent(): ReactElement {
           id={panelId}
           role="tabpanel"
         >
-          <PaneStack
+          <TerminalLayout
             focusedPaneId={activeTab?.focusedPaneId ?? null}
             layout={activeTab?.layout ?? null}
             onClosePane={closePane}

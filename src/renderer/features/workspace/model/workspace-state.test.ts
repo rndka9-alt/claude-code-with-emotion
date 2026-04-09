@@ -351,7 +351,9 @@ describe("workspaceReducer", () => {
     });
 
     expect(afterTerminal.tabs[0]?.title).toBe("my docs");
-    expect(afterTerminal.tabs[0]?.terminalTitle).toBe("user@host:~/project");
+    expect(afterTerminal.tabs[0]?.primarySessionTitle).toBe(
+      "user@host:~/project",
+    );
   });
 
   it("restores the cached terminal title when a manual tab title is cleared", () => {
@@ -379,7 +381,7 @@ describe("workspaceReducer", () => {
 
     expect(cleared.tabs[0]?.title).toBe("user@host:~/project");
     expect(cleared.tabs[0]?.isManuallyRenamed).toBe(false);
-    expect(cleared.tabs[0]?.terminalTitle).toBe("user@host:~/project");
+    expect(cleared.tabs[0]?.primarySessionTitle).toBe("user@host:~/project");
   });
 });
 

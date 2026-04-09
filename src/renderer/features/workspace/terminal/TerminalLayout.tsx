@@ -4,7 +4,7 @@ import type { CSSProperties, ReactElement } from "react";
 import type { TerminalSession, WorkspaceLayoutNode } from "../model";
 import { TerminalSurface } from "./TerminalSurface";
 
-interface PaneStackProps {
+interface TerminalLayoutProps {
   focusedPaneId: string | null;
   layout: WorkspaceLayoutNode | null;
   onClosePane: (paneId: string, sessionId: string) => void;
@@ -23,7 +23,7 @@ interface DragState {
   splitId: string;
 }
 
-function PaneChrome({
+function PaneTitleBar({
   isActive,
   isVisible,
   onClosePane,
@@ -67,7 +67,7 @@ function PaneChrome({
   );
 }
 
-export function PaneStack({
+export function TerminalLayout({
   focusedPaneId,
   layout,
   onClosePane,
@@ -76,7 +76,7 @@ export function PaneStack({
   onSyncSessionTitle,
   sessions,
   terminalFocusRequestKey,
-}: PaneStackProps): ReactElement {
+}: TerminalLayoutProps): ReactElement {
   const dragStateRef = useRef<DragState | null>(null);
   const hasMultiplePanes = layout !== null && layout.kind === "split";
 
@@ -144,7 +144,7 @@ export function PaneStack({
           data-active={isActive}
           key={node.id}
         >
-          <PaneChrome
+          <PaneTitleBar
             isActive={isActive}
             isVisible={hasMultiplePanes}
             onClosePane={onClosePane}
