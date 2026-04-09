@@ -126,6 +126,56 @@ describe("AssistantStatusStore", () => {
     }
   });
 
+  it("keeps an overlay emotion visible for the full TTL after the throttled emit lands", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(0);
+      const store = new AssistantStatusStore(2_500);
+      const emitted: Array<{ atMs: number; emotion: string | null }> = [];
+      store.subscribe((snapshot) => {
+        emitted.push({ atMs: Date.now(), emotion: snapshot.emotion });
+      });
+
+      // T=0 에 base state 가 먼저 emit 되고, 직후 emotion overlay 가 들어와도
+      // 실제 화면 반영은 trailing emit(T=1000) 에 일어난다.
+      store.applyUpdate(
+        { state: "working", line: "Base" },
+        "assistant-command",
+      );
+      store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
+
+      expect(emitted).toEqual([{ atMs: 0, emotion: null }]);
+
+      vi.advanceTimersByTime(AssistantStatusStore.STATE_THROTTLE_MS);
+
+      expect(emitted).toEqual([
+        { atMs: 0, emotion: null },
+        {
+          atMs: AssistantStatusStore.STATE_THROTTLE_MS,
+          emotion: "happy",
+        },
+      ]);
+
+      // visible 후 3초가 아직 안 찼으니 사라지면 안 됨
+      vi.advanceTimersByTime(AssistantStatusStore.EMOTION_TTL_MS - 1);
+      expect(emitted[emitted.length - 1]).toEqual({
+        atMs: AssistantStatusStore.STATE_THROTTLE_MS,
+        emotion: "happy",
+      });
+
+      vi.advanceTimersByTime(1);
+
+      expect(emitted[emitted.length - 1]).toEqual({
+        atMs:
+          AssistantStatusStore.STATE_THROTTLE_MS +
+          AssistantStatusStore.EMOTION_TTL_MS,
+        emotion: null,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("preserves emotion across multiple state changes within TTL window", () => {
     vi.useFakeTimers();
     try {

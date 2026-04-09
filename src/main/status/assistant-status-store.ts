@@ -76,10 +76,13 @@ export class AssistantStatusStore {
       // 감정은 살아남아서 state+emotion 조합 에셋 또는 emotion 전용 에셋이 나온다.
       // null·neutral 은 "오버레이 비우기" 라 TTL 없이 즉시 반영한다.
       if (update.emotion !== null && update.emotion !== "neutral") {
+        const ttlDelayMs =
+          AssistantStatusStore.EMOTION_TTL_MS +
+          this.getNextEmitDelayMs(Date.now());
         this.emotionTtlTimer = setTimeout(() => {
           this.emotionTtlTimer = null;
           this.expireEmotion();
-        }, AssistantStatusStore.EMOTION_TTL_MS);
+        }, ttlDelayMs);
       }
     }
 
@@ -181,6 +184,16 @@ export class AssistantStatusStore {
       this.emit();
       this.lastEmitMs = Date.now();
     }, delay);
+  }
+
+  private getNextEmitDelayMs(nowMs: number): number {
+    const sinceLastEmit = nowMs - this.lastEmitMs;
+
+    if (sinceLastEmit >= AssistantStatusStore.STATE_THROTTLE_MS) {
+      return 0;
+    }
+
+    return AssistantStatusStore.STATE_THROTTLE_MS - sinceLastEmit;
   }
 
   private logSupersededSnapshotIfPending(nextSource: string): void {
