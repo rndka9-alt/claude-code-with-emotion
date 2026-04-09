@@ -46,7 +46,7 @@ function PaneTitleBar({
 
   return (
     <div
-      className={`absolute inset-x-0 top-0 z-10 flex ${PANE_TITLE_BAR_HEIGHT_CLASS} items-center border-b border-border-subtle bg-surface-panel/75 px-2`}
+      className={`absolute inset-x-0 top-0 z-10 flex ${PANE_TITLE_BAR_HEIGHT_CLASS} items-center border-b border-border-subtle bg-surface-panel px-2`}
       data-pane-title-bar="true"
       onPointerDown={() => {
         onFocusPane(paneId);
