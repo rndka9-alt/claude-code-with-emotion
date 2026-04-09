@@ -23,6 +23,8 @@ interface DragState {
   splitId: string;
 }
 
+const PANE_TITLE_BAR_HEIGHT_CLASS = "h-8";
+
 function PaneTitleBar({
   isActive,
   isVisible,
@@ -44,7 +46,8 @@ function PaneTitleBar({
 
   return (
     <div
-      className="flex h-8 flex-none items-center border-b border-border-subtle bg-surface-panel/75 px-2"
+      className={`absolute inset-x-0 top-0 z-10 flex ${PANE_TITLE_BAR_HEIGHT_CLASS} items-center border-b border-border-subtle bg-surface-panel/75 px-2`}
+      data-pane-title-bar="true"
       onPointerDown={() => {
         onFocusPane(paneId);
       }}
@@ -140,7 +143,7 @@ export function TerminalLayout({
       return (
         <article
           aria-label={session.title}
-          className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border-ghost bg-surface-terminal"
+          className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border-ghost bg-surface-terminal"
           data-active={isActive}
           key={node.id}
         >
@@ -152,7 +155,10 @@ export function TerminalLayout({
             paneId={node.id}
             session={session}
           />
-          <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div
+            className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden"
+            data-pane-content="true"
+          >
             <TerminalSurface
               focusRequestKey={terminalFocusRequestKey}
               isActive={isActive}

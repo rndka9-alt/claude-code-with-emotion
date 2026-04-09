@@ -96,6 +96,8 @@ If it is large enough to deserve structure, give it its own entry point even whe
 - Prefer tests that assert behavior through a module's public API.
 - Internal tests are allowed for complex pure logic, branch-heavy transforms, or regression-prone logic.
 - Do not couple tests to file layout unless there is a strong reason.
+- For UI tests, prefer user-visible behavior, semantics, and interaction outcomes over implementation details such as class names or DOM structure.
+- When a UI regression needs a structural assertion, prefer stable intent-revealing signals such as explicit props, roles, text, or dedicated `data-*` attributes over CSS utility class checks.
 
 ## Type Safety Rules
 
