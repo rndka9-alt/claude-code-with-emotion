@@ -78,21 +78,19 @@ function AppContent(): ReactElement {
 
   return (
     <div className="flex h-full min-h-full flex-col overflow-hidden bg-app-bg">
-      {tabs.length > 1 ? (
-        <TabBar
-          activeTabId={activeTabId}
-          notifiedTabIds={notifiedTabIds}
-          onActivateTab={activateTab}
-          onCloseTab={closeTab}
-          onCreateTab={createTab}
-          onDismissNotification={dismissNotification}
-          onRenameTab={(tabId, title) => {
-            renameTab(tabId, title);
-          }}
-          onReorderTab={reorderTab}
-          tabs={tabs}
-        />
-      ) : null}
+      <TabBar
+        activeTabId={activeTabId}
+        notifiedTabIds={notifiedTabIds}
+        onActivateTab={activateTab}
+        onCloseTab={closeTab}
+        onCreateTab={createTab}
+        onDismissNotification={dismissNotification}
+        onRenameTab={(tabId, title) => {
+          renameTab(tabId, title);
+        }}
+        onReorderTab={reorderTab}
+        tabs={tabs}
+      />
 
       <main className="flex min-h-0 flex-1 flex-col px-2 pt-1 pb-2">
         <section

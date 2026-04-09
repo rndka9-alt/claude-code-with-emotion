@@ -202,12 +202,14 @@ describe("App tab actions", () => {
       }),
     );
 
-    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("article", {
+      screen.getAllByRole("tab"),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("tab", {
         name: "new session 2 · claude-code-with-emotion",
       }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("aria-selected", "true");
   });
 
   it("restores the cached terminal title when a manual tab name is cleared", async () => {

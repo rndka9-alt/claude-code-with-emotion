@@ -25,18 +25,20 @@ interface DragState {
 
 function PaneChrome({
   isActive,
+  isVisible,
   onClosePane,
   onFocusPane,
   paneId,
   session,
 }: {
   isActive: boolean;
+  isVisible: boolean;
   onClosePane: (paneId: string, sessionId: string) => void;
   onFocusPane: (paneId: string) => void;
   paneId: string;
   session: TerminalSession;
 }): ReactElement {
-  if (!isActive) {
+  if (!isActive || !isVisible) {
     return <></>;
   }
 
@@ -76,6 +78,7 @@ export function PaneStack({
   terminalFocusRequestKey,
 }: PaneStackProps): ReactElement {
   const dragStateRef = useRef<DragState | null>(null);
+  const hasMultiplePanes = layout !== null && layout.kind === "split";
 
   useEffect(() => {
     function handlePointerMove(event: PointerEvent): void {
@@ -143,6 +146,7 @@ export function PaneStack({
         >
           <PaneChrome
             isActive={isActive}
+            isVisible={hasMultiplePanes}
             onClosePane={onClosePane}
             onFocusPane={onFocusPane}
             paneId={node.id}
