@@ -13,8 +13,14 @@ describe("App tab reordering", () => {
   it("reorders tabs live while dragging in the tab strip", () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "New Session" }));
-    fireEvent.click(screen.getByRole("button", { name: "New Session" }));
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
 
     const firstTab = screen.getByRole("tab", {
       name: "new session 1 · claude-code-with-emotion",
@@ -77,8 +83,14 @@ describe("App tab reordering", () => {
   it("activates a reordered tab on the next click", () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "New Session" }));
-    fireEvent.click(screen.getByRole("button", { name: "New Session" }));
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
 
     const firstTab = screen.getByRole("tab", {
       name: "new session 1 · claude-code-with-emotion",

@@ -24,8 +24,10 @@ function AppContent(): ReactElement {
   const {
     activateTab,
     activeTabId,
+    activeTab,
     availableThemes,
     assistantSnapshot,
+    closePane,
     closeSettingsDialog,
     closeTab,
     currentThemeId,
@@ -33,7 +35,6 @@ function AppContent(): ReactElement {
     dismissNotification,
     dismissMcpSetupPrompt,
     dropVisualAssets,
-    focusSession,
     handleLaunchClaude,
     isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
@@ -43,11 +44,11 @@ function AppContent(): ReactElement {
     mcpSetupStatus,
     notifiedTabIds,
     openSettingsDialog,
-    paneSizes,
     pickVisualAssets,
     removeAsset,
     reorderTab,
-    resizePane,
+    resizeSplit,
+    sessions,
     setThemeId,
     setDefaultAsset,
     setEmotionDescription,
@@ -59,10 +60,10 @@ function AppContent(): ReactElement {
     toggleEmotion,
     toggleState,
     toggleStateEmotion,
+    focusPane,
     renameTab,
     syncSessionTitle,
     visualAssetCatalog,
-    visibleSessions,
   } = useWorkspaceScreenViewModel();
   const panelId = activeTabId.length > 0 ? `panel-${activeTabId}` : "panel-stack";
   const statusPanelToggleLabel = isStatusPanelCollapsed
@@ -77,19 +78,21 @@ function AppContent(): ReactElement {
 
   return (
     <div className="flex h-full min-h-full flex-col overflow-hidden bg-app-bg">
-      <TabBar
-        activeTabId={activeTabId}
-        notifiedTabIds={notifiedTabIds}
-        onActivateTab={activateTab}
-        onCloseTab={closeTab}
-        onCreateTab={createTab}
-        onDismissNotification={dismissNotification}
-        onRenameTab={(tabId, title) => {
-          renameTab(tabId, title);
-        }}
-        onReorderTab={reorderTab}
-        tabs={tabs}
-      />
+      {tabs.length > 1 ? (
+        <TabBar
+          activeTabId={activeTabId}
+          notifiedTabIds={notifiedTabIds}
+          onActivateTab={activateTab}
+          onCloseTab={closeTab}
+          onCreateTab={createTab}
+          onDismissNotification={dismissNotification}
+          onRenameTab={(tabId, title) => {
+            renameTab(tabId, title);
+          }}
+          onReorderTab={reorderTab}
+          tabs={tabs}
+        />
+      ) : null}
 
       <main className="flex min-h-0 flex-1 flex-col px-2 pt-1 pb-2">
         <section
@@ -99,17 +102,16 @@ function AppContent(): ReactElement {
           role="tabpanel"
         >
           <PaneStack
-            focusedSessionId={
-              tabs.find((tab) => tab.id === activeTabId)?.focusedSessionId ?? null
-            }
-            onFocusSession={focusSession}
-            onResizePane={resizePane}
-            paneSizes={paneSizes}
+            focusedPaneId={activeTab?.focusedPaneId ?? null}
+            layout={activeTab?.layout ?? null}
+            onClosePane={closePane}
+            onFocusPane={focusPane}
+            onResizeSplit={resizeSplit}
             onSyncSessionTitle={(sessionId, title) => {
               syncSessionTitle(sessionId, title);
             }}
+            sessions={sessions}
             terminalFocusRequestKey={terminalFocusRequestKey}
-            sessions={visibleSessions}
           />
         </section>
 

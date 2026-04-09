@@ -1,9 +1,11 @@
 import {
   MULTILINE_TERMINAL_INPUT,
-  getSessionNavigationDirection,
+  getPaneNavigationDirection,
+  getSplitPaneDirection,
+  getTabNavigationDirection,
   handleTerminalShortcut,
   isMultilineKey,
-  shouldCreateSessionShortcut,
+  shouldCreateTabShortcut,
   shouldSendMultilineData,
   shouldUseCloseSessionShortcut,
 } from "./terminal-keyboard";
@@ -157,10 +159,9 @@ describe("terminal keyboard shortcuts", () => {
     expect(sentData).toEqual([]);
   });
 
-
-  it("treats cmd+t as a create-session shortcut", () => {
+  it("treats cmd+t as a create-tab shortcut", () => {
     expect(
-      shouldCreateSessionShortcut({
+      shouldCreateTabShortcut({
         altKey: false,
         ctrlKey: false,
         key: "t",
@@ -172,9 +173,9 @@ describe("terminal keyboard shortcuts", () => {
     ).toBe(true);
   });
 
-  it("does not treat ctrl+t as a create-session shortcut", () => {
+  it("does not treat ctrl+t as a create-tab shortcut", () => {
     expect(
-      shouldCreateSessionShortcut({
+      shouldCreateTabShortcut({
         altKey: false,
         ctrlKey: true,
         key: "t",
@@ -186,18 +187,32 @@ describe("terminal keyboard shortcuts", () => {
     ).toBe(false);
   });
 
-  it("does not treat cmd+shift+t as a create-session shortcut", () => {
+  it("recognises cmd+d as a horizontal split shortcut", () => {
     expect(
-      shouldCreateSessionShortcut({
+      getSplitPaneDirection({
         altKey: false,
         ctrlKey: false,
-        key: "t",
+        key: "d",
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: "keydown",
+      }),
+    ).toBe("horizontal");
+  });
+
+  it("recognises cmd+shift+d as a vertical split shortcut", () => {
+    expect(
+      getSplitPaneDirection({
+        altKey: false,
+        ctrlKey: false,
+        key: "d",
         metaKey: true,
         repeat: false,
         shiftKey: true,
         type: "keydown",
       }),
-    ).toBe(false);
+    ).toBe("vertical");
   });
 
   it("detects cmd+w as a session close shortcut", () => {
@@ -214,37 +229,9 @@ describe("terminal keyboard shortcuts", () => {
     ).toBe(true);
   });
 
-  it("does not detect ctrl+w as a session close shortcut", () => {
+  it("treats cmd+left as a previous-tab shortcut", () => {
     expect(
-      shouldUseCloseSessionShortcut({
-        altKey: false,
-        ctrlKey: true,
-        key: "w",
-        metaKey: false,
-        repeat: false,
-        shiftKey: false,
-        type: "keydown",
-      }),
-    ).toBe(false);
-  });
-
-  it("does not treat alt+cmd+w as a session close shortcut", () => {
-    expect(
-      shouldUseCloseSessionShortcut({
-        altKey: true,
-        ctrlKey: false,
-        key: "w",
-        metaKey: true,
-        repeat: false,
-        shiftKey: false,
-        type: "keydown",
-      }),
-    ).toBe(false);
-  });
-
-  it("treats cmd+left as a previous-session shortcut", () => {
-    expect(
-      getSessionNavigationDirection({
+      getTabNavigationDirection({
         altKey: false,
         ctrlKey: false,
         key: "ArrowLeft",
@@ -256,9 +243,23 @@ describe("terminal keyboard shortcuts", () => {
     ).toBe("previous");
   });
 
-  it("does not treat ctrl+right as a next-session shortcut", () => {
+  it("treats cmd+option+right as a pane navigation shortcut", () => {
     expect(
-      getSessionNavigationDirection({
+      getPaneNavigationDirection({
+        altKey: true,
+        ctrlKey: false,
+        key: "ArrowRight",
+        metaKey: true,
+        repeat: false,
+        shiftKey: false,
+        type: "keydown",
+      }),
+    ).toBe("right");
+  });
+
+  it("does not treat ctrl+right as a tab navigation shortcut", () => {
+    expect(
+      getTabNavigationDirection({
         altKey: false,
         ctrlKey: true,
         key: "ArrowRight",
@@ -270,15 +271,15 @@ describe("terminal keyboard shortcuts", () => {
     ).toBeNull();
   });
 
-  it("does not treat alt+cmd+left as a session shortcut", () => {
+  it("does not treat cmd+shift+left as a pane navigation shortcut", () => {
     expect(
-      getSessionNavigationDirection({
+      getPaneNavigationDirection({
         altKey: true,
         ctrlKey: false,
         key: "ArrowLeft",
         metaKey: true,
         repeat: false,
-        shiftKey: false,
+        shiftKey: true,
         type: "keydown",
       }),
     ).toBeNull();

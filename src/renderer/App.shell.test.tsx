@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { App } from "./App";
 
 describe("App shell", () => {
-  it("renders the tab shell and status panel", () => {
+  it("hides the tab shell when only one tab is open and still renders the status panel", () => {
     render(<App />);
 
-    expect(screen.getByRole("tablist")).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Assistant status panel")).toBeInTheDocument();
   });
 
@@ -17,7 +17,7 @@ describe("App shell", () => {
         name: "Active terminal workspace",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Terminal pane stack")).toBeInTheDocument();
+    expect(screen.getByLabelText("Terminal pane layout")).toBeInTheDocument();
     expect(
       screen.getByRole("article", {
         name: "new session 1 · claude-code-with-emotion",

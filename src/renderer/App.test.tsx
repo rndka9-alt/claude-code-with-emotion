@@ -117,6 +117,11 @@ describe("App focus restoration", () => {
     render(<App />);
 
     const terminal = terminalInstances[0];
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+
     const sessionTab = screen.getByRole("tab", {
       name: "new session 1 · claude-code-with-emotion",
     });

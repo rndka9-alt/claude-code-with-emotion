@@ -1,11 +1,13 @@
 export { PaneStack } from "./PaneStack";
 export { TerminalSurface } from "./TerminalSurface";
 export {
-  getSessionNavigationDirection,
+  getPaneNavigationDirection,
+  getSplitPaneDirection,
+  getTabNavigationDirection,
   handleTerminalShortcut,
   isMultilineKey,
   MULTILINE_TERMINAL_INPUT,
-  shouldCreateSessionShortcut,
+  shouldCreateTabShortcut,
   shouldSendMultilineData,
   shouldUseCloseSessionShortcut,
 } from "./terminal-keyboard";

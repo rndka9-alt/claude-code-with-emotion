@@ -1,3 +1,8 @@
+import type {
+  PaneFocusDirection,
+  PaneSplitDirection,
+} from "../model";
+
 export const MULTILINE_TERMINAL_INPUT = "\x0a";
 
 export interface TerminalShortcutKeyEvent {
@@ -10,7 +15,7 @@ export interface TerminalShortcutKeyEvent {
   type?: string;
 }
 
-export type SessionNavigationDirection = "previous" | "next";
+export type TabNavigationDirection = "previous" | "next";
 
 export function isMultilineKey(event: TerminalShortcutKeyEvent): boolean {
   return (
@@ -39,7 +44,6 @@ export function handleTerminalShortcut(
     return true;
   }
 
-  // keydown(비-repeat)에서만 데이터 전송, keypress·keyup은 전파만 차단
   if (
     (event.type === undefined || event.type === "keydown") &&
     event.repeat !== true
@@ -50,7 +54,7 @@ export function handleTerminalShortcut(
   return false;
 }
 
-export function shouldCreateSessionShortcut(
+export function shouldCreateTabShortcut(
   event: TerminalShortcutKeyEvent,
 ): boolean {
   return (
@@ -62,6 +66,26 @@ export function shouldCreateSessionShortcut(
     !event.altKey &&
     !event.shiftKey
   );
+}
+
+export function getSplitPaneDirection(
+  event: TerminalShortcutKeyEvent,
+): PaneSplitDirection | null {
+  const isCommandD =
+    event.key.toLowerCase() === "d" &&
+    event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey;
+
+  if (
+    (event.type !== undefined && event.type !== "keydown") ||
+    event.repeat === true ||
+    !isCommandD
+  ) {
+    return null;
+  }
+
+  return event.shiftKey ? "vertical" : "horizontal";
 }
 
 export function shouldUseCloseSessionShortcut(
@@ -78,9 +102,9 @@ export function shouldUseCloseSessionShortcut(
   );
 }
 
-export function getSessionNavigationDirection(
+export function getTabNavigationDirection(
   event: TerminalShortcutKeyEvent,
-): SessionNavigationDirection | null {
+): TabNavigationDirection | null {
   const isCommandArrow =
     event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
 
@@ -98,6 +122,39 @@ export function getSessionNavigationDirection(
 
   if (event.key === "ArrowRight") {
     return "next";
+  }
+
+  return null;
+}
+
+export function getPaneNavigationDirection(
+  event: TerminalShortcutKeyEvent,
+): PaneFocusDirection | null {
+  const isCommandOptionArrow =
+    event.metaKey && event.altKey && !event.ctrlKey && !event.shiftKey;
+
+  if (
+    (event.type !== undefined && event.type !== "keydown") ||
+    event.repeat === true ||
+    !isCommandOptionArrow
+  ) {
+    return null;
+  }
+
+  if (event.key === "ArrowLeft") {
+    return "left";
+  }
+
+  if (event.key === "ArrowRight") {
+    return "right";
+  }
+
+  if (event.key === "ArrowUp") {
+    return "up";
+  }
+
+  if (event.key === "ArrowDown") {
+    return "down";
   }
 
   return null;

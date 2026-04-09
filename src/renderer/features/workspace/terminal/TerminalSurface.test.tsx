@@ -145,8 +145,9 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
-        onFocusSession={vi.fn()}
+        onFocusPane={vi.fn()}
         onTitleChange={vi.fn()}
+        paneId="pane-1"
         session={session}
       />,
     );
@@ -160,8 +161,9 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={1}
         isActive={true}
-        onFocusSession={vi.fn()}
+        onFocusPane={vi.fn()}
         onTitleChange={vi.fn()}
+        paneId="pane-1"
         session={session}
       />,
     );
@@ -182,8 +184,9 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
-        onFocusSession={vi.fn()}
+        onFocusPane={vi.fn()}
         onTitleChange={vi.fn()}
+        paneId="pane-1"
         session={session}
       />,
     );
@@ -228,8 +231,9 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
-        onFocusSession={vi.fn()}
+        onFocusPane={vi.fn()}
         onTitleChange={vi.fn()}
+        paneId="pane-1"
         session={{
           id: "session-1",
           title: "new session 1 · claude-code-with-emotion",
@@ -288,8 +292,9 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
-        onFocusSession={vi.fn()}
+        onFocusPane={vi.fn()}
         onTitleChange={vi.fn()}
+        paneId="pane-1"
         session={session}
       />,
     );
@@ -303,8 +308,9 @@ describe("TerminalSurface", () => {
       <TerminalSurface
         focusRequestKey={0}
         isActive={true}
-        onFocusSession={vi.fn()}
+        onFocusPane={vi.fn()}
         onTitleChange={vi.fn()}
+        paneId="pane-1"
         session={session}
       />,
     );

@@ -1,8 +1,10 @@
 import { useEffect, type Dispatch } from "react";
 import type { WorkspaceAction, WorkspaceState } from "../model";
 import {
-  getSessionNavigationDirection,
-  shouldCreateSessionShortcut,
+  getPaneNavigationDirection,
+  getSplitPaneDirection,
+  getTabNavigationDirection,
+  shouldCreateTabShortcut,
   shouldUseCloseSessionShortcut,
 } from "../terminal";
 
@@ -12,15 +14,46 @@ export function useWorkspaceKeyboardShortcuts(
 ): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (shouldCreateSessionShortcut(event)) {
+      if (shouldCreateTabShortcut(event)) {
         event.preventDefault();
         dispatch({ type: "createTab", nowMs: Date.now() });
         return;
       }
 
-      const navigationDirection = getSessionNavigationDirection(event);
+      const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
 
-      if (navigationDirection !== null) {
+      if (activeTab === undefined) {
+        return;
+      }
+
+      const splitDirection = getSplitPaneDirection(event);
+
+      if (splitDirection !== null) {
+        event.preventDefault();
+        dispatch({
+          type: "splitPane",
+          tabId: activeTab.id,
+          direction: splitDirection,
+          nowMs: Date.now(),
+        });
+        return;
+      }
+
+      const paneNavigationDirection = getPaneNavigationDirection(event);
+
+      if (paneNavigationDirection !== null) {
+        event.preventDefault();
+        dispatch({
+          type: "moveFocus",
+          tabId: activeTab.id,
+          direction: paneNavigationDirection,
+        });
+        return;
+      }
+
+      const tabNavigationDirection = getTabNavigationDirection(event);
+
+      if (tabNavigationDirection !== null) {
         if (state.tabs.length <= 1) {
           return;
         }
@@ -35,7 +68,7 @@ export function useWorkspaceKeyboardShortcuts(
 
         event.preventDefault();
         const nextTabIndex =
-          navigationDirection === "previous"
+          tabNavigationDirection === "previous"
             ? (activeTabIndex - 1 + state.tabs.length) % state.tabs.length
             : (activeTabIndex + 1) % state.tabs.length;
         const nextTab = state.tabs[nextTabIndex];
@@ -57,12 +90,6 @@ export function useWorkspaceKeyboardShortcuts(
       }
 
       event.preventDefault();
-      const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId);
-
-      if (activeTab === undefined) {
-        return;
-      }
-
       const terminalsBridge = window.claudeApp?.terminals;
 
       if (terminalsBridge !== undefined) {
@@ -72,8 +99,9 @@ export function useWorkspaceKeyboardShortcuts(
       }
 
       dispatch({
-        type: "closeFocusedSession",
+        type: "closePane",
         tabId: activeTab.id,
+        paneId: activeTab.focusedPaneId,
         nowMs: Date.now(),
         reason: "manual",
       });

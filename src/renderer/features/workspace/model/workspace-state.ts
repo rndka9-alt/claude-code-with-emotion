@@ -4,9 +4,8 @@ import type {
 } from "../../../../shared/assistant-status";
 
 export type SessionLifecycle = "bootstrapping" | "ready";
-
-const IMMEDIATE_EXIT_RELAUNCH_WINDOW_MS = 5_000;
-const MIN_PANE_SIZE = 0.18;
+export type PaneSplitDirection = "horizontal" | "vertical";
+export type PaneFocusDirection = "left" | "right" | "up" | "down";
 
 export interface TerminalSession {
   id: string;
@@ -17,13 +16,30 @@ export interface TerminalSession {
   createdAtMs: number;
 }
 
+export interface WorkspacePaneNode {
+  kind: "pane";
+  id: string;
+  sessionId: string;
+}
+
+export interface WorkspaceSplitNode {
+  kind: "split";
+  id: string;
+  direction: PaneSplitDirection;
+  children: [WorkspaceLayoutNode, WorkspaceLayoutNode];
+  sizes: [number, number];
+}
+
+export type WorkspaceLayoutNode = WorkspacePaneNode | WorkspaceSplitNode;
+
 export interface WorkspaceTab {
   id: string;
   title: string;
+  focusedPaneId: string;
   focusedSessionId: string;
   isManuallyRenamed: boolean;
-  paneSizes: number[];
-  sessionIds: string[];
+  layout: WorkspaceLayoutNode;
+  primarySessionId: string;
   terminalTitle: string;
 }
 
@@ -41,7 +57,9 @@ export interface WorkspaceState {
   tabs: WorkspaceTab[];
   sessions: Record<string, TerminalSession>;
   activeTabId: string;
+  nextPaneNumber: number;
   nextSessionNumber: number;
+  nextSplitNumber: number;
   nextTabNumber: number;
   assistantStatus: AssistantStatus;
 }
@@ -49,10 +67,16 @@ export interface WorkspaceState {
 export type WorkspaceAction =
   | { type: "activateTab"; tabId: string; nowMs: number }
   | { type: "createTab"; nowMs: number }
-  | { type: "createSessionInTab"; tabId: string; nowMs: number }
   | {
-      type: "closeFocusedSession";
+      type: "splitPane";
       tabId: string;
+      direction: PaneSplitDirection;
+      nowMs: number;
+    }
+  | {
+      type: "closePane";
+      tabId: string;
+      paneId: string;
       nowMs: number;
       reason: "manual" | "exit";
     }
@@ -63,9 +87,19 @@ export type WorkspaceAction =
       reason: "manual" | "exit";
     }
   | {
-      type: "focusSession";
-      sessionId: string;
+      type: "closeTab";
       tabId: string;
+      nowMs: number;
+    }
+  | {
+      type: "focusPane";
+      paneId: string;
+      tabId: string;
+    }
+  | {
+      type: "moveFocus";
+      tabId: string;
+      direction: PaneFocusDirection;
     }
   | {
       type: "renameTab";
@@ -85,7 +119,24 @@ export type WorkspaceAction =
       destinationIndex: number;
       nowMs: number;
     }
-  | { type: "resizePane"; index: number; deltaRatio: number };
+  | { type: "resizeSplit"; splitId: string; deltaRatio: number };
+
+interface PaneRect {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+}
+
+interface RemovePaneResult {
+  layout: WorkspaceLayoutNode | null;
+  removed: boolean;
+  suggestedFocusPaneId: string | null;
+}
+
+const IMMEDIATE_EXIT_RELAUNCH_WINDOW_MS = 5_000;
+const MIN_PANE_SIZE = 0.18;
+const LAYOUT_EPSILON = 0.0001;
 
 function roundPaneSize(size: number): number {
   return Math.round(size * 10_000) / 10_000;
@@ -126,17 +177,30 @@ function createRecoverySession(
   return createSession(sessionNumber, nowMs);
 }
 
+function createPaneNode(
+  paneNumber: number,
+  sessionId: string,
+): WorkspacePaneNode {
+  return {
+    kind: "pane",
+    id: `pane-${paneNumber}`,
+    sessionId,
+  };
+}
+
 function createWorkspaceTab(
   tabNumber: number,
+  pane: WorkspacePaneNode,
   session: TerminalSession,
 ): WorkspaceTab {
   return {
     id: `tab-${tabNumber}`,
     title: session.title,
+    focusedPaneId: pane.id,
     focusedSessionId: session.id,
     isManuallyRenamed: false,
-    paneSizes: [1],
-    sessionIds: [session.id],
+    layout: pane,
+    primarySessionId: session.id,
     terminalTitle: session.title,
   };
 }
@@ -148,8 +212,6 @@ function createAssistantStatus(
   nowMs: number,
   emotion?: AssistantEmotionalState,
 ): AssistantStatus {
-  // exactOptionalPropertyTypes 이 켜져 잇어서 undefined 를 직접 박으면 타입 안 맞음.
-  // emotion 이 잇을 때만 스프레드로 필드를 얹어 준다.
   return {
     visualState,
     ...(emotion !== undefined ? { emotion } : {}),
@@ -169,8 +231,36 @@ function createBalancedPaneSizes(count: number): number[] {
   return Array.from({ length: count }, () => size);
 }
 
+function normalizeSplitSizes(
+  sizes: readonly [number, number],
+): [number, number] {
+  const total = sizes[0] + sizes[1];
+
+  if (total <= 0) {
+    const balanced = createBalancedPaneSizes(2);
+    return [balanced[0] ?? 0.5, balanced[1] ?? 0.5];
+  }
+
+  return [roundPaneSize(sizes[0] / total), roundPaneSize(sizes[1] / total)];
+}
+
+function getLayoutSessionIds(layout: WorkspaceLayoutNode): string[] {
+  if (layout.kind === "pane") {
+    return [layout.sessionId];
+  }
+
+  return [
+    ...getLayoutSessionIds(layout.children[0]),
+    ...getLayoutSessionIds(layout.children[1]),
+  ];
+}
+
+export function getTabSessionIds(tab: WorkspaceTab): string[] {
+  return getLayoutSessionIds(tab.layout);
+}
+
 function getPrimarySessionId(tab: WorkspaceTab): string | null {
-  return tab.sessionIds[0] ?? null;
+  return tab.primarySessionId;
 }
 
 function getSession(
@@ -188,29 +278,43 @@ function getTabIndexBySessionId(
   state: WorkspaceState,
   sessionId: string,
 ): number {
-  return state.tabs.findIndex((tab) => tab.sessionIds.includes(sessionId));
+  return state.tabs.findIndex((tab) => getTabSessionIds(tab).includes(sessionId));
 }
 
-function normalizePaneSizes(paneSizes: number[]): number[] {
-  if (paneSizes.length <= 1) {
-    return paneSizes.length === 1 ? [1] : [];
+function findPaneById(
+  layout: WorkspaceLayoutNode,
+  paneId: string,
+): WorkspacePaneNode | null {
+  if (layout.kind === "pane") {
+    return layout.id === paneId ? layout : null;
   }
 
-  const total = paneSizes.reduce((sum, size) => sum + size, 0);
-
-  if (total <= 0) {
-    return createBalancedPaneSizes(paneSizes.length);
-  }
-
-  return paneSizes.map((size) => roundPaneSize(size / total));
-}
-
-function removePaneSizeAtIndex(paneSizes: number[], index: number): number[] {
-  const nextPaneSizes = paneSizes.filter(
-    (_paneSize, paneIndex) => paneIndex !== index,
+  return (
+    findPaneById(layout.children[0], paneId) ??
+    findPaneById(layout.children[1], paneId)
   );
+}
 
-  return normalizePaneSizes(nextPaneSizes);
+function findPaneBySessionId(
+  layout: WorkspaceLayoutNode,
+  sessionId: string,
+): WorkspacePaneNode | null {
+  if (layout.kind === "pane") {
+    return layout.sessionId === sessionId ? layout : null;
+  }
+
+  return (
+    findPaneBySessionId(layout.children[0], sessionId) ??
+    findPaneBySessionId(layout.children[1], sessionId)
+  );
+}
+
+function findFirstPane(layout: WorkspaceLayoutNode): WorkspacePaneNode {
+  if (layout.kind === "pane") {
+    return layout;
+  }
+
+  return findFirstPane(layout.children[0]);
 }
 
 function syncTabWithPrimarySession(
@@ -278,8 +382,13 @@ function createReplacementWorkspaceState(
   const replacementSession = shouldPauseAutoLaunch
     ? createRecoverySession(state.nextSessionNumber, nowMs)
     : createSession(state.nextSessionNumber, nowMs);
+  const replacementPane = createPaneNode(
+    state.nextPaneNumber,
+    replacementSession.id,
+  );
   const replacementTab = createWorkspaceTab(
     state.nextTabNumber,
+    replacementPane,
     replacementSession,
   );
   const replacementLine = shouldPauseAutoLaunch
@@ -294,7 +403,9 @@ function createReplacementWorkspaceState(
       [replacementSession.id]: replacementSession,
     },
     activeTabId: replacementTab.id,
+    nextPaneNumber: state.nextPaneNumber + 1,
     nextSessionNumber: state.nextSessionNumber + 1,
+    nextSplitNumber: state.nextSplitNumber,
     nextTabNumber: state.nextTabNumber + 1,
     assistantStatus: createAssistantStatus(
       shouldPauseAutoLaunch ? "error" : "waiting",
@@ -305,6 +416,363 @@ function createReplacementWorkspaceState(
       nowMs,
     ),
   };
+}
+
+function removePaneFromLayout(
+  layout: WorkspaceLayoutNode,
+  paneId: string,
+): RemovePaneResult {
+  if (layout.kind === "pane") {
+    if (layout.id !== paneId) {
+      return {
+        layout,
+        removed: false,
+        suggestedFocusPaneId: null,
+      };
+    }
+
+    return {
+      layout: null,
+      removed: true,
+      suggestedFocusPaneId: null,
+    };
+  }
+
+  const firstChildResult = removePaneFromLayout(layout.children[0], paneId);
+
+  if (firstChildResult.removed) {
+    if (firstChildResult.layout === null) {
+      const fallbackPane = findFirstPane(layout.children[1]);
+
+      return {
+        layout: layout.children[1],
+        removed: true,
+        suggestedFocusPaneId: fallbackPane.id,
+      };
+    }
+
+    return {
+      layout: {
+        ...layout,
+        children: [firstChildResult.layout, layout.children[1]],
+      },
+      removed: true,
+      suggestedFocusPaneId: firstChildResult.suggestedFocusPaneId,
+    };
+  }
+
+  const secondChildResult = removePaneFromLayout(layout.children[1], paneId);
+
+  if (secondChildResult.removed) {
+    if (secondChildResult.layout === null) {
+      const fallbackPane = findFirstPane(layout.children[0]);
+
+      return {
+        layout: layout.children[0],
+        removed: true,
+        suggestedFocusPaneId: fallbackPane.id,
+      };
+    }
+
+    return {
+      layout: {
+        ...layout,
+        children: [layout.children[0], secondChildResult.layout],
+      },
+      removed: true,
+      suggestedFocusPaneId: secondChildResult.suggestedFocusPaneId,
+    };
+  }
+
+  return {
+    layout,
+    removed: false,
+    suggestedFocusPaneId: null,
+  };
+}
+
+function splitPaneInLayout(
+  layout: WorkspaceLayoutNode,
+  paneId: string,
+  direction: PaneSplitDirection,
+  splitId: string,
+  nextPane: WorkspacePaneNode,
+): WorkspaceLayoutNode {
+  if (layout.kind === "pane") {
+    if (layout.id !== paneId) {
+      return layout;
+    }
+
+    return {
+      kind: "split",
+      id: splitId,
+      direction,
+      children: [layout, nextPane],
+      sizes: [0.5, 0.5],
+    };
+  }
+
+  const firstChild = splitPaneInLayout(
+    layout.children[0],
+    paneId,
+    direction,
+    splitId,
+    nextPane,
+  );
+
+  if (firstChild !== layout.children[0]) {
+    return {
+      ...layout,
+      children: [firstChild, layout.children[1]],
+    };
+  }
+
+  const secondChild = splitPaneInLayout(
+    layout.children[1],
+    paneId,
+    direction,
+    splitId,
+    nextPane,
+  );
+
+  if (secondChild !== layout.children[1]) {
+    return {
+      ...layout,
+      children: [layout.children[0], secondChild],
+    };
+  }
+
+  return layout;
+}
+
+function resizeSplitInLayout(
+  layout: WorkspaceLayoutNode,
+  splitId: string,
+  deltaRatio: number,
+): WorkspaceLayoutNode {
+  if (layout.kind === "pane") {
+    return layout;
+  }
+
+  if (layout.id === splitId) {
+    return {
+      ...layout,
+      sizes: resizePaneSizes(layout.sizes, 0, deltaRatio),
+    };
+  }
+
+  const firstChild = resizeSplitInLayout(layout.children[0], splitId, deltaRatio);
+
+  if (firstChild !== layout.children[0]) {
+    return {
+      ...layout,
+      children: [firstChild, layout.children[1]],
+    };
+  }
+
+  const secondChild = resizeSplitInLayout(
+    layout.children[1],
+    splitId,
+    deltaRatio,
+  );
+
+  if (secondChild !== layout.children[1]) {
+    return {
+      ...layout,
+      children: [layout.children[0], secondChild],
+    };
+  }
+
+  return layout;
+}
+
+function collectPaneRects(
+  layout: WorkspaceLayoutNode,
+  rects: Map<string, PaneRect>,
+  left = 0,
+  top = 0,
+  width = 1,
+  height = 1,
+): void {
+  if (layout.kind === "pane") {
+    rects.set(layout.id, {
+      left,
+      top,
+      right: left + width,
+      bottom: top + height,
+    });
+    return;
+  }
+
+  const sizes = normalizeSplitSizes(layout.sizes);
+
+  if (layout.direction === "horizontal") {
+    const firstWidth = width * sizes[0];
+    const secondWidth = width * sizes[1];
+
+    collectPaneRects(layout.children[0], rects, left, top, firstWidth, height);
+    collectPaneRects(
+      layout.children[1],
+      rects,
+      left + firstWidth,
+      top,
+      secondWidth,
+      height,
+    );
+    return;
+  }
+
+  const firstHeight = height * sizes[0];
+  const secondHeight = height * sizes[1];
+
+  collectPaneRects(layout.children[0], rects, left, top, width, firstHeight);
+  collectPaneRects(
+    layout.children[1],
+    rects,
+    left,
+    top + firstHeight,
+    width,
+    secondHeight,
+  );
+}
+
+function getAxisGap(
+  startA: number,
+  endA: number,
+  startB: number,
+  endB: number,
+): number {
+  if (endA < startB) {
+    return startB - endA;
+  }
+
+  if (endB < startA) {
+    return startA - endB;
+  }
+
+  return 0;
+}
+
+function getRectCenterX(rect: PaneRect): number {
+  return (rect.left + rect.right) / 2;
+}
+
+function getRectCenterY(rect: PaneRect): number {
+  return (rect.top + rect.bottom) / 2;
+}
+
+function resolveAdjacentPaneId(
+  layout: WorkspaceLayoutNode,
+  focusedPaneId: string,
+  direction: PaneFocusDirection,
+): string | null {
+  const rects = new Map<string, PaneRect>();
+
+  collectPaneRects(layout, rects);
+
+  const currentRect = rects.get(focusedPaneId);
+
+  if (currentRect === undefined) {
+    return null;
+  }
+
+  let bestCandidate:
+    | {
+        centerDistance: number;
+        paneId: string;
+        primaryGap: number;
+        secondaryGap: number;
+      }
+    | null = null;
+
+  for (const [paneId, rect] of rects.entries()) {
+    if (paneId === focusedPaneId) {
+      continue;
+    }
+
+    let primaryGap = Number.POSITIVE_INFINITY;
+    let secondaryGap = Number.POSITIVE_INFINITY;
+    let centerDistance = Number.POSITIVE_INFINITY;
+
+    if (direction === "left") {
+      if (rect.right > currentRect.left + LAYOUT_EPSILON) {
+        continue;
+      }
+
+      primaryGap = currentRect.left - rect.right;
+      secondaryGap = getAxisGap(
+        currentRect.top,
+        currentRect.bottom,
+        rect.top,
+        rect.bottom,
+      );
+      centerDistance = Math.abs(getRectCenterY(currentRect) - getRectCenterY(rect));
+    }
+
+    if (direction === "right") {
+      if (rect.left + LAYOUT_EPSILON < currentRect.right) {
+        continue;
+      }
+
+      primaryGap = rect.left - currentRect.right;
+      secondaryGap = getAxisGap(
+        currentRect.top,
+        currentRect.bottom,
+        rect.top,
+        rect.bottom,
+      );
+      centerDistance = Math.abs(getRectCenterY(currentRect) - getRectCenterY(rect));
+    }
+
+    if (direction === "up") {
+      if (rect.bottom > currentRect.top + LAYOUT_EPSILON) {
+        continue;
+      }
+
+      primaryGap = currentRect.top - rect.bottom;
+      secondaryGap = getAxisGap(
+        currentRect.left,
+        currentRect.right,
+        rect.left,
+        rect.right,
+      );
+      centerDistance = Math.abs(getRectCenterX(currentRect) - getRectCenterX(rect));
+    }
+
+    if (direction === "down") {
+      if (rect.top + LAYOUT_EPSILON < currentRect.bottom) {
+        continue;
+      }
+
+      primaryGap = rect.top - currentRect.bottom;
+      secondaryGap = getAxisGap(
+        currentRect.left,
+        currentRect.right,
+        rect.left,
+        rect.right,
+      );
+      centerDistance = Math.abs(getRectCenterX(currentRect) - getRectCenterX(rect));
+    }
+
+    if (
+      bestCandidate === null ||
+      primaryGap < bestCandidate.primaryGap ||
+      (primaryGap === bestCandidate.primaryGap &&
+        secondaryGap < bestCandidate.secondaryGap) ||
+      (primaryGap === bestCandidate.primaryGap &&
+        secondaryGap === bestCandidate.secondaryGap &&
+        centerDistance < bestCandidate.centerDistance)
+    ) {
+      bestCandidate = {
+        paneId,
+        primaryGap,
+        secondaryGap,
+        centerDistance,
+      };
+    }
+  }
+
+  return bestCandidate?.paneId ?? null;
 }
 
 function closeSessionState(
@@ -326,22 +794,22 @@ function closeSessionState(
     return state;
   }
 
-  const sessionIndex = tab.sessionIds.findIndex(
-    (candidateSessionId) => candidateSessionId === sessionId,
-  );
+  const paneToClose = findPaneBySessionId(tab.layout, sessionId);
 
-  if (sessionIndex < 0) {
+  if (paneToClose === null) {
     return state;
   }
 
   const nextSessions = { ...state.sessions };
   delete nextSessions[sessionId];
 
-  const remainingSessionIds = tab.sessionIds.filter(
-    (candidateSessionId) => candidateSessionId !== sessionId,
-  );
+  const removeResult = removePaneFromLayout(tab.layout, paneToClose.id);
 
-  if (remainingSessionIds.length === 0) {
+  if (!removeResult.removed) {
+    return state;
+  }
+
+  if (removeResult.layout === null) {
     const remainingTabs = state.tabs.filter(
       (candidateTab) => candidateTab.id !== tab.id,
     );
@@ -378,26 +846,29 @@ function closeSessionState(
     };
   }
 
-  const nextFocusedSessionId =
-    tab.focusedSessionId !== sessionId
-      ? tab.focusedSessionId
-      : (remainingSessionIds[Math.max(0, sessionIndex - 1)] ??
-          remainingSessionIds[0]);
+  const nextPrimaryPane = findFirstPane(removeResult.layout);
+  const nextPrimarySessionId = nextPrimaryPane.sessionId;
+  const fallbackFocusedPaneId =
+    removeResult.suggestedFocusPaneId ?? nextPrimaryPane.id;
+  const nextFocusedPaneId =
+    tab.focusedPaneId !== paneToClose.id
+      ? tab.focusedPaneId
+      : fallbackFocusedPaneId;
+  const nextFocusedPane = findPaneById(removeResult.layout, nextFocusedPaneId);
+  const resolvedFocusedPane =
+    nextFocusedPane ?? findPaneById(removeResult.layout, fallbackFocusedPaneId);
 
-  if (typeof nextFocusedSessionId !== "string") {
+  if (resolvedFocusedPane === null) {
     return state;
   }
 
-  const resizedPaneSizes = removePaneSizeAtIndex(tab.paneSizes, sessionIndex);
   const nextTab = syncTabWithPrimarySession(
     {
       ...tab,
-      focusedSessionId: nextFocusedSessionId,
-      paneSizes:
-        resizedPaneSizes.length > 0
-          ? resizedPaneSizes
-          : createBalancedPaneSizes(remainingSessionIds.length),
-      sessionIds: remainingSessionIds,
+      focusedPaneId: resolvedFocusedPane.id,
+      focusedSessionId: resolvedFocusedPane.sessionId,
+      layout: removeResult.layout,
+      primarySessionId: nextPrimarySessionId,
     },
     nextSessions,
   );
@@ -418,7 +889,8 @@ function closeSessionState(
 
 export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
   const firstSession = createSession(1, nowMs - 2_500);
-  const firstTab = createWorkspaceTab(1, firstSession);
+  const firstPane = createPaneNode(1, firstSession.id);
+  const firstTab = createWorkspaceTab(1, firstPane, firstSession);
 
   return {
     tabs: [firstTab],
@@ -426,7 +898,9 @@ export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
       [firstSession.id]: firstSession,
     },
     activeTabId: firstTab.id,
+    nextPaneNumber: 2,
     nextSessionNumber: 2,
+    nextSplitNumber: 1,
     nextTabNumber: 2,
     assistantStatus: createAssistantStatus(
       "disconnected",
@@ -470,18 +944,14 @@ export function getVisibleSessions(state: WorkspaceState): TerminalSession[] {
     return [];
   }
 
-  return activeTab.sessionIds.flatMap((sessionId) => {
+  return getTabSessionIds(activeTab).flatMap((sessionId) => {
     const session = state.sessions[sessionId];
     return session === undefined ? [] : [session];
   });
 }
 
-export function getActivePaneSizes(state: WorkspaceState): number[] {
-  return getActiveTab(state)?.paneSizes ?? [];
-}
-
 export function getAllSessionIds(state: WorkspaceState): string[] {
-  return state.tabs.flatMap((tab) => tab.sessionIds);
+  return state.tabs.flatMap((tab) => getTabSessionIds(tab));
 }
 
 export function formatElapsedLabel(elapsedMs: number): string {
@@ -505,15 +975,15 @@ export function formatElapsedLabel(elapsedMs: number): string {
 }
 
 export function resizePaneSizes(
-  paneSizes: number[],
+  paneSizes: readonly [number, number],
   index: number,
   deltaRatio: number,
-): number[] {
+): [number, number] {
   const currentSize = paneSizes[index];
   const nextSize = paneSizes[index + 1];
 
   if (currentSize === undefined || nextSize === undefined) {
-    return paneSizes;
+    return [paneSizes[0], paneSizes[1]];
   }
 
   const minDelta = -(currentSize - MIN_PANE_SIZE);
@@ -521,20 +991,13 @@ export function resizePaneSizes(
   const boundedDelta = Math.min(Math.max(deltaRatio, minDelta), maxDelta);
 
   if (boundedDelta === 0) {
-    return paneSizes;
+    return [paneSizes[0], paneSizes[1]];
   }
 
-  return paneSizes.map((size, paneIndex) => {
-    if (paneIndex === index) {
-      return roundPaneSize(size + boundedDelta);
-    }
-
-    if (paneIndex === index + 1) {
-      return roundPaneSize(size - boundedDelta);
-    }
-
-    return size;
-  });
+  return normalizeSplitSizes([
+    roundPaneSize(currentSize + boundedDelta),
+    roundPaneSize(nextSize - boundedDelta),
+  ]);
 }
 
 function activateTabState(
@@ -559,20 +1022,23 @@ function activateTabState(
   };
 }
 
-function focusSessionState(
+function focusPaneState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: "focusSession" }>,
+  action: Extract<WorkspaceAction, { type: "focusPane" }>,
 ): WorkspaceState {
   const tab = getTabById(state, action.tabId);
 
-  if (tab === null || !tab.sessionIds.includes(action.sessionId)) {
+  if (tab === null) {
     return state;
   }
 
-  if (
-    tab.focusedSessionId === action.sessionId &&
-    state.activeTabId === action.tabId
-  ) {
+  const pane = findPaneById(tab.layout, action.paneId);
+
+  if (pane === null) {
+    return state;
+  }
+
+  if (tab.focusedPaneId === pane.id && state.activeTabId === action.tabId) {
     return state;
   }
 
@@ -583,11 +1049,39 @@ function focusSessionState(
       candidateTab.id === action.tabId
         ? {
             ...candidateTab,
-            focusedSessionId: action.sessionId,
+            focusedPaneId: pane.id,
+            focusedSessionId: pane.sessionId,
           }
         : candidateTab,
     ),
   };
+}
+
+function moveFocusState(
+  state: WorkspaceState,
+  action: Extract<WorkspaceAction, { type: "moveFocus" }>,
+): WorkspaceState {
+  const tab = getTabById(state, action.tabId);
+
+  if (tab === null) {
+    return state;
+  }
+
+  const nextPaneId = resolveAdjacentPaneId(
+    tab.layout,
+    tab.focusedPaneId,
+    action.direction,
+  );
+
+  if (nextPaneId === null) {
+    return state;
+  }
+
+  return focusPaneState(state, {
+    type: "focusPane",
+    tabId: action.tabId,
+    paneId: nextPaneId,
+  });
 }
 
 function renameTabState(
@@ -601,7 +1095,6 @@ function renameTabState(
     return state;
   }
 
-  // 수동 편집에서 타이틀을 전부 지우면 잠금을 해제하고 캐싱된 터미널 타이틀로 복원한다.
   if (normalizedTitle.length === 0) {
     if (!tabToUpdate.isManuallyRenamed) {
       return state;
@@ -771,7 +1264,8 @@ function createTabState(
   action: Extract<WorkspaceAction, { type: "createTab" }>,
 ): WorkspaceState {
   const nextSession = createSession(state.nextSessionNumber, action.nowMs);
-  const nextTab = createWorkspaceTab(state.nextTabNumber, nextSession);
+  const nextPane = createPaneNode(state.nextPaneNumber, nextSession.id);
+  const nextTab = createWorkspaceTab(state.nextTabNumber, nextPane, nextSession);
 
   return {
     tabs: [...state.tabs, nextTab],
@@ -780,7 +1274,9 @@ function createTabState(
       [nextSession.id]: nextSession,
     },
     activeTabId: nextTab.id,
+    nextPaneNumber: state.nextPaneNumber + 1,
     nextSessionNumber: state.nextSessionNumber + 1,
+    nextSplitNumber: state.nextSplitNumber,
     nextTabNumber: state.nextTabNumber + 1,
     assistantStatus: createAssistantStatus(
       "completed",
@@ -792,9 +1288,9 @@ function createTabState(
   };
 }
 
-function createSessionInTabState(
+function splitPaneState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: "createSessionInTab" }>,
+  action: Extract<WorkspaceAction, { type: "splitPane" }>,
 ): WorkspaceState {
   const tab = getTabById(state, action.tabId);
 
@@ -803,12 +1299,25 @@ function createSessionInTabState(
   }
 
   const nextSession = createSession(state.nextSessionNumber, action.nowMs);
+  const nextPane = createPaneNode(state.nextPaneNumber, nextSession.id);
+  const nextLayout = splitPaneInLayout(
+    tab.layout,
+    tab.focusedPaneId,
+    action.direction,
+    `split-${state.nextSplitNumber}`,
+    nextPane,
+  );
+
+  if (nextLayout === tab.layout) {
+    return state;
+  }
+
   const nextTab = syncTabWithPrimarySession(
     {
       ...tab,
+      focusedPaneId: nextPane.id,
       focusedSessionId: nextSession.id,
-      paneSizes: createBalancedPaneSizes(tab.sessionIds.length + 1),
-      sessionIds: [...tab.sessionIds, nextSession.id],
+      layout: nextLayout,
     },
     {
       ...state.sessions,
@@ -826,10 +1335,14 @@ function createSessionInTabState(
       [nextSession.id]: nextSession,
     },
     activeTabId: action.tabId,
+    nextPaneNumber: state.nextPaneNumber + 1,
     nextSessionNumber: state.nextSessionNumber + 1,
+    nextSplitNumber: state.nextSplitNumber + 1,
     assistantStatus: createAssistantStatus(
       "completed",
-      "같은 탭에 세션 하나 더 붙엿어요. 이제 좀 분할기 냄새 나죠...!",
+      action.direction === "horizontal"
+        ? "세션을 옆으로 갈랏어요. 작업대가 넓어졋다...!"
+        : "세션을 아래로 갈랏어요. 층 분리 깔끔해요...!",
       `Bootstrapping "${nextSession.title}" in "${tab.title}"`,
       action.nowMs,
       "happy",
@@ -837,9 +1350,9 @@ function createSessionInTabState(
   };
 }
 
-function resizeActiveTabPaneState(
+function resizeSplitState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: "resizePane" }>,
+  action: Extract<WorkspaceAction, { type: "resizeSplit" }>,
 ): WorkspaceState {
   const activeTab = getActiveTab(state);
 
@@ -847,26 +1360,27 @@ function resizeActiveTabPaneState(
     return state;
   }
 
+  const nextLayout = resizeSplitInLayout(
+    activeTab.layout,
+    action.splitId,
+    action.deltaRatio,
+  );
+
+  if (nextLayout === activeTab.layout) {
+    return state;
+  }
+
   return {
     ...state,
     tabs: state.tabs.map((tab) =>
-      tab.id === activeTab.id
-        ? {
-            ...tab,
-            paneSizes: resizePaneSizes(
-              activeTab.paneSizes,
-              action.index,
-              action.deltaRatio,
-            ),
-          }
-        : tab,
+      tab.id === activeTab.id ? { ...tab, layout: nextLayout } : tab,
     ),
   };
 }
 
-function closeFocusedSessionState(
+function closePaneState(
   state: WorkspaceState,
-  action: Extract<WorkspaceAction, { type: "closeFocusedSession" }>,
+  action: Extract<WorkspaceAction, { type: "closePane" }>,
 ): WorkspaceState {
   const tab = getTabById(state, action.tabId);
 
@@ -874,12 +1388,90 @@ function closeFocusedSessionState(
     return state;
   }
 
+  const pane = findPaneById(tab.layout, action.paneId);
+
+  if (pane === null) {
+    return state;
+  }
+
   return closeSessionState(
     state,
-    tab.focusedSessionId,
+    pane.sessionId,
     action.nowMs,
     action.reason,
   );
+}
+
+function closeTabState(
+  state: WorkspaceState,
+  action: Extract<WorkspaceAction, { type: "closeTab" }>,
+): WorkspaceState {
+  const tabIndex = state.tabs.findIndex((tab) => tab.id === action.tabId);
+
+  if (tabIndex < 0) {
+    return state;
+  }
+
+  const tab = state.tabs[tabIndex];
+
+  if (tab === undefined) {
+    return state;
+  }
+
+  const focusedSession =
+    state.sessions[tab.focusedSessionId] ??
+    state.sessions[tab.primarySessionId] ??
+    null;
+
+  if (focusedSession === null) {
+    return state;
+  }
+
+  const nextSessions = { ...state.sessions };
+
+  for (const sessionId of getTabSessionIds(tab)) {
+    delete nextSessions[sessionId];
+  }
+
+  const remainingTabs = state.tabs.filter(
+    (candidateTab) => candidateTab.id !== action.tabId,
+  );
+
+  if (remainingTabs.length === 0) {
+    return createReplacementWorkspaceState(
+      {
+        ...state,
+        sessions: nextSessions,
+      },
+      focusedSession,
+      action.nowMs,
+      "manual",
+    );
+  }
+
+  const nextActiveTabId =
+    state.activeTabId !== tab.id
+      ? state.activeTabId
+      : (remainingTabs[Math.max(0, tabIndex - 1)]?.id ??
+          remainingTabs[0]?.id);
+
+  if (typeof nextActiveTabId !== "string") {
+    return state;
+  }
+
+  return {
+    ...state,
+    tabs: remainingTabs,
+    sessions: nextSessions,
+    activeTabId: nextActiveTabId,
+    assistantStatus: createAssistantStatus(
+      "completed",
+      "탭 하나 닫앗어요. 화면이 좀 더 단정해졋죠...!",
+      `Closed tab "${tab.title}"`,
+      action.nowMs,
+      "happy",
+    ),
+  };
 }
 
 export function workspaceReducer(
@@ -894,12 +1486,12 @@ export function workspaceReducer(
     return createTabState(state, action);
   }
 
-  if (action.type === "createSessionInTab") {
-    return createSessionInTabState(state, action);
+  if (action.type === "splitPane") {
+    return splitPaneState(state, action);
   }
 
-  if (action.type === "closeFocusedSession") {
-    return closeFocusedSessionState(state, action);
+  if (action.type === "closePane") {
+    return closePaneState(state, action);
   }
 
   if (action.type === "closeSession") {
@@ -911,8 +1503,16 @@ export function workspaceReducer(
     );
   }
 
-  if (action.type === "focusSession") {
-    return focusSessionState(state, action);
+  if (action.type === "closeTab") {
+    return closeTabState(state, action);
+  }
+
+  if (action.type === "focusPane") {
+    return focusPaneState(state, action);
+  }
+
+  if (action.type === "moveFocus") {
+    return moveFocusState(state, action);
   }
 
   if (action.type === "renameTab") {
@@ -927,5 +1527,5 @@ export function workspaceReducer(
     return reorderTabState(state, action);
   }
 
-  return resizeActiveTabPaneState(state, action);
+  return resizeSplitState(state, action);
 }

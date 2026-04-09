@@ -1,5 +1,11 @@
 import { useReducer } from "react";
-import { createInitialWorkspaceState, workspaceReducer } from "../model";
+import {
+  createInitialWorkspaceState,
+  getAllSessionIds,
+  getTabSessionIds,
+  type PaneSplitDirection,
+  workspaceReducer,
+} from "../model";
 import {
   useTerminalSessionPruner,
   useWorkspaceTerminalExitSubscription,
@@ -9,13 +15,14 @@ import { useWorkspaceKeyboardShortcuts } from "./use-workspace-keyboard-shortcut
 export interface WorkspaceViewModel {
   state: ReturnType<typeof createInitialWorkspaceState>;
   activateTab: (tabId: string) => void;
+  closePane: (tabId: string, paneId: string, sessionId: string) => void;
   closeTab: (tabId: string) => void;
   createTab: () => void;
-  createSessionInTab: (tabId: string) => void;
-  focusSession: (tabId: string, sessionId: string) => void;
+  focusPane: (tabId: string, paneId: string) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
-  resizePane: (index: number, deltaRatio: number) => void;
   renameTab: (tabId: string, title: string) => void;
+  resizeSplit: (splitId: string, deltaRatio: number) => void;
+  splitPane: (tabId: string, direction: PaneSplitDirection) => void;
   syncSessionTitle: (sessionId: string, title: string) => void;
 }
 
@@ -27,12 +34,27 @@ export function useWorkspaceState(): WorkspaceViewModel {
   );
   useWorkspaceTerminalExitSubscription(dispatch);
   useWorkspaceKeyboardShortcuts(state, dispatch);
-  useTerminalSessionPruner(state.tabs.flatMap((tab) => tab.sessionIds));
+  useTerminalSessionPruner(getAllSessionIds(state));
 
   return {
     state,
     activateTab: (tabId: string) => {
       dispatch({ type: "activateTab", tabId, nowMs: Date.now() });
+    },
+    closePane: (tabId, paneId, sessionId) => {
+      const terminalsBridge = window.claudeApp?.terminals;
+
+      if (terminalsBridge !== undefined) {
+        void terminalsBridge.closeSession({ sessionId });
+      }
+
+      dispatch({
+        type: "closePane",
+        tabId,
+        paneId,
+        nowMs: Date.now(),
+        reason: "manual",
+      });
     },
     closeTab: (tabId: string) => {
       const tab = state.tabs.find((candidateTab) => candidateTab.id === tabId);
@@ -44,33 +66,25 @@ export function useWorkspaceState(): WorkspaceViewModel {
       const terminalsBridge = window.claudeApp?.terminals;
 
       if (terminalsBridge !== undefined) {
-        void terminalsBridge.closeSession({
-          sessionId: tab.focusedSessionId,
-        });
+        for (const sessionId of getTabSessionIds(tab)) {
+          void terminalsBridge.closeSession({ sessionId });
+        }
       }
 
       dispatch({
-        type: "closeFocusedSession",
+        type: "closeTab",
         tabId,
         nowMs: Date.now(),
-        reason: "manual",
       });
     },
     createTab: () => {
       dispatch({ type: "createTab", nowMs: Date.now() });
     },
-    createSessionInTab: (tabId: string) => {
+    focusPane: (tabId: string, paneId: string) => {
       dispatch({
-        type: "createSessionInTab",
+        type: "focusPane",
         tabId,
-        nowMs: Date.now(),
-      });
-    },
-    focusSession: (tabId: string, sessionId: string) => {
-      dispatch({
-        type: "focusSession",
-        tabId,
-        sessionId,
+        paneId,
       });
     },
     reorderTab: (tabId: string, destinationIndex: number) => {
@@ -81,14 +95,22 @@ export function useWorkspaceState(): WorkspaceViewModel {
         nowMs: Date.now(),
       });
     },
-    resizePane: (index: number, deltaRatio: number) => {
-      dispatch({ type: "resizePane", index, deltaRatio });
-    },
     renameTab: (tabId, title) => {
       dispatch({
         type: "renameTab",
         tabId,
         title,
+        nowMs: Date.now(),
+      });
+    },
+    resizeSplit: (splitId, deltaRatio) => {
+      dispatch({ type: "resizeSplit", splitId, deltaRatio });
+    },
+    splitPane: (tabId, direction) => {
+      dispatch({
+        type: "splitPane",
+        tabId,
+        direction,
         nowMs: Date.now(),
       });
     },

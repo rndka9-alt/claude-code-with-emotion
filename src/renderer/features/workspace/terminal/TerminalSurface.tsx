@@ -6,8 +6,9 @@ import { getTerminalSessionController } from "./terminal-session-registry";
 interface TerminalSurfaceProps {
   focusRequestKey: number;
   isActive: boolean;
-  onFocusSession: (sessionId: string) => void;
+  onFocusPane: (paneId: string) => void;
   onTitleChange: (sessionId: string, title: string) => void;
+  paneId: string;
   session: TerminalSession;
 }
 
@@ -28,8 +29,9 @@ function supportsXtermRuntime(): boolean {
 export function TerminalSurface({
   focusRequestKey,
   isActive,
-  onFocusSession,
+  onFocusPane,
   onTitleChange,
+  paneId,
   session,
 }: TerminalSurfaceProps): ReactElement {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +88,7 @@ export function TerminalSurface({
       <div
         className="terminal-surface__viewport m-0 flex h-full min-h-0 min-w-0 flex-1 items-stretch overflow-hidden border-0 bg-surface-terminal"
         onPointerDownCapture={() => {
-          onFocusSession(session.id);
+          onFocusPane(paneId);
         }}
         ref={hostRef}
       />
