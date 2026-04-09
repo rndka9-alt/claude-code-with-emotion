@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
+import {
+  createDefaultAssistantStatusSnapshot,
+  type AssistantStatusSnapshot,
+} from "../../../../shared/assistant-status";
 import type { AppThemeId, AppThemeOption } from "../../../../shared/theme";
 import type { VisualMcpSetupStatus } from "../../../../shared/mcp-setup-bridge";
 import {
@@ -208,17 +211,8 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   const activeTab = getActiveTab(state);
   const activeSession = getFocusedSession(state);
   const visibleSessions = getVisibleSessions(state);
-  const fallbackAssistantSnapshot: AssistantStatusSnapshot = {
-    activityLabel: "작업중",
-    emotion: state.assistantStatus.emotion ?? null,
-    overlayLine: null,
-    state: state.assistantStatus.visualState,
-    line: state.assistantStatus.line,
-    currentTask: state.assistantStatus.currentTask,
-    updatedAtMs: state.assistantStatus.statusSinceMs,
-    intensity: "medium",
-    source: "workspace",
-  };
+  const fallbackAssistantSnapshot: AssistantStatusSnapshot =
+    createDefaultAssistantStatusSnapshot(state.assistantStatus.statusSinceMs);
   const { activeSnapshot: assistantSnapshot } = useAssistantStatusStream(
     getAllSessionIds(state),
     activeSession?.id ?? null,

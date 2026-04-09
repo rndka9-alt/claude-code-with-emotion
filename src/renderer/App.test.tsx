@@ -105,6 +105,14 @@ describe("App focus restoration", () => {
     expect(terminal?.focus).toHaveBeenCalledTimes(2);
   });
 
+  it("shows the disconnected status copy before the assistant bridge responds", () => {
+    render(<App />);
+
+    expect(
+      screen.getByText(/Claude 아직 미연결이에요\. 준비되면 바로 붙을게요/),
+    ).toBeInTheDocument();
+  });
+
   it("does not steal focus from text inputs when the window regains focus", async () => {
     render(<App />);
 

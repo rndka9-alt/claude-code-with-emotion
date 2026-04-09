@@ -429,9 +429,9 @@ export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
     nextSessionNumber: 2,
     nextTabNumber: 2,
     assistantStatus: createAssistantStatus(
-      "working",
-      "새 세션 하나만 먼저 열어뒀어요...!",
-      `Bootstrapping "${firstTab.title}"`,
+      "disconnected",
+      "Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!",
+      "Waiting for Claude to start",
       nowMs,
     ),
   };

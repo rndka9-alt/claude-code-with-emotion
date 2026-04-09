@@ -30,6 +30,18 @@ describe("workspaceReducer", () => {
     ).toBe("");
   });
 
+  it("starts with the shared disconnected assistant fallback", () => {
+    const state = createInitialWorkspaceState(10_000);
+
+    expect(state.assistantStatus.visualState).toBe("disconnected");
+    expect(state.assistantStatus.line).toBe(
+      "Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!",
+    );
+    expect(state.assistantStatus.currentTask).toBe(
+      "Waiting for Claude to start",
+    );
+  });
+
   it("creates a new active tab with updated assistant status", () => {
     const state = createInitialWorkspaceState(10_000);
     const nextState = workspaceReducer(state, {
