@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { App } from "./App";
 
 function requireParentElement(element: HTMLElement): HTMLElement {
@@ -155,5 +155,168 @@ describe("App tab reordering", () => {
         name: "new session 1 · claude-code-with-emotion",
       }),
     ).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("auto-scrolls the tab strip while dragging near the edge", () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+
+    const strip = screen.getByRole("tablist", {
+      name: "Terminal sessions",
+    });
+    const firstTab = screen.getByRole("tab", {
+      name: "new session 1 · claude-code-with-emotion",
+    });
+    const firstTabContainer = requireParentElement(firstTab);
+    const stripRect = new DOMRect(0, 0, 240, 32);
+    let scrollLeft = 0;
+    let animationFrameId = 0;
+    const animationFrameCallbacks = new Map<number, FrameRequestCallback>();
+    const originalGetBoundingClientRect =
+      HTMLElement.prototype.getBoundingClientRect;
+
+    Object.defineProperty(strip, "clientWidth", {
+      configurable: true,
+      value: stripRect.width,
+    });
+    Object.defineProperty(strip, "scrollWidth", {
+      configurable: true,
+      value: 940,
+    });
+    Object.defineProperty(strip, "scrollLeft", {
+      configurable: true,
+      get() {
+        return scrollLeft;
+      },
+      set(value: number) {
+        scrollLeft = value;
+      },
+    });
+
+    HTMLElement.prototype.getBoundingClientRect =
+      function getBoundingClientRect(): DOMRect {
+        if (!(this instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        if (this === strip) {
+          return stripRect;
+        }
+
+        const container =
+          this.getAttribute("role") === "presentation"
+            ? this
+            : this.closest('[role="presentation"]');
+
+        if (!(container instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        const tabContainers = Array.from(strip.children).filter((child) => {
+          return (
+            child instanceof HTMLElement &&
+            child.getAttribute("role") === "presentation"
+          );
+        });
+        const index = tabContainers.indexOf(container);
+
+        if (index < 0) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        return new DOMRect(
+          stripRect.left + index * 182 - scrollLeft,
+          stripRect.top,
+          180,
+          28,
+        );
+      };
+
+    const requestAnimationFrameSpy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        animationFrameId += 1;
+        animationFrameCallbacks.set(animationFrameId, callback);
+        return animationFrameId;
+      });
+    const cancelAnimationFrameSpy = vi
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation((frameId: number) => {
+        animationFrameCallbacks.delete(frameId);
+      });
+
+    function flushNextAnimationFrame(timestamp: number): boolean {
+      const nextFrame = animationFrameCallbacks.entries().next().value;
+
+      if (nextFrame === undefined) {
+        return false;
+      }
+
+      const [frameId, callback] = nextFrame;
+      animationFrameCallbacks.delete(frameId);
+
+      act(() => {
+        callback(timestamp);
+      });
+
+      return true;
+    }
+
+    try {
+      fireEvent.pointerDown(firstTabContainer, {
+        button: 0,
+        clientX: 40,
+        clientY: 12,
+        pointerId: 1,
+      });
+      fireEvent.pointerMove(window, {
+        clientX: 300,
+        clientY: 12,
+        pointerId: 1,
+      });
+      expect(animationFrameCallbacks.size).toBeGreaterThan(0);
+
+      for (let frame = 1; frame <= 60; frame += 1) {
+        if (!flushNextAnimationFrame(frame * 16)) {
+          break;
+        }
+      }
+
+      fireEvent.pointerUp(window, {
+        clientX: 300,
+        clientY: 12,
+        pointerId: 1,
+      });
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect =
+        originalGetBoundingClientRect;
+      requestAnimationFrameSpy.mockRestore();
+      cancelAnimationFrameSpy.mockRestore();
+    }
+
+    expect(scrollLeft).toBeGreaterThan(0);
+
+    const tabNames = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    const firstTabIndex = tabNames.indexOf(
+      "new session 1 · claude-code-with-emotion",
+    );
+
+    expect(firstTabIndex).toBeGreaterThan(1);
   });
 });

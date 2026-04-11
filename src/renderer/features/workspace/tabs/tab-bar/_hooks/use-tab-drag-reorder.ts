@@ -6,6 +6,8 @@ const DRAG_START_DISTANCE_PX = 6;
 const DROP_THRESHOLD_RATIO = 0.3;
 const REORDER_ANIMATION_MS = 180;
 const REORDER_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+const AUTO_SCROLL_EDGE_THRESHOLD_PX = 48;
+const AUTO_SCROLL_MAX_SPEED_PX_PER_SECOND = 420;
 
 type DropIndicatorSide = "before" | "after";
 
@@ -79,6 +81,16 @@ function animateReorderedTabs(
   return nextPositions;
 }
 
+function getStripVisibleWidth(stripElement: HTMLDivElement): number {
+  const rect = stripElement.getBoundingClientRect();
+
+  if (stripElement.clientWidth > 0) {
+    return stripElement.clientWidth;
+  }
+
+  return rect.width;
+}
+
 export function useTabDragReorder(
   tabs: WorkspaceTab[],
   onReorderTab: (tabId: string, destinationIndex: number) => void,
@@ -95,8 +107,13 @@ export function useTabDragReorder(
   const tabElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabsRef = useRef(tabs);
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const lastPointerClientXRef = useRef<number | null>(null);
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const lastAutoScrollTimestampRef = useRef<number | null>(null);
+  const onReorderTabRef = useRef(onReorderTab);
 
   tabsRef.current = tabs;
+  onReorderTabRef.current = onReorderTab;
 
   const tabOrderRef = useRef(tabs.map((tab) => tab.id));
 
@@ -126,11 +143,170 @@ export function useTabDragReorder(
   }, [tabs]);
 
   useEffect(() => {
+    function stopAutoScroll(): void {
+      if (autoScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(autoScrollFrameRef.current);
+        autoScrollFrameRef.current = null;
+      }
+
+      lastAutoScrollTimestampRef.current = null;
+    }
+
     function resetDragState(): void {
+      stopAutoScroll();
+      lastPointerClientXRef.current = null;
       dragStateRef.current = null;
       setDraggingTabId(null);
       setDropIndicatorTabId(null);
       setDropIndicatorSide(null);
+    }
+
+    function updateDropTarget(pointerClientX: number, draggedTabId: string): void {
+      const currentTabs = tabsRef.current;
+      const orderedEntries = currentTabs
+        .map((tab) => {
+          return {
+            element: tabElementsRef.current.get(tab.id),
+            tab,
+          };
+        })
+        .filter(
+          (entry): entry is TabEntryWithElement => entry.element !== undefined,
+        );
+
+      if (orderedEntries.length === 0) {
+        return;
+      }
+
+      let destinationIndex = currentTabs.length;
+
+      for (const [index, entry] of orderedEntries.entries()) {
+        const rect = entry.element.getBoundingClientRect();
+        const insertionThresholdX =
+          rect.left + rect.width * DROP_THRESHOLD_RATIO;
+
+        if (pointerClientX < insertionThresholdX) {
+          destinationIndex = index;
+          break;
+        }
+      }
+
+      const tabAtIndicator =
+        destinationIndex >= currentTabs.length
+          ? (currentTabs[currentTabs.length - 1] ?? null)
+          : (currentTabs[destinationIndex] ?? null);
+      const indicatorSide =
+        destinationIndex >= currentTabs.length ? "after" : "before";
+
+      setDropIndicatorTabId(tabAtIndicator?.id ?? null);
+      setDropIndicatorSide(tabAtIndicator === null ? null : indicatorSide);
+      onReorderTabRef.current(draggedTabId, destinationIndex);
+    }
+
+    function getAutoScrollVelocity(
+      pointerClientX: number,
+      stripElement: HTMLDivElement,
+    ): number {
+      const rect = stripElement.getBoundingClientRect();
+      const visibleWidth = getStripVisibleWidth(stripElement);
+      const maxScrollLeft = Math.max(stripElement.scrollWidth - visibleWidth, 0);
+
+      if (maxScrollLeft === 0) {
+        return 0;
+      }
+
+      const leftThreshold = rect.left + AUTO_SCROLL_EDGE_THRESHOLD_PX;
+
+      if (
+        pointerClientX < leftThreshold &&
+        stripElement.scrollLeft > 0
+      ) {
+        const intensity = Math.min(
+          (leftThreshold - pointerClientX) / AUTO_SCROLL_EDGE_THRESHOLD_PX,
+          1,
+        );
+
+        return -AUTO_SCROLL_MAX_SPEED_PX_PER_SECOND * intensity * intensity;
+      }
+
+      const rightThreshold = rect.right - AUTO_SCROLL_EDGE_THRESHOLD_PX;
+
+      if (
+        pointerClientX > rightThreshold &&
+        stripElement.scrollLeft < maxScrollLeft
+      ) {
+        const intensity = Math.min(
+          (pointerClientX - rightThreshold) / AUTO_SCROLL_EDGE_THRESHOLD_PX,
+          1,
+        );
+
+        return AUTO_SCROLL_MAX_SPEED_PX_PER_SECOND * intensity * intensity;
+      }
+
+      return 0;
+    }
+
+    function runAutoScrollFrame(timestamp: number): void {
+      autoScrollFrameRef.current = null;
+
+      const dragState = dragStateRef.current;
+      const stripElement = stripRef.current;
+      const pointerClientX = lastPointerClientXRef.current;
+
+      if (
+        dragState === null ||
+        dragState.hasStarted === false ||
+        stripElement === null ||
+        pointerClientX === null
+      ) {
+        lastAutoScrollTimestampRef.current = null;
+        return;
+      }
+
+      const velocity = getAutoScrollVelocity(pointerClientX, stripElement);
+
+      if (velocity === 0) {
+        lastAutoScrollTimestampRef.current = null;
+        return;
+      }
+
+      const previousTimestamp = lastAutoScrollTimestampRef.current;
+      const elapsedMs =
+        previousTimestamp === null
+          ? 16
+          : Math.min(timestamp - previousTimestamp, 32);
+      lastAutoScrollTimestampRef.current = timestamp;
+
+      const visibleWidth = getStripVisibleWidth(stripElement);
+      const maxScrollLeft = Math.max(stripElement.scrollWidth - visibleWidth, 0);
+      const nextScrollLeft = Math.min(
+        Math.max(
+          stripElement.scrollLeft + velocity * (elapsedMs / 1_000),
+          0,
+        ),
+        maxScrollLeft,
+      );
+
+      if (nextScrollLeft === stripElement.scrollLeft) {
+        lastAutoScrollTimestampRef.current = null;
+        return;
+      }
+
+      stripElement.scrollLeft = nextScrollLeft;
+      updateDropTarget(pointerClientX, dragState.tabId);
+      autoScrollFrameRef.current = window.requestAnimationFrame(
+        runAutoScrollFrame,
+      );
+    }
+
+    function scheduleAutoScroll(): void {
+      if (autoScrollFrameRef.current !== null) {
+        return;
+      }
+
+      autoScrollFrameRef.current = window.requestAnimationFrame(
+        runAutoScrollFrame,
+      );
     }
 
     function handlePointerMove(event: PointerEvent): void {
@@ -155,50 +331,23 @@ export function useTabDragReorder(
         return;
       }
 
+      let activeDragState = dragState;
+
       if (dragState.hasStarted === false) {
-        dragStateRef.current = { ...dragState, hasStarted: true };
-        setDraggingTabId(dragState.tabId);
+        activeDragState = { ...dragState, hasStarted: true };
+        dragStateRef.current = activeDragState;
+        setDraggingTabId(activeDragState.tabId);
       }
 
-      const currentTabs = tabsRef.current;
-      const orderedEntries = currentTabs
-        .map((tab) => {
-          return {
-            element: tabElementsRef.current.get(tab.id),
-            tab,
-          };
-        })
-        .filter(
-          (entry): entry is TabEntryWithElement => entry.element !== undefined,
-        );
+      lastPointerClientXRef.current = event.clientX;
+      updateDropTarget(event.clientX, activeDragState.tabId);
 
-      if (orderedEntries.length === 0) {
+      if (getAutoScrollVelocity(event.clientX, stripElement) === 0) {
+        stopAutoScroll();
         return;
       }
 
-      let destinationIndex = currentTabs.length;
-
-      for (const [index, entry] of orderedEntries.entries()) {
-        const rect = entry.element.getBoundingClientRect();
-        const insertionThresholdX =
-          rect.left + rect.width * DROP_THRESHOLD_RATIO;
-
-        if (event.clientX < insertionThresholdX) {
-          destinationIndex = index;
-          break;
-        }
-      }
-
-      const tabAtIndicator =
-        destinationIndex >= currentTabs.length
-          ? (currentTabs[currentTabs.length - 1] ?? null)
-          : (currentTabs[destinationIndex] ?? null);
-      const indicatorSide =
-        destinationIndex >= currentTabs.length ? "after" : "before";
-
-      setDropIndicatorTabId(tabAtIndicator?.id ?? null);
-      setDropIndicatorSide(tabAtIndicator === null ? null : indicatorSide);
-      onReorderTab(dragState.tabId, destinationIndex);
+      scheduleAutoScroll();
     }
 
     function handlePointerUp(event: PointerEvent): void {
@@ -220,11 +369,12 @@ export function useTabDragReorder(
     window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
+      stopAutoScroll();
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [onReorderTab]);
+  }, []);
 
   return {
     draggingTabId,
