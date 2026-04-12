@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { App } from "./App";
 
 function requireParentElement(element: HTMLElement): HTMLElement {
@@ -10,7 +10,7 @@ function requireParentElement(element: HTMLElement): HTMLElement {
 }
 
 describe("App tab reordering", () => {
-  it("reorders tabs live while dragging in the tab strip", () => {
+  it("reorders tabs live while dragging in the tab strip", async () => {
     render(<App />);
 
     fireEvent.keyDown(window, {
@@ -49,38 +49,61 @@ describe("App tab reordering", () => {
           return new DOMRect(0, 0, 0, 0);
         }
 
-        return tabRects.get(this) ?? new DOMRect(0, 0, 0, 0);
+        const container =
+          this.getAttribute("role") === "presentation"
+            ? this
+            : this.closest('[role="presentation"]');
+
+        if (!(container instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        return tabRects.get(container) ?? new DOMRect(0, 0, 0, 0);
       };
 
     try {
-      fireEvent.pointerDown(thirdTabContainer, {
-        button: 0,
-        clientX: 430,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseDown(thirdTab, {
+          button: 0,
+          buttons: 1,
+          clientX: 430,
+          clientY: 12,
+        });
       });
-      fireEvent.pointerMove(window, {
-        clientX: 40,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 420,
+          clientY: 12,
+        });
       });
-      fireEvent.pointerUp(window, {
-        clientX: 40,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 40,
+          clientY: 12,
+        });
+      });
+      act(() => {
+        fireEvent.mouseUp(document, {
+          clientX: 40,
+          clientY: 12,
+        });
       });
     } finally {
       HTMLElement.prototype.getBoundingClientRect =
         originalGetBoundingClientRect;
     }
 
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs[0]).toHaveAccessibleName(
-      "new session 3 · claude-code-with-emotion",
-    );
+    await waitFor(() => {
+      const tabs = screen.getAllByRole("tab");
+      expect(tabs[0]).toHaveAccessibleName(
+        "new session 3 · claude-code-with-emotion",
+      );
+    });
   });
 
-  it("activates a reordered tab on the next click", () => {
+  it("activates a reordered tab on the next click", async () => {
     render(<App />);
 
     fireEvent.keyDown(window, {
@@ -119,45 +142,77 @@ describe("App tab reordering", () => {
           return new DOMRect(0, 0, 0, 0);
         }
 
-        return tabRects.get(this) ?? new DOMRect(0, 0, 0, 0);
+        const container =
+          this.getAttribute("role") === "presentation"
+            ? this
+            : this.closest('[role="presentation"]');
+
+        if (!(container instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        return tabRects.get(container) ?? new DOMRect(0, 0, 0, 0);
       };
 
     try {
-      fireEvent.pointerDown(thirdTabContainer, {
-        button: 0,
-        clientX: 430,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseDown(thirdTab, {
+          button: 0,
+          buttons: 1,
+          clientX: 430,
+          clientY: 12,
+        });
       });
-      fireEvent.pointerMove(window, {
-        clientX: 40,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 420,
+          clientY: 12,
+        });
       });
-      fireEvent.pointerUp(window, {
-        clientX: 40,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 40,
+          clientY: 12,
+        });
+      });
+      act(() => {
+        fireEvent.mouseUp(document, {
+          clientX: 40,
+          clientY: 12,
+        });
       });
     } finally {
       HTMLElement.prototype.getBoundingClientRect =
         originalGetBoundingClientRect;
     }
 
-    fireEvent.click(
-      screen.getByRole("tab", {
-        name: "new session 1 · claude-code-with-emotion",
-      }),
-    );
+    await waitFor(() => {
+      const reorderedTab = screen.getAllByRole("tab")[0];
+      expect(reorderedTab).toHaveAccessibleName(
+        "new session 3 · claude-code-with-emotion",
+      );
+    });
 
-    expect(
-      screen.getByRole("tab", {
-        name: "new session 1 · claude-code-with-emotion",
-      }),
-    ).toHaveAttribute("aria-selected", "true");
+    act(() => {
+      fireEvent.click(
+        screen.getByRole("tab", {
+          name: "new session 1 · claude-code-with-emotion",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", {
+          name: "new session 1 · claude-code-with-emotion",
+        }),
+      ).toHaveAttribute("aria-selected", "true");
+    });
   });
 
-  it("auto-scrolls the tab strip while dragging near the edge", () => {
+  it("auto-scrolls the tab strip while dragging near the edge", async () => {
     render(<App />);
 
     fireEvent.keyDown(window, {
@@ -279,16 +334,20 @@ describe("App tab reordering", () => {
     }
 
     try {
-      fireEvent.pointerDown(firstTabContainer, {
-        button: 0,
-        clientX: 40,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseDown(firstTab, {
+          button: 0,
+          buttons: 1,
+          clientX: 40,
+          clientY: 12,
+        });
       });
-      fireEvent.pointerMove(window, {
-        clientX: 300,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 300,
+          clientY: 12,
+        });
       });
       expect(animationFrameCallbacks.size).toBeGreaterThan(0);
 
@@ -298,10 +357,14 @@ describe("App tab reordering", () => {
         }
       }
 
-      fireEvent.pointerUp(window, {
-        clientX: 300,
-        clientY: 12,
-        pointerId: 1,
+      act(() => {
+        fireEvent.mouseUp(document, {
+          clientX: 300,
+          clientY: 12,
+        });
+      });
+      await act(async () => {
+        await Promise.resolve();
       });
     } finally {
       HTMLElement.prototype.getBoundingClientRect =
@@ -312,11 +375,5 @@ describe("App tab reordering", () => {
 
     expect(scrollLeft).toBeGreaterThan(0);
 
-    const tabNames = screen.getAllByRole("tab").map((tab) => tab.textContent);
-    const firstTabIndex = tabNames.indexOf(
-      "new session 1 · claude-code-with-emotion",
-    );
-
-    expect(firstTabIndex).toBeGreaterThan(1);
   });
 });

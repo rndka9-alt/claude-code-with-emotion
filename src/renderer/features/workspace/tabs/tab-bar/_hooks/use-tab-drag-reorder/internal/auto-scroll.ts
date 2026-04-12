@@ -1,20 +1,17 @@
-import type { DragState } from "./types";
-
 const AUTO_SCROLL_EDGE_THRESHOLD_PX = 48;
 const AUTO_SCROLL_MAX_SPEED_PX_PER_SECOND = 420;
 const INITIAL_FRAME_DURATION_MS = 16;
 const MAX_FRAME_DURATION_MS = 32;
 
 interface AutoScrollControllerOptions {
-  getDragState: () => DragState | null;
-  getPointerClientX: () => number | null;
+  getActiveDragTabId: () => string | null;
+  getEdgeClientX: () => number | null;
   getStripElement: () => HTMLDivElement | null;
-  onAutoScroll: (pointerClientX: number, draggedTabId: string) => void;
 }
 
 export interface AutoScrollController {
   stop: () => void;
-  update: (pointerClientX: number) => void;
+  update: (edgeClientX: number | null) => void;
 }
 
 export function createAutoScrollController(
@@ -35,21 +32,20 @@ export function createAutoScrollController(
   function runAutoScrollFrame(timestamp: number): void {
     animationFrameId = null;
 
-    const dragState = options.getDragState();
+    const activeDragTabId = options.getActiveDragTabId();
     const stripElement = options.getStripElement();
-    const pointerClientX = options.getPointerClientX();
+    const edgeClientX = options.getEdgeClientX();
 
     if (
-      dragState === null ||
-      dragState.hasStarted === false ||
+      activeDragTabId === null ||
       stripElement === null ||
-      pointerClientX === null
+      edgeClientX === null
     ) {
       lastTimestamp = null;
       return;
     }
 
-    const velocity = getAutoScrollVelocity(pointerClientX, stripElement);
+    const velocity = getAutoScrollVelocity(edgeClientX, stripElement);
 
     if (velocity === 0) {
       lastTimestamp = null;
@@ -78,19 +74,18 @@ export function createAutoScrollController(
     }
 
     stripElement.scrollLeft = nextScrollLeft;
-    options.onAutoScroll(pointerClientX, dragState.tabId);
     animationFrameId = window.requestAnimationFrame(runAutoScrollFrame);
   }
 
-  function update(pointerClientX: number): void {
+  function update(edgeClientX: number | null): void {
     const stripElement = options.getStripElement();
 
-    if (stripElement === null) {
+    if (stripElement === null || edgeClientX === null) {
       stop();
       return;
     }
 
-    if (getAutoScrollVelocity(pointerClientX, stripElement) === 0) {
+    if (getAutoScrollVelocity(edgeClientX, stripElement) === 0) {
       stop();
       return;
     }

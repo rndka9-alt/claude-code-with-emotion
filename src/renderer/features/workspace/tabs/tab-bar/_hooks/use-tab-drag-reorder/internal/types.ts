@@ -1,24 +1,22 @@
-import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
-
-export type DropIndicatorSide = "before" | "after";
-
-export interface DragState {
-  hasStarted: boolean;
-  pointerId: number;
-  startX: number;
-  startY: number;
-  tabId: string;
-}
+import type { RefObject } from "react";
+import type {
+  DragCancelEvent,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  SensorDescriptor,
+} from "@dnd-kit/core";
+import type { WorkspaceTab } from "../../../../../model";
 
 export interface TabDragReorderHandlers {
-  draggingTabId: string | null;
-  dropIndicatorSide: DropIndicatorSide | null;
-  dropIndicatorTabId: string | null;
-  handlePointerDown: (
-    event: ReactPointerEvent<HTMLElement>,
-    tabId: string,
-  ) => void;
-  setTabElement: (tabId: string, element: HTMLDivElement | null) => void;
+  activeDragTabId: string | null;
+  dragOverlayTab: WorkspaceTab | null;
+  handleDragCancel: (event: DragCancelEvent) => void;
+  handleDragEnd: (event: DragEndEvent) => void;
+  handleDragOver: (event: DragOverEvent) => void;
+  handleDragStart: (event: DragStartEvent) => void;
+  sensors: SensorDescriptor<object>[];
   shouldSuppressClick: (tabId: string) => boolean;
+  sortableTabIds: string[];
   stripRef: RefObject<HTMLDivElement | null>;
 }
