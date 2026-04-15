@@ -8,20 +8,20 @@ interface TerminalSearchBarProps {
   onFindNext: () => void;
   onFindPrevious: () => void;
   query: string;
-  resultCount: number;
-  resultIndex: number;
+  resultCount: number | null;
+  resultIndex: number | null;
 }
 
-function formatSearchStatus(resultCount: number, resultIndex: number): string {
-  if (resultCount <= 0) {
-    return "No matches";
+function formatSearchStatus(query: string, resultCount: number | null, resultIndex: number | null): string {
+  if (query.length === 0) {
+    return "";
   }
 
-  if (resultIndex < 0) {
-    return `${resultCount} matches`;
-  }
+  const totalCount = resultCount ?? 0;
+  const currentIndex =
+    resultIndex !== null && resultIndex >= 0 && totalCount > 0 ? resultIndex + 1 : 0;
 
-  return `${resultIndex + 1}/${resultCount}`;
+  return `${currentIndex}/${totalCount}`;
 }
 
 export function TerminalSearchBar({
@@ -47,7 +47,7 @@ export function TerminalSearchBar({
     input.select();
   }, [focusRequestKey]);
 
-  const searchStatus = formatSearchStatus(resultCount, resultIndex);
+  const searchStatus = formatSearchStatus(query, resultCount, resultIndex);
 
   return (
     <div className="flex min-w-[24rem] max-w-[min(32rem,calc(100vw-3rem))] items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-2 py-1 shadow-[0_10px_24px_rgba(0,0,0,0.24)]">

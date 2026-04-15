@@ -4,6 +4,7 @@ import { App } from "./App";
 const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
     attachCustomKeyEventHandler: ReturnType<typeof vi.fn>;
+    clearSelection: ReturnType<typeof vi.fn>;
     cols: number;
     dispose: ReturnType<typeof vi.fn>;
     focus: ReturnType<typeof vi.fn>;
@@ -19,6 +20,7 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
   }> = [];
 
   class HoistedMockSearchAddon {
+    clearActiveDecoration = vi.fn();
     clearDecorations = vi.fn();
     findNext = vi.fn(() => true);
     findPrevious = vi.fn(() => true);
@@ -29,6 +31,7 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
     cols = 80;
     rows = 24;
     options = { scrollback: 1000 };
+    clearSelection = vi.fn();
     focus = vi.fn();
     loadAddon = vi.fn();
     open = vi.fn();

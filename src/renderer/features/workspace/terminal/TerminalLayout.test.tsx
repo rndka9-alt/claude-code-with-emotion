@@ -125,4 +125,31 @@ describe("TerminalLayout", () => {
       screen.getByRole("textbox", { name: "Search terminal output" }),
     ).toBeInTheDocument();
   });
+
+  it("keeps the focused pane title bar visible when search opens in split layouts", () => {
+    const { container } = render(
+      <TerminalLayout
+        focusedPaneId="pane-1"
+        layout={createSplitLayout()}
+        onClosePane={vi.fn()}
+        onFocusPane={vi.fn()}
+        onResizeSplit={vi.fn()}
+        onSyncSessionTitle={vi.fn()}
+        sessions={sessions}
+        terminalFocusRequestKey={0}
+      />,
+    );
+
+    fireEvent.keyDown(window, {
+      key: "f",
+      metaKey: true,
+    });
+
+    expect(
+      screen.getByRole("textbox", { name: "Search terminal output" }),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-pane-title-bar="true"]')).toHaveLength(
+      1,
+    );
+  });
 });

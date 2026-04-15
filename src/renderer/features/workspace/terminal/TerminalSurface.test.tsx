@@ -7,9 +7,18 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
   vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
     attachCustomKeyEventHandler: ReturnType<typeof vi.fn>;
+    buffer: {
+      active: {
+        getLine: ReturnType<typeof vi.fn>;
+        length: number;
+        viewportY: number;
+      };
+    };
+    clearSelection: ReturnType<typeof vi.fn>;
     cols: number;
     dispose: ReturnType<typeof vi.fn>;
     focus: ReturnType<typeof vi.fn>;
+    getSelectionPosition: ReturnType<typeof vi.fn>;
     loadAddon: ReturnType<typeof vi.fn>;
     onData: ReturnType<typeof vi.fn>;
     onTitleChange: ReturnType<typeof vi.fn>;
@@ -18,10 +27,13 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     registerLinkProvider: ReturnType<typeof vi.fn>;
     resize: ReturnType<typeof vi.fn>;
     rows: number;
+    scrollLines: ReturnType<typeof vi.fn>;
+    select: ReturnType<typeof vi.fn>;
     write: ReturnType<typeof vi.fn>;
   }> = [];
 
     const hoistedSearchAddonInstances: Array<{
+      clearActiveDecoration: ReturnType<typeof vi.fn>;
       clearDecorations: ReturnType<typeof vi.fn>;
       findNext: ReturnType<typeof vi.fn>;
       findPrevious: ReturnType<typeof vi.fn>;
@@ -29,6 +41,7 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     }> = [];
 
     class HoistedMockSearchAddon {
+      clearActiveDecoration = vi.fn();
       clearDecorations = vi.fn();
       findNext = vi.fn(() => true);
       findPrevious = vi.fn(() => true);
@@ -42,13 +55,43 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     class HoistedMockTerminal {
     cols = 80;
     rows = 24;
+    private selectionPosition:
+      | { end: { x: number; y: number }; start: { x: number; y: number } }
+      | undefined;
     options = { scrollback: 1000 };
+    buffer = {
+      active: {
+        getLine: vi.fn((row: number) => {
+          if (row !== 0) {
+            return undefined;
+          }
+
+          return {
+            isWrapped: false,
+            translateToString: () => "claude and claude",
+          };
+        }),
+        length: 1,
+        viewportY: 0,
+      },
+    };
+    clearSelection = vi.fn(() => {
+      this.selectionPosition = undefined;
+    });
     focus = vi.fn();
+    getSelectionPosition = vi.fn(() => this.selectionPosition);
     loadAddon = vi.fn();
     open = vi.fn();
     resize = vi.fn((cols: number, rows: number) => {
       this.cols = cols;
       this.rows = rows;
+    });
+    scrollLines = vi.fn();
+    select = vi.fn((column: number, row: number, length: number) => {
+      this.selectionPosition = {
+        end: { x: column + length + 1, y: row + 1 },
+        start: { x: column + 1, y: row + 1 },
+      };
     });
     write = vi.fn();
     dispose = vi.fn();
@@ -317,7 +360,7 @@ describe("TerminalSurface", () => {
     ).toHaveLength(1);
   });
 
-  it("routes search requests to the active terminal search addon", () => {
+  it("previews search results without moving the terminal selection", () => {
     const onSearchResultsChange = vi.fn();
 
     render(
@@ -329,7 +372,9 @@ describe("TerminalSurface", () => {
         onTitleChange={vi.fn()}
         paneId="pane-1"
         searchRequest={{
+          anchorIndex: null,
           direction: "next",
+          mode: "preview",
           query: "claude",
           sequence: 1,
           sessionId: "session-1",
@@ -345,15 +390,140 @@ describe("TerminalSurface", () => {
       />,
     );
 
-    const searchAddon = searchAddonInstances[0];
+    const terminal = terminalInstances[0];
 
-    expect(searchAddon).toBeDefined();
-    expect(searchAddon?.findNext).toHaveBeenCalledWith(
-      "claude",
-      expect.objectContaining({
-        incremental: true,
-      }),
+    expect(terminal).toBeDefined();
+    expect(terminal?.select).not.toHaveBeenCalled();
+    expect(terminal?.scrollLines).not.toHaveBeenCalled();
+    expect(onSearchResultsChange).toHaveBeenCalledWith({
+      hasMatch: true,
+      resultCount: 2,
+      resultIndex: 0,
+      sessionId: "session-1",
+    });
+  });
+
+  it("navigates to the preview match when the user requests the next result", async () => {
+    const onSearchResultsChange = vi.fn();
+
+    render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={onSearchResultsChange}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={{
+          anchorIndex: 0,
+          direction: "next",
+          mode: "navigate",
+          query: "claude",
+          sequence: 1,
+          sessionId: "session-1",
+        }}
+        session={{
+          id: "session-1",
+          title: "new session 1 · claude-code-with-emotion",
+          cwd: "/tmp",
+          command: "",
+          lifecycle: "bootstrapping",
+          createdAtMs: Date.now(),
+        }}
+      />,
     );
+
+    const terminal = terminalInstances[0];
+
+    await waitFor(() => {
+      expect(onSearchResultsChange).toHaveBeenCalledWith({
+        hasMatch: true,
+        resultCount: 2,
+        resultIndex: 0,
+        sessionId: "session-1",
+      });
+    });
+    expect(terminal?.select).toHaveBeenCalledWith(0, 0, 6);
+  });
+
+  it("keeps using the stored anchor index instead of recomputing from scroll position", async () => {
+    const onSearchResultsChange = vi.fn();
+    const session = {
+      id: "session-1",
+      title: "new session 1 · claude-code-with-emotion",
+      cwd: "/tmp",
+      command: "",
+      lifecycle: "bootstrapping" as const,
+      createdAtMs: Date.now(),
+    };
+    const { rerender } = render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={onSearchResultsChange}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={null}
+        session={session}
+      />,
+    );
+
+    const terminal = terminalInstances[0];
+
+    if (terminal === undefined) {
+      throw new Error("Expected terminal instance to exist.");
+    }
+
+    terminal.buffer.active.getLine.mockImplementation((row: number) => {
+      if (row === 0) {
+        return {
+          isWrapped: false,
+          translateToString: () => "claude",
+        };
+      }
+
+      if (row === 1) {
+        return {
+          isWrapped: false,
+          translateToString: () => "claude",
+        };
+      }
+
+      return undefined;
+    });
+    terminal.buffer.active.length = 2;
+    terminal.buffer.active.viewportY = 1;
+
+    rerender(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={onSearchResultsChange}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={{
+          anchorIndex: 0,
+          direction: "next",
+          mode: "navigate",
+          query: "claude",
+          sequence: 1,
+          sessionId: "session-1",
+        }}
+        session={session}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onSearchResultsChange).toHaveBeenCalledWith({
+        hasMatch: true,
+        resultCount: 2,
+        resultIndex: 0,
+        sessionId: "session-1",
+      });
+    });
+    expect(terminal.select).toHaveBeenCalledWith(0, 0, 6);
   });
 
   it("reuses the same terminal instance across unmount and remount", () => {

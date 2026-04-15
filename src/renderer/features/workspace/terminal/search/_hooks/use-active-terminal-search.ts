@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
   TerminalSearchDirection,
+  TerminalSearchMode,
   TerminalSearchRequest,
   TerminalSearchResults,
 } from "../search-types";
 
 interface ActiveTerminalSearchState {
   focusRequestKey: number;
+  hasMatch: boolean;
   isVisible: boolean;
   query: string;
-  resultCount: number;
-  resultIndex: number;
+  resultCount: number | null;
+  resultIndex: number | null;
   searchRequest: TerminalSearchRequest | null;
 }
 
@@ -26,11 +28,12 @@ function isOpenSearchShortcut(event: KeyboardEvent): boolean {
 
 function createEmptyResults(): Pick<
   ActiveTerminalSearchState,
-  "resultCount" | "resultIndex"
+  "hasMatch" | "resultCount" | "resultIndex"
 > {
   return {
-    resultCount: 0,
-    resultIndex: -1,
+    hasMatch: false,
+    resultCount: null,
+    resultIndex: null,
   };
 }
 
@@ -47,16 +50,18 @@ export function useActiveTerminalSearch(
   setQuery: (query: string) => void;
   findNext: () => void;
   findPrevious: () => void;
-  resultCount: number;
-  resultIndex: number;
+  hasMatch: boolean;
+  resultCount: number | null;
+  resultIndex: number | null;
 } {
   const [isVisible, setIsVisible] = useState(false);
   const [query, setQueryState] = useState("");
+  const [searchMode, setSearchMode] = useState<TerminalSearchMode>("preview");
   const [searchDirection, setSearchDirection] =
     useState<TerminalSearchDirection>("next");
   const [searchSequence, setSearchSequence] = useState(0);
   const [focusRequestKey, setFocusRequestKey] = useState(0);
-  const [{ resultCount, resultIndex }, setResults] = useState(
+  const [{ hasMatch, resultCount, resultIndex }, setResults] = useState(
     createEmptyResults,
   );
 
@@ -75,11 +80,16 @@ export function useActiveTerminalSearch(
   }, []);
 
   const issueSearch = useCallback(
-    (direction: TerminalSearchDirection, nextQuery: string) => {
+    (
+      direction: TerminalSearchDirection,
+      mode: TerminalSearchMode,
+      nextQuery: string,
+    ) => {
       if (focusedSessionId === null) {
         return;
       }
 
+      setSearchMode(mode);
       setSearchDirection(direction);
       setSearchSequence((currentValue) => currentValue + 1);
 
@@ -93,17 +103,17 @@ export function useActiveTerminalSearch(
   const setQuery = useCallback(
     (nextQuery: string) => {
       setQueryState(nextQuery);
-      issueSearch("next", nextQuery);
+      issueSearch("next", "preview", nextQuery);
     },
     [issueSearch],
   );
 
   const findNext = useCallback(() => {
-    issueSearch("next", query);
+    issueSearch("next", "navigate", query);
   }, [issueSearch, query]);
 
   const findPrevious = useCallback(() => {
-    issueSearch("previous", query);
+    issueSearch("previous", "navigate", query);
   }, [issueSearch, query]);
 
   useEffect(() => {
@@ -145,9 +155,10 @@ export function useActiveTerminalSearch(
     }
 
     setSearchDirection("next");
+    setSearchMode("preview");
     setSearchSequence((currentValue) => currentValue + 1);
     setResults(createEmptyResults());
-  }, [focusedSessionId, isVisible, query]);
+  }, [focusedSessionId, isVisible]);
 
   const onSearchResultsChange = useCallback(
     (results: TerminalSearchResults) => {
@@ -156,6 +167,7 @@ export function useActiveTerminalSearch(
       }
 
       setResults({
+        hasMatch: results.hasMatch,
         resultCount: results.resultCount,
         resultIndex: results.resultIndex,
       });
@@ -168,6 +180,7 @@ export function useActiveTerminalSearch(
     findNext,
     findPrevious,
     focusRequestKey,
+    hasMatch,
     isVisible,
     onSearchResultsChange,
     openSearch,
@@ -177,7 +190,9 @@ export function useActiveTerminalSearch(
     searchRequest:
       isVisible && focusedSessionId !== null
         ? {
+            anchorIndex: resultIndex,
             direction: searchDirection,
+            mode: searchMode,
             query,
             sequence: searchSequence,
             sessionId: focusedSessionId,

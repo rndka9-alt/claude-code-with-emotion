@@ -172,7 +172,7 @@ export function TerminalLayout({
       }
 
       const isActive = node.id === focusedPaneId;
-      const shouldShowTitleBar = hasMultiplePanes && isActive && !isSearchVisible;
+      const shouldShowTitleBar = hasMultiplePanes && isActive;
       const activeSearchRequest =
         isActive && searchRequest?.sessionId === session.id ? searchRequest : null;
 
