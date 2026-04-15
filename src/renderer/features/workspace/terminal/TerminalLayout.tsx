@@ -45,36 +45,18 @@ function findFocusedSessionId(
 }
 
 function PaneTitleBar({
-  focusRequestKey,
   isActive,
-  isSearchVisible,
   isVisible,
-  onChangeSearchQuery,
   onClosePane,
-  onCloseSearch,
-  onFindNext,
-  onFindPrevious,
   onFocusPane,
   paneId,
-  resultCount,
-  resultIndex,
-  searchQuery,
   session,
 }: {
-  focusRequestKey: number;
   isActive: boolean;
-  isSearchVisible: boolean;
   isVisible: boolean;
-  onChangeSearchQuery: (query: string) => void;
   onClosePane: (paneId: string, sessionId: string) => void;
-  onCloseSearch: () => void;
-  onFindNext: () => void;
-  onFindPrevious: () => void;
   onFocusPane: (paneId: string) => void;
   paneId: string;
-  resultCount: number;
-  resultIndex: number;
-  searchQuery: string;
   session: TerminalSession;
 }): ReactElement {
   if (!isActive || !isVisible) {
@@ -89,22 +71,9 @@ function PaneTitleBar({
         onFocusPane(paneId);
       }}
     >
-      {isSearchVisible ? (
-        <TerminalSearchBar
-          focusRequestKey={focusRequestKey}
-          onChangeQuery={onChangeSearchQuery}
-          onClose={onCloseSearch}
-          onFindNext={onFindNext}
-          onFindPrevious={onFindPrevious}
-          query={searchQuery}
-          resultCount={resultCount}
-          resultIndex={resultIndex}
-        />
-      ) : (
-        <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[0.78rem] text-text-subtle">
-          {session.title}
-        </span>
-      )}
+      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[0.78rem] text-text-subtle">
+        {session.title}
+      </span>
       <button
         aria-label={`Close pane ${session.title}`}
         className="ml-2 inline-flex h-5 w-5 flex-none items-center justify-center text-text-subtle transition-colors duration-150 hover:text-text-highlight"
@@ -203,7 +172,7 @@ export function TerminalLayout({
       }
 
       const isActive = node.id === focusedPaneId;
-      const shouldShowTitleBar = hasMultiplePanes || (isActive && isSearchVisible);
+      const shouldShowTitleBar = hasMultiplePanes && isActive && !isSearchVisible;
       const activeSearchRequest =
         isActive && searchRequest?.sessionId === session.id ? searchRequest : null;
 
@@ -215,22 +184,29 @@ export function TerminalLayout({
           key={node.id}
         >
           <PaneTitleBar
-            focusRequestKey={focusRequestKey}
             isActive={isActive}
-            isSearchVisible={isActive && isSearchVisible}
             isVisible={shouldShowTitleBar}
-            onChangeSearchQuery={setQuery}
             onClosePane={onClosePane}
-            onCloseSearch={closeSearch}
-            onFindNext={findNext}
-            onFindPrevious={findPrevious}
             onFocusPane={onFocusPane}
             paneId={node.id}
-            resultCount={resultCount}
-            resultIndex={resultIndex}
-            searchQuery={searchQuery}
             session={session}
           />
+          {isActive && isSearchVisible ? (
+            <div className="pointer-events-none absolute top-2 right-2 z-20">
+              <div className="pointer-events-auto">
+                <TerminalSearchBar
+                  focusRequestKey={focusRequestKey}
+                  onChangeQuery={setQuery}
+                  onClose={closeSearch}
+                  onFindNext={findNext}
+                  onFindPrevious={findPrevious}
+                  query={searchQuery}
+                  resultCount={resultCount}
+                  resultIndex={resultIndex}
+                />
+              </div>
+            </div>
+          ) : null}
           <div
             className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden"
             data-pane-content="true"

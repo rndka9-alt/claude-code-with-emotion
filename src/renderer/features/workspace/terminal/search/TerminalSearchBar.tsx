@@ -50,7 +50,7 @@ export function TerminalSearchBar({
   const searchStatus = formatSearchStatus(resultCount, resultIndex);
 
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-2 py-1 shadow-[0_10px_24px_rgba(0,0,0,0.24)]">
+    <div className="flex min-w-[24rem] max-w-[min(32rem,calc(100vw-3rem))] items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-2 py-1 shadow-[0_10px_24px_rgba(0,0,0,0.24)]">
       <Search aria-hidden="true" className="h-3.5 w-3.5 flex-none text-text-accent" />
       <input
         aria-label="Search terminal output"

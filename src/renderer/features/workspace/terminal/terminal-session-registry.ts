@@ -31,15 +31,6 @@ const terminalThemeFallbacks = {
   green: APP_THEME_FALLBACKS.terminalGreen,
 };
 
-const terminalSearchFallbacks = {
-  activeMatchBackground: "#36528a",
-  activeMatchBorder: "#92bcff",
-  activeMatchOverviewRuler: "#92bcff",
-  matchBackground: "#21324e",
-  matchBorder: "#6a8aff",
-  matchOverviewRuler: "#6a8aff",
-};
-
 export interface TerminalSessionController {
   attach: (
     host: HTMLDivElement,
@@ -286,32 +277,6 @@ function createTerminalTheme() {
 
 function createTerminalSearchOptions(): ISearchOptions {
   return {
-    decorations: {
-      activeMatchBackground: readThemeVariable(
-        "--color-terminal-blue",
-        terminalSearchFallbacks.activeMatchBackground,
-      ),
-      activeMatchBorder: readThemeVariable(
-        "--color-terminal-bright-blue",
-        terminalSearchFallbacks.activeMatchBorder,
-      ),
-      activeMatchColorOverviewRuler: readThemeVariable(
-        "--color-terminal-bright-blue",
-        terminalSearchFallbacks.activeMatchOverviewRuler,
-      ),
-      matchBackground: readThemeVariable(
-        "--color-avatar-working",
-        terminalSearchFallbacks.matchBackground,
-      ),
-      matchBorder: readThemeVariable(
-        "--color-terminal-blue",
-        terminalSearchFallbacks.matchBorder,
-      ),
-      matchOverviewRuler: readThemeVariable(
-        "--color-terminal-blue",
-        terminalSearchFallbacks.matchOverviewRuler,
-      ),
-    },
     incremental: true,
   };
 }
