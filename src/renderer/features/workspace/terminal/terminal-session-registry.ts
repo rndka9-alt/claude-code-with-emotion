@@ -825,6 +825,11 @@ function createTerminalSearchNavigationResults(
       request.direction === "previous"
         ? (selectedIndex - 1 + matches.length) % matches.length
         : (selectedIndex + 1) % matches.length;
+  } else if (anchorIndex !== null) {
+    targetIndex =
+      request.direction === "previous"
+        ? (anchorIndex - 1 + matches.length) % matches.length
+        : (anchorIndex + 1) % matches.length;
   }
 
   const targetMatch = matches[targetIndex];

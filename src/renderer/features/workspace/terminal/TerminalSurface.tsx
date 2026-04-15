@@ -45,6 +45,7 @@ export function TerminalSurface({
   session,
 }: TerminalSurfaceProps): ReactElement {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const lastAppliedSearchSequenceRef = useRef<number | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -105,10 +106,16 @@ export function TerminalSurface({
     }
 
     if (searchRequest === null) {
+      lastAppliedSearchSequenceRef.current = null;
       clearTerminalSessionSearch(session);
       return;
     }
 
+    if (lastAppliedSearchSequenceRef.current === searchRequest.sequence) {
+      return;
+    }
+
+    lastAppliedSearchSequenceRef.current = searchRequest.sequence;
     applyTerminalSessionSearch(session, searchRequest);
   }, [searchRequest, session.id]);
 

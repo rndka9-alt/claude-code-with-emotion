@@ -403,7 +403,7 @@ describe("TerminalSurface", () => {
     });
   });
 
-  it("navigates to the preview match when the user requests the next result", async () => {
+  it("moves to the next match after the preview anchor when the user presses next", async () => {
     const onSearchResultsChange = vi.fn();
 
     render(
@@ -439,11 +439,70 @@ describe("TerminalSurface", () => {
       expect(onSearchResultsChange).toHaveBeenCalledWith({
         hasMatch: true,
         resultCount: 2,
-        resultIndex: 0,
+        resultIndex: 1,
         sessionId: "session-1",
       });
     });
-    expect(terminal?.select).toHaveBeenCalledWith(0, 0, 6);
+    expect(terminal?.select).toHaveBeenCalledWith(11, 0, 6);
+  });
+
+  it("applies each navigate request only once even if rerenders update the anchor", async () => {
+    const onSearchResultsChange = vi.fn();
+    const session = {
+      id: "session-1",
+      title: "new session 1 · claude-code-with-emotion",
+      cwd: "/tmp",
+      command: "",
+      lifecycle: "bootstrapping" as const,
+      createdAtMs: Date.now(),
+    };
+    const { rerender } = render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={onSearchResultsChange}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={{
+          anchorIndex: 0,
+          direction: "next",
+          mode: "navigate",
+          query: "claude",
+          sequence: 7,
+          sessionId: "session-1",
+        }}
+        session={session}
+      />,
+    );
+
+    const terminal = terminalInstances[0];
+
+    await waitFor(() => {
+      expect(terminal?.select).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={onSearchResultsChange}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={{
+          anchorIndex: 1,
+          direction: "next",
+          mode: "navigate",
+          query: "claude",
+          sequence: 7,
+          sessionId: "session-1",
+        }}
+        session={session}
+      />,
+    );
+
+    expect(terminal?.select).toHaveBeenCalledTimes(1);
   });
 
   it("keeps using the stored anchor index instead of recomputing from scroll position", async () => {
@@ -519,11 +578,11 @@ describe("TerminalSurface", () => {
       expect(onSearchResultsChange).toHaveBeenCalledWith({
         hasMatch: true,
         resultCount: 2,
-        resultIndex: 0,
+        resultIndex: 1,
         sessionId: "session-1",
       });
     });
-    expect(terminal.select).toHaveBeenCalledWith(0, 0, 6);
+    expect(terminal.select).toHaveBeenCalledWith(0, 1, 6);
   });
 
   it("reuses the same terminal instance across unmount and remount", () => {
