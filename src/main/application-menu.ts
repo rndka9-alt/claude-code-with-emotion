@@ -1,7 +1,12 @@
 import type { MenuItemConstructorOptions } from "electron";
 
+interface ApplicationMenuHandlers {
+  openTerminalSearch: () => void;
+}
+
 export function createApplicationMenuTemplate(
   appName: string,
+  handlers: ApplicationMenuHandlers,
 ): MenuItemConstructorOptions[] {
   return [
     {
@@ -19,6 +24,15 @@ export function createApplicationMenuTemplate(
         { role: "paste" },
         { role: "pasteAndMatchStyle" },
         { role: "delete" },
+        { type: "separator" },
+        {
+          accelerator: "CommandOrControl+F",
+          click: () => {
+            handlers.openTerminalSearch();
+          },
+          label: "Find",
+        },
+        { type: "separator" },
         { role: "selectAll" },
       ],
     },

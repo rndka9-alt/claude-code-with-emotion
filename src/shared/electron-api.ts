@@ -5,6 +5,7 @@ import type { LinksBridge } from "./links-bridge";
 import type { VisualMcpSetupBridge } from "./mcp-setup-bridge";
 import type { TerminalBridge } from "./terminal-bridge";
 import type { VisualAssetBridge } from "./visual-assets-bridge";
+import type { WorkspaceCommandBridge } from "./workspace-command-bridge";
 
 export interface DiagnosticsBridge {
   onRuntimeEvent: (
@@ -22,6 +23,7 @@ export interface ClaudeAppApi {
   readonly mcpSetup: VisualMcpSetupBridge;
   readonly terminals: TerminalBridge;
   readonly visualAssets: VisualAssetBridge;
+  readonly workspaceCommands: WorkspaceCommandBridge;
 }
 
 declare global {

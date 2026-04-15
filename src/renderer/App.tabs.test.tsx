@@ -1,12 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { App } from "./App";
 
-const { MockTerminal, terminalInstances } = vi.hoisted(() => {
+const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
     attachCustomKeyEventHandler: ReturnType<typeof vi.fn>;
     cols: number;
     dispose: ReturnType<typeof vi.fn>;
     focus: ReturnType<typeof vi.fn>;
+    loadAddon: ReturnType<typeof vi.fn>;
     onData: ReturnType<typeof vi.fn>;
     onTitleChange: ReturnType<typeof vi.fn>;
     open: ReturnType<typeof vi.fn>;
@@ -17,11 +18,19 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
     write: ReturnType<typeof vi.fn>;
   }> = [];
 
+  class HoistedMockSearchAddon {
+    clearDecorations = vi.fn();
+    findNext = vi.fn(() => true);
+    findPrevious = vi.fn(() => true);
+    onDidChangeResults = vi.fn(() => ({ dispose: vi.fn() }));
+  }
+
   class HoistedMockTerminal {
     cols = 80;
     rows = 24;
     options = { scrollback: 1000 };
     focus = vi.fn();
+    loadAddon = vi.fn();
     open = vi.fn();
     resize = vi.fn((cols: number, rows: number) => {
       this.cols = cols;
@@ -40,6 +49,7 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
   }
 
   return {
+    MockSearchAddon: HoistedMockSearchAddon,
     MockTerminal: HoistedMockTerminal,
     terminalInstances: hoistedTerminalInstances,
   };
@@ -48,6 +58,12 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
 vi.mock("@xterm/xterm", () => {
   return {
     Terminal: MockTerminal,
+  };
+});
+
+vi.mock("@xterm/addon-search", () => {
+  return {
+    SearchAddon: MockSearchAddon,
   };
 });
 
@@ -69,6 +85,9 @@ describe("App tab actions", () => {
           closeSession: vi.fn().mockResolvedValue(undefined),
           onOutput: vi.fn(() => () => {}),
           onExit: vi.fn(() => () => {}),
+        },
+        workspaceCommands: {
+          onOpenTerminalSearch: vi.fn(() => () => {}),
         },
       },
     });

@@ -50,7 +50,10 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
         }),
       },
       terminals: {
-        bootstrapSession: vi.fn().mockResolvedValue({ initialOutput: "" }),
+        bootstrapSession: vi.fn().mockResolvedValue({
+          outputSnapshot: "",
+          outputVersion: 0,
+        }),
         sendInput,
         resizeSession: vi.fn(),
         closeSession: vi.fn(),
@@ -74,6 +77,9 @@ export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
         pickFiles: vi.fn().mockResolvedValue([]),
         saveCatalog: vi.fn(),
         printAvailableOptions: vi.fn(),
+      },
+      workspaceCommands: {
+        onOpenTerminalSearch: vi.fn(() => () => {}),
       },
     },
   });

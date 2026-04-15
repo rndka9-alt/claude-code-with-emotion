@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import type { TerminalSession, WorkspaceLayoutNode } from "../model";
+import { TerminalSearchBar, useActiveTerminalSearch } from "./search";
 import { TerminalSurface } from "./TerminalSurface";
 
 interface TerminalLayoutProps {
@@ -25,19 +26,55 @@ interface DragState {
 
 const PANE_TITLE_BAR_HEIGHT_CLASS = "h-8";
 
+function findFocusedSessionId(
+  node: WorkspaceLayoutNode | null,
+  paneId: string | null,
+): string | null {
+  if (node === null || paneId === null) {
+    return null;
+  }
+
+  if (node.kind === "pane") {
+    return node.id === paneId ? node.sessionId : null;
+  }
+
+  return (
+    findFocusedSessionId(node.children[0], paneId) ??
+    findFocusedSessionId(node.children[1], paneId)
+  );
+}
+
 function PaneTitleBar({
+  focusRequestKey,
   isActive,
+  isSearchVisible,
   isVisible,
+  onChangeSearchQuery,
   onClosePane,
+  onCloseSearch,
+  onFindNext,
+  onFindPrevious,
   onFocusPane,
   paneId,
+  resultCount,
+  resultIndex,
+  searchQuery,
   session,
 }: {
+  focusRequestKey: number;
   isActive: boolean;
+  isSearchVisible: boolean;
   isVisible: boolean;
+  onChangeSearchQuery: (query: string) => void;
   onClosePane: (paneId: string, sessionId: string) => void;
+  onCloseSearch: () => void;
+  onFindNext: () => void;
+  onFindPrevious: () => void;
   onFocusPane: (paneId: string) => void;
   paneId: string;
+  resultCount: number;
+  resultIndex: number;
+  searchQuery: string;
   session: TerminalSession;
 }): ReactElement {
   if (!isActive || !isVisible) {
@@ -52,9 +89,22 @@ function PaneTitleBar({
         onFocusPane(paneId);
       }}
     >
-      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[0.78rem] text-text-subtle">
-        {session.title}
-      </span>
+      {isSearchVisible ? (
+        <TerminalSearchBar
+          focusRequestKey={focusRequestKey}
+          onChangeQuery={onChangeSearchQuery}
+          onClose={onCloseSearch}
+          onFindNext={onFindNext}
+          onFindPrevious={onFindPrevious}
+          query={searchQuery}
+          resultCount={resultCount}
+          resultIndex={resultIndex}
+        />
+      ) : (
+        <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[0.78rem] text-text-subtle">
+          {session.title}
+        </span>
+      )}
       <button
         aria-label={`Close pane ${session.title}`}
         className="ml-2 inline-flex h-5 w-5 flex-none items-center justify-center text-text-subtle transition-colors duration-150 hover:text-text-highlight"
@@ -82,6 +132,20 @@ export function TerminalLayout({
 }: TerminalLayoutProps): ReactElement {
   const dragStateRef = useRef<DragState | null>(null);
   const hasMultiplePanes = layout !== null && layout.kind === "split";
+  const focusedSessionId = findFocusedSessionId(layout, focusedPaneId);
+  const {
+    closeSearch,
+    findNext,
+    findPrevious,
+    focusRequestKey,
+    isVisible: isSearchVisible,
+    onSearchResultsChange,
+    query: searchQuery,
+    resultCount,
+    resultIndex,
+    searchRequest,
+    setQuery,
+  } = useActiveTerminalSearch(focusedSessionId);
 
   useEffect(() => {
     function handlePointerMove(event: PointerEvent): void {
@@ -139,6 +203,9 @@ export function TerminalLayout({
       }
 
       const isActive = node.id === focusedPaneId;
+      const shouldShowTitleBar = hasMultiplePanes || (isActive && isSearchVisible);
+      const activeSearchRequest =
+        isActive && searchRequest?.sessionId === session.id ? searchRequest : null;
 
       return (
         <article
@@ -148,11 +215,20 @@ export function TerminalLayout({
           key={node.id}
         >
           <PaneTitleBar
+            focusRequestKey={focusRequestKey}
             isActive={isActive}
-            isVisible={hasMultiplePanes}
+            isSearchVisible={isActive && isSearchVisible}
+            isVisible={shouldShowTitleBar}
+            onChangeSearchQuery={setQuery}
             onClosePane={onClosePane}
+            onCloseSearch={closeSearch}
+            onFindNext={findNext}
+            onFindPrevious={findPrevious}
             onFocusPane={onFocusPane}
             paneId={node.id}
+            resultCount={resultCount}
+            resultIndex={resultIndex}
+            searchQuery={searchQuery}
             session={session}
           />
           <div
@@ -163,8 +239,10 @@ export function TerminalLayout({
               focusRequestKey={terminalFocusRequestKey}
               isActive={isActive}
               onFocusPane={onFocusPane}
+              onSearchResultsChange={onSearchResultsChange}
               onTitleChange={onSyncSessionTitle}
               paneId={node.id}
+              searchRequest={activeSearchRequest}
               session={session}
             />
           </div>

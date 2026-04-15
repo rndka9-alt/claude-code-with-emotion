@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { TerminalSession, WorkspaceLayoutNode } from "../model";
 import { TerminalLayout } from "./TerminalLayout";
 
@@ -96,5 +96,33 @@ describe("TerminalLayout", () => {
     expect(container.querySelectorAll('[data-pane-title-bar="true"]')).toHaveLength(
       0,
     );
+  });
+
+  it("opens the search bar in a single pane layout with Cmd+F", () => {
+    render(
+      <TerminalLayout
+        focusedPaneId="pane-1"
+        layout={{
+          kind: "pane",
+          id: "pane-1",
+          sessionId: "session-1",
+        }}
+        onClosePane={vi.fn()}
+        onFocusPane={vi.fn()}
+        onResizeSplit={vi.fn()}
+        onSyncSessionTitle={vi.fn()}
+        sessions={sessions}
+        terminalFocusRequestKey={0}
+      />,
+    );
+
+    fireEvent.keyDown(window, {
+      key: "f",
+      metaKey: true,
+    });
+
+    expect(
+      screen.getByRole("textbox", { name: "Search terminal output" }),
+    ).toBeInTheDocument();
   });
 });

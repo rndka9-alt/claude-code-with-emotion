@@ -1,14 +1,22 @@
 import { useEffect, useRef } from "react";
 import type { ReactElement } from "react";
 import type { TerminalSession } from "../model";
-import { getTerminalSessionController } from "./terminal-session-registry";
+import type { TerminalSearchRequest, TerminalSearchResults } from "./search";
+import {
+  applyTerminalSessionSearch,
+  clearTerminalSessionSearch,
+  getTerminalSessionController,
+  updateTerminalSessionSearchResultsHandler,
+} from "./terminal-session-registry";
 
 interface TerminalSurfaceProps {
   focusRequestKey: number;
   isActive: boolean;
   onFocusPane: (paneId: string) => void;
+  onSearchResultsChange: (results: TerminalSearchResults) => void;
   onTitleChange: (sessionId: string, title: string) => void;
   paneId: string;
+  searchRequest: TerminalSearchRequest | null;
   session: TerminalSession;
 }
 
@@ -30,8 +38,10 @@ export function TerminalSurface({
   focusRequestKey,
   isActive,
   onFocusPane,
+  onSearchResultsChange,
   onTitleChange,
   paneId,
+  searchRequest,
   session,
 }: TerminalSurfaceProps): ReactElement {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -76,6 +86,31 @@ export function TerminalSurface({
       onTitleChange,
     );
   }, [onTitleChange, session.id]);
+
+  useEffect(() => {
+    if (!supportsXtermRuntime()) {
+      return;
+    }
+
+    updateTerminalSessionSearchResultsHandler(session, onSearchResultsChange);
+
+    return () => {
+      updateTerminalSessionSearchResultsHandler(session, null);
+    };
+  }, [onSearchResultsChange, session.id]);
+
+  useEffect(() => {
+    if (!supportsXtermRuntime()) {
+      return;
+    }
+
+    if (searchRequest === null) {
+      clearTerminalSessionSearch(session);
+      return;
+    }
+
+    applyTerminalSessionSearch(session, searchRequest);
+  }, [searchRequest, session.id]);
 
   useEffect(() => {
     if (isActive && supportsXtermRuntime()) {

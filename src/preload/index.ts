@@ -27,6 +27,7 @@ import {
 } from "../shared/terminal-bridge";
 import { VISUAL_ASSET_CHANNELS } from "../shared/visual-assets-bridge";
 import type { VisualAssetCatalog } from "../shared/visual-assets";
+import { WORKSPACE_COMMAND_CHANNELS } from "../shared/workspace-command-bridge";
 
 // Finder 에서 실행한 패키지 앱은 process.cwd() 가 `/` 로 설정돼서 터미널이 루트에서 열린다.
 // 유저 홈 디렉터리를 기본 cwd 로 고정해, 개발(npm run dev) 환경과 패키징 환경 모두 홈에서 시작하도록 맞춘다.
@@ -191,6 +192,22 @@ const claudeAppApi: ClaudeAppApi = {
     },
     saveCatalog: (catalog) => {
       return ipcRenderer.invoke(VISUAL_ASSET_CHANNELS.saveCatalog, catalog);
+    },
+  },
+  workspaceCommands: {
+    onOpenTerminalSearch: (listener) => {
+      const subscription = () => {
+        listener();
+      };
+
+      ipcRenderer.on(WORKSPACE_COMMAND_CHANNELS.openTerminalSearch, subscription);
+
+      return () => {
+        ipcRenderer.removeListener(
+          WORKSPACE_COMMAND_CHANNELS.openTerminalSearch,
+          subscription,
+        );
+      };
     },
   },
 };

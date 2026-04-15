@@ -1,9 +1,18 @@
+import {
+  SearchAddon,
+  type ISearchOptions,
+  type ISearchResultChangeEvent,
+} from "@xterm/addon-search";
 import { Terminal } from "@xterm/xterm";
 import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
 import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../../../shared/terminal-history";
 import { APP_THEME_FALLBACKS } from "../../../../shared/theme";
 import type { TerminalSession } from "../model";
 import { handleTerminalShortcut } from "./terminal-keyboard";
+import type {
+  TerminalSearchRequest,
+  TerminalSearchResults,
+} from "./search";
 
 interface TerminalSize {
   cols: number;
@@ -22,6 +31,15 @@ const terminalThemeFallbacks = {
   green: APP_THEME_FALLBACKS.terminalGreen,
 };
 
+const terminalSearchFallbacks = {
+  activeMatchBackground: "#36528a",
+  activeMatchBorder: "#92bcff",
+  activeMatchOverviewRuler: "#92bcff",
+  matchBackground: "#21324e",
+  matchBorder: "#6a8aff",
+  matchOverviewRuler: "#6a8aff",
+};
+
 export interface TerminalSessionController {
   attach: (
     host: HTMLDivElement,
@@ -35,6 +53,14 @@ export interface TerminalSessionController {
     onTitleChange: (tabId: string, title: string) => void,
   ) => void;
   dispose: () => void;
+}
+
+interface TerminalSessionControllerRecord extends TerminalSessionController {
+  applySearch: (request: TerminalSearchRequest) => void;
+  clearSearch: () => void;
+  updateSearchResultsHandler: (
+    onSearchResultsChange: ((results: TerminalSearchResults) => void) | null,
+  ) => void;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -209,7 +235,10 @@ export function handleTerminalExternalBrowserClick(
   void openExternal?.(anchor.href);
 }
 
-const terminalSessionControllers = new Map<string, TerminalSessionController>();
+const terminalSessionControllers = new Map<
+  string,
+  TerminalSessionControllerRecord
+>();
 let terminalParkingLot: HTMLDivElement | null = null;
 
 function getParkingLot(): HTMLDivElement {
@@ -255,9 +284,41 @@ function createTerminalTheme() {
   };
 }
 
+function createTerminalSearchOptions(): ISearchOptions {
+  return {
+    decorations: {
+      activeMatchBackground: readThemeVariable(
+        "--color-terminal-blue",
+        terminalSearchFallbacks.activeMatchBackground,
+      ),
+      activeMatchBorder: readThemeVariable(
+        "--color-terminal-bright-blue",
+        terminalSearchFallbacks.activeMatchBorder,
+      ),
+      activeMatchColorOverviewRuler: readThemeVariable(
+        "--color-terminal-bright-blue",
+        terminalSearchFallbacks.activeMatchOverviewRuler,
+      ),
+      matchBackground: readThemeVariable(
+        "--color-avatar-working",
+        terminalSearchFallbacks.matchBackground,
+      ),
+      matchBorder: readThemeVariable(
+        "--color-terminal-blue",
+        terminalSearchFallbacks.matchBorder,
+      ),
+      matchOverviewRuler: readThemeVariable(
+        "--color-terminal-blue",
+        terminalSearchFallbacks.matchOverviewRuler,
+      ),
+    },
+    incremental: true,
+  };
+}
+
 function createTerminalSessionController(
   session: TerminalSession,
-): TerminalSessionController {
+): TerminalSessionControllerRecord {
   const linksBridge = window.claudeApp?.links;
   const bridge = window.claudeApp?.terminals;
   const terminal = new Terminal({
@@ -276,6 +337,9 @@ function createTerminalSessionController(
       },
     },
   });
+  const searchAddon = new SearchAddon();
+
+  terminal.loadAddon(searchAddon);
 
   // 터미널 텍스트에서 URL을 감지해 Cmd+클릭으로 열 수 잇게 하는 링크 프로바이더
   const LINKABLE_URL_REGEX = /https?:\/\/[^\s)>\]"']+|vscode:\/\/[^\s)>\]"']+/g;
@@ -325,8 +389,19 @@ function createTerminalSessionController(
   let disposed = false;
   let host: HTMLDivElement | null = null;
   let restoredOutputVersion = 0;
+  let searchResultsChangeHandler:
+    | ((results: TerminalSearchResults) => void)
+    | null = null;
   let titleChangeHandler: ((tabId: string, title: string) => void) | null =
     null;
+
+  const emitSearchResults = (event: ISearchResultChangeEvent): void => {
+    searchResultsChangeHandler?.({
+      resultCount: event.resultCount,
+      resultIndex: event.resultIndex,
+      sessionId: session.id,
+    });
+  };
 
   const focusTerminal = (): void => {
     terminal.focus();
@@ -369,9 +444,39 @@ function createTerminalSessionController(
       terminal.write(data);
     }
   });
+  const searchResultsSubscription = searchAddon.onDidChangeResults(
+    (event: ISearchResultChangeEvent) => {
+      emitSearchResults(event);
+    },
+  );
   const titleSubscription = terminal.onTitleChange((nextTitle) => {
     titleChangeHandler?.(session.id, nextTitle);
   });
+
+  function clearSearchResults(): void {
+    searchAddon.clearDecorations();
+    searchResultsChangeHandler?.({
+      resultCount: 0,
+      resultIndex: -1,
+      sessionId: session.id,
+    });
+  }
+
+  function applySearch(request: TerminalSearchRequest): void {
+    if (request.query.length === 0) {
+      clearSearchResults();
+      return;
+    }
+
+    const searchOptions = createTerminalSearchOptions();
+
+    if (request.direction === "previous") {
+      searchAddon.findPrevious(request.query, searchOptions);
+      return;
+    }
+
+    searchAddon.findNext(request.query, searchOptions);
+  }
 
   function applyOutputEvent(event: TerminalOutputEvent): void {
     if (event.outputVersion <= restoredOutputVersion) {
@@ -533,6 +638,13 @@ function createTerminalSessionController(
     updateTitleChangeHandler(onTitleChange) {
       titleChangeHandler = onTitleChange;
     },
+    applySearch,
+    clearSearch() {
+      clearSearchResults();
+    },
+    updateSearchResultsHandler(onSearchResultsChange) {
+      searchResultsChangeHandler = onSearchResultsChange;
+    },
     dispose() {
       if (disposed) {
         return;
@@ -547,6 +659,7 @@ function createTerminalSessionController(
 
       removeOutputListener();
       inputSubscription.dispose();
+      searchResultsSubscription.dispose();
       titleSubscription.dispose();
       terminal.dispose();
       container.remove();
@@ -568,6 +681,42 @@ export function getTerminalSessionController(
   terminalSessionControllers.set(session.id, controller);
 
   return controller;
+}
+
+export function applyTerminalSessionSearch(
+  session: TerminalSession,
+  request: TerminalSearchRequest,
+): void {
+  const controller = terminalSessionControllers.get(session.id);
+
+  if (controller === undefined) {
+    return;
+  }
+
+  controller.applySearch(request);
+}
+
+export function clearTerminalSessionSearch(session: TerminalSession): void {
+  const controller = terminalSessionControllers.get(session.id);
+
+  if (controller === undefined) {
+    return;
+  }
+
+  controller.clearSearch();
+}
+
+export function updateTerminalSessionSearchResultsHandler(
+  session: TerminalSession,
+  onSearchResultsChange: ((results: TerminalSearchResults) => void) | null,
+): void {
+  const controller = terminalSessionControllers.get(session.id);
+
+  if (controller === undefined) {
+    return;
+  }
+
+  controller.updateSearchResultsHandler(onSearchResultsChange);
 }
 
 export function disposeTerminalSession(sessionId: string): void {

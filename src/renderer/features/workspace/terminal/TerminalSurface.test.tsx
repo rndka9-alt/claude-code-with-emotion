@@ -3,12 +3,14 @@ import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
 import { TerminalSurface } from "./TerminalSurface";
 import { handleTerminalExternalBrowserClick } from "./terminal-session-registry";
 
-const { MockTerminal, terminalInstances } = vi.hoisted(() => {
+const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances } =
+  vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
     attachCustomKeyEventHandler: ReturnType<typeof vi.fn>;
     cols: number;
     dispose: ReturnType<typeof vi.fn>;
     focus: ReturnType<typeof vi.fn>;
+    loadAddon: ReturnType<typeof vi.fn>;
     onData: ReturnType<typeof vi.fn>;
     onTitleChange: ReturnType<typeof vi.fn>;
     open: ReturnType<typeof vi.fn>;
@@ -19,11 +21,30 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
     write: ReturnType<typeof vi.fn>;
   }> = [];
 
-  class HoistedMockTerminal {
+    const hoistedSearchAddonInstances: Array<{
+      clearDecorations: ReturnType<typeof vi.fn>;
+      findNext: ReturnType<typeof vi.fn>;
+      findPrevious: ReturnType<typeof vi.fn>;
+      onDidChangeResults: ReturnType<typeof vi.fn>;
+    }> = [];
+
+    class HoistedMockSearchAddon {
+      clearDecorations = vi.fn();
+      findNext = vi.fn(() => true);
+      findPrevious = vi.fn(() => true);
+      onDidChangeResults = vi.fn(() => ({ dispose: vi.fn() }));
+
+      constructor() {
+        hoistedSearchAddonInstances.push(this);
+      }
+    }
+
+    class HoistedMockTerminal {
     cols = 80;
     rows = 24;
     options = { scrollback: 1000 };
     focus = vi.fn();
+    loadAddon = vi.fn();
     open = vi.fn();
     resize = vi.fn((cols: number, rows: number) => {
       this.cols = cols;
@@ -39,17 +60,25 @@ const { MockTerminal, terminalInstances } = vi.hoisted(() => {
     constructor() {
       hoistedTerminalInstances.push(this);
     }
-  }
+    }
 
-  return {
-    MockTerminal: HoistedMockTerminal,
-    terminalInstances: hoistedTerminalInstances,
-  };
-});
+    return {
+      MockSearchAddon: HoistedMockSearchAddon,
+      searchAddonInstances: hoistedSearchAddonInstances,
+      MockTerminal: HoistedMockTerminal,
+      terminalInstances: hoistedTerminalInstances,
+    };
+  });
 
 vi.mock("@xterm/xterm", () => {
   return {
     Terminal: MockTerminal,
+  };
+});
+
+vi.mock("@xterm/addon-search", () => {
+  return {
+    SearchAddon: MockSearchAddon,
   };
 });
 
@@ -68,6 +97,7 @@ describe("TerminalSurface", () => {
   let openExternal: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    searchAddonInstances.length = 0;
     terminalInstances.length = 0;
     openExternal = vi.fn().mockResolvedValue(undefined);
 
@@ -146,8 +176,10 @@ describe("TerminalSurface", () => {
         focusRequestKey={0}
         isActive={true}
         onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
         onTitleChange={vi.fn()}
         paneId="pane-1"
+        searchRequest={null}
         session={session}
       />,
     );
@@ -162,8 +194,10 @@ describe("TerminalSurface", () => {
         focusRequestKey={1}
         isActive={true}
         onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
         onTitleChange={vi.fn()}
         paneId="pane-1"
+        searchRequest={null}
         session={session}
       />,
     );
@@ -185,8 +219,10 @@ describe("TerminalSurface", () => {
         focusRequestKey={0}
         isActive={true}
         onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
         onTitleChange={vi.fn()}
         paneId="pane-1"
+        searchRequest={null}
         session={session}
       />,
     );
@@ -232,8 +268,10 @@ describe("TerminalSurface", () => {
         focusRequestKey={0}
         isActive={true}
         onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
         onTitleChange={vi.fn()}
         paneId="pane-1"
+        searchRequest={null}
         session={{
           id: "session-1",
           title: "new session 1 · claude-code-with-emotion",
@@ -279,6 +317,45 @@ describe("TerminalSurface", () => {
     ).toHaveLength(1);
   });
 
+  it("routes search requests to the active terminal search addon", () => {
+    const onSearchResultsChange = vi.fn();
+
+    render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={onSearchResultsChange}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={{
+          direction: "next",
+          query: "claude",
+          sequence: 1,
+          sessionId: "session-1",
+        }}
+        session={{
+          id: "session-1",
+          title: "new session 1 · claude-code-with-emotion",
+          cwd: "/tmp",
+          command: "",
+          lifecycle: "bootstrapping",
+          createdAtMs: Date.now(),
+        }}
+      />,
+    );
+
+    const searchAddon = searchAddonInstances[0];
+
+    expect(searchAddon).toBeDefined();
+    expect(searchAddon?.findNext).toHaveBeenCalledWith(
+      "claude",
+      expect.objectContaining({
+        incremental: true,
+      }),
+    );
+  });
+
   it("reuses the same terminal instance across unmount and remount", () => {
     const session = {
       id: "session-1",
@@ -293,8 +370,10 @@ describe("TerminalSurface", () => {
         focusRequestKey={0}
         isActive={true}
         onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
         onTitleChange={vi.fn()}
         paneId="pane-1"
+        searchRequest={null}
         session={session}
       />,
     );
@@ -309,8 +388,10 @@ describe("TerminalSurface", () => {
         focusRequestKey={0}
         isActive={true}
         onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
         onTitleChange={vi.fn()}
         paneId="pane-1"
+        searchRequest={null}
         session={session}
       />,
     );

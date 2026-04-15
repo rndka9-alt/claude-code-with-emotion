@@ -53,6 +53,7 @@ import {
 import { VISUAL_ASSET_CHANNELS } from "../shared/visual-assets-bridge";
 import type { VisualAssetCatalog } from "../shared/visual-assets";
 import { getAppThemeDefinition, type AppThemeSelection } from "../shared/theme";
+import { WORKSPACE_COMMAND_CHANNELS } from "../shared/workspace-command-bridge";
 
 const WINDOW_SIZE = {
   width: 920,
@@ -211,7 +212,13 @@ function hasOpenWindows(): boolean {
 }
 
 function installApplicationMenu(): void {
-  const template = createApplicationMenuTemplate(app.name);
+  const template = createApplicationMenuTemplate(app.name, {
+    openTerminalSearch: () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+
+      focusedWindow?.webContents.send(WORKSPACE_COMMAND_CHANNELS.openTerminalSearch);
+    },
+  });
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
