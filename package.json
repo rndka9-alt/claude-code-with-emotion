@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test": "pnpm typecheck && vitest run",
     "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -43,10 +44,14 @@
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "electron": "^35.0.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-tailwindcss": "3.18.3",
     "jsdom": "^26.1.0",
     "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.58.2",
     "vite": "^6.2.6",
     "vitest": "^3.1.1",
     "wait-on": "^8.0.3"

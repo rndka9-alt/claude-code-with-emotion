@@ -47,6 +47,19 @@ Use semantic color ownership so themes can change without rewriting component co
 - Components should reference role-based names such as `text-primary`, `bg-surface`, `border-muted`, or `accent-danger`.
 - Introduce a new semantic color name only when it represents a stable UI role, not a one-off visual tweak.
 
+### Theme Token Dual Maintenance
+
+Tailwind v4는 `src/renderer/styles.css` `@theme` 블록에서 디자인 토큰을 정의한다. `eslint-plugin-tailwindcss`가 v4 CSS config를 직접 파싱하지 못하므로, `tailwind.config.js`에 동일한 토큰을 JS 객체로 관리한다. ESLint config(`eslint.config.mjs`)가 이 파일에서 토큰 이름을 읽어 whitelist를 자동 생성한다.
+
+**토큰 추가·삭제·이름 변경 시 두 파일을 반드시 함께 수정해야 한다:**
+
+| 변경 대상 | 파일 |
+|---|---|
+| 실제 빌드에 반영되는 값 | `src/renderer/styles.css` `@theme` |
+| ESLint가 유효한 토큰으로 인식하는 목록 | `tailwind.config.js` `theme.extend` |
+
+한쪽만 수정하면 빌드와 린트 결과가 어긋난다.
+
 ## Main And Shared Rules
 
 Use domain or service responsibility as the main grouping rule.
