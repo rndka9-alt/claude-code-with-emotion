@@ -38,6 +38,15 @@ Use ownership and UI responsibility as the main grouping rule.
 - `model`, `types`, `constants`, and `internal` are valid as secondary structure inside a renderer module when they improve clarity.
 - Do not promote every small custom hook into a standalone top-level module just because it has a name.
 
+## Styling Rules
+
+Use semantic color ownership so themes can change without rewriting component code.
+
+- Prefer `named-color` or semantic color tokens over hardcoded hex, rgb, or per-component color literals.
+- Keep theme-specific color differences in the token or mapping layer, not inside individual components.
+- Components should reference role-based names such as `text-primary`, `bg-surface`, `border-muted`, or `accent-danger`.
+- Introduce a new semantic color name only when it represents a stable UI role, not a one-off visual tweak.
+
 ## Main And Shared Rules
 
 Use domain or service responsibility as the main grouping rule.
