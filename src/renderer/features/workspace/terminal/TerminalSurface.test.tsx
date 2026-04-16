@@ -6,9 +6,25 @@ import { handleTerminalExternalBrowserClick } from "./terminal-session-registry"
 const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances } =
   vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
+    _core: {
+      _renderService: {
+        dimensions: {
+          css: {
+            cell: {
+              height: number;
+              width: number;
+            };
+          };
+        };
+      };
+      viewport: {
+        scrollBarWidth: number;
+      };
+    };
     attachCustomKeyEventHandler: ReturnType<typeof vi.fn>;
     buffer: {
       active: {
+        baseY: number;
         getLine: ReturnType<typeof vi.fn>;
         length: number;
         viewportY: number;
@@ -27,6 +43,7 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     registerLinkProvider: ReturnType<typeof vi.fn>;
     resize: ReturnType<typeof vi.fn>;
     rows: number;
+    scrollToBottom: ReturnType<typeof vi.fn>;
     scrollLines: ReturnType<typeof vi.fn>;
     select: ReturnType<typeof vi.fn>;
     write: ReturnType<typeof vi.fn>;
@@ -55,12 +72,28 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     class HoistedMockTerminal {
     cols = 80;
     rows = 24;
+    _core = {
+      _renderService: {
+        dimensions: {
+          css: {
+            cell: {
+              height: 16,
+              width: 8,
+            },
+          },
+        },
+      },
+      viewport: {
+        scrollBarWidth: 0,
+      },
+    };
     private selectionPosition:
       | { end: { x: number; y: number }; start: { x: number; y: number } }
       | undefined;
     options = { scrollback: 1000 };
     buffer = {
       active: {
+        baseY: 0,
         getLine: vi.fn((row: number) => {
           if (row !== 0) {
             return undefined;
@@ -85,6 +118,9 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     resize = vi.fn((cols: number, rows: number) => {
       this.cols = cols;
       this.rows = rows;
+    });
+    scrollToBottom = vi.fn(() => {
+      this.buffer.active.viewportY = this.buffer.active.baseY;
     });
     scrollLines = vi.fn();
     select = vi.fn((column: number, row: number, length: number) => {
@@ -627,5 +663,88 @@ describe("TerminalSurface", () => {
 
     expect(terminalInstances).toHaveLength(1);
     expect(terminalInstances[0]?.open).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a bottom-anchored viewport pinned after fitting to a resized pane", async () => {
+    const originalClientWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientWidth",
+    );
+    const originalClientHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientHeight",
+    );
+
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get() {
+        return 640;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get() {
+        return 320;
+      },
+    });
+
+    try {
+      render(
+        <TerminalSurface
+          focusRequestKey={0}
+          isActive={true}
+          onFocusPane={vi.fn()}
+          onSearchResultsChange={vi.fn()}
+          onTitleChange={vi.fn()}
+          paneId="pane-1"
+          searchRequest={null}
+          session={{
+            id: "session-1",
+            title: "new session 1 · claude-code-with-emotion",
+            cwd: "/tmp",
+            command: "",
+            lifecycle: "bootstrapping",
+            createdAtMs: Date.now(),
+          }}
+        />,
+      );
+
+      const terminal = terminalInstances[0];
+
+      if (terminal === undefined) {
+        throw new Error("Expected terminal instance to exist.");
+      }
+
+      terminal.buffer.active.baseY = 120;
+      terminal.buffer.active.viewportY = 120;
+      terminal.resize.mockImplementation((cols: number, rows: number) => {
+        terminal.cols = cols;
+        terminal.rows = rows;
+        terminal.buffer.active.viewportY = 60;
+      });
+
+      await waitFor(() => {
+        expect(terminal.resize).toHaveBeenCalled();
+      });
+
+      expect(terminal.scrollToBottom).toHaveBeenCalledTimes(1);
+      expect(terminal.buffer.active.viewportY).toBe(120);
+    } finally {
+      if (originalClientWidth !== undefined) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "clientWidth",
+          originalClientWidth,
+        );
+      }
+
+      if (originalClientHeight !== undefined) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "clientHeight",
+          originalClientHeight,
+        );
+      }
+    }
   });
 });

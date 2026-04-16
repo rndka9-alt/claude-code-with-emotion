@@ -97,6 +97,12 @@ function getTerminalSize(terminal: Terminal): TerminalSize {
   };
 }
 
+function isTerminalViewportPinnedToBottom(terminal: Terminal): boolean {
+  const activeBuffer = terminal.buffer.active;
+
+  return activeBuffer.viewportY === activeBuffer.baseY;
+}
+
 function measureTerminalSize(
   terminal: Terminal,
   host: HTMLDivElement,
@@ -155,8 +161,21 @@ function fitTerminalViewport(
       return null;
     }
 
+    const wasViewportPinnedToBottom =
+      terminal.cols !== nextSize.cols || terminal.rows !== nextSize.rows
+        ? isTerminalViewportPinnedToBottom(terminal)
+        : false;
+
     if (terminal.cols !== nextSize.cols || terminal.rows !== nextSize.rows) {
       terminal.resize(nextSize.cols, nextSize.rows);
+
+      if (
+        wasViewportPinnedToBottom &&
+        !isTerminalViewportPinnedToBottom(terminal)
+      ) {
+        // Keep the prompt anchored to the visible bottom after pane resizes.
+        terminal.scrollToBottom();
+      }
     }
 
     return nextSize;
