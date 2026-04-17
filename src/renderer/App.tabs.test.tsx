@@ -106,7 +106,11 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
     scrollLines = vi.fn((lineCount: number) => {
       this.buffer.active.viewportY += lineCount;
     });
-    write = vi.fn();
+    write = vi.fn((data: string, callback?: () => void) => {
+      if (typeof callback === "function") {
+        callback();
+      }
+    });
     dispose = vi.fn();
     attachCustomKeyEventHandler = vi.fn();
     onCursorMove = vi.fn(() => ({ dispose: vi.fn() }));

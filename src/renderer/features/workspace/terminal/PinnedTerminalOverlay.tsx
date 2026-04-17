@@ -70,8 +70,15 @@ export function PinnedTerminalOverlay({
     }
 
     mirrorControllerRef.current?.requestFit("pinned-overlay-resize");
+  }, [isOpen, viewportMetrics?.cellHeightPx, viewportMetrics?.visibleRowCount]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     mirrorControllerRef.current?.syncPinnedViewport(viewportMetrics);
-  }, [isOpen, viewportMetrics]);
+  }, [isOpen, viewportMetrics?.viewportStartRow]);
 
   if (!isOpen || viewportMetrics === null) {
     return <></>;
@@ -85,10 +92,18 @@ export function PinnedTerminalOverlay({
         onFocusPane();
       }}
     >
-      <div className="border-border-subtle bg-surface-terminal mx-3 mb-3 overflow-hidden rounded-xl border shadow-lg">
+      <div className="border-border-subtle bg-surface-terminal mx-3 mb-3 overflow-hidden rounded-xs border shadow-lg">
         <div
           className="pointer-events-auto relative overflow-hidden"
           data-pinned-terminal-scroll-container="true"
+          onTouchMoveCapture={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onWheelCapture={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
           style={{
             height:
               viewportMetrics.visibleRowCount * viewportMetrics.cellHeightPx,
@@ -96,7 +111,7 @@ export function PinnedTerminalOverlay({
         >
           <button
             aria-label="Unpin terminal input overlay"
-            className="bg-surface-panel/95 text-text-subtle hover:bg-surface-panel hover:text-text-highlight absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent transition-colors duration-150"
+            className="bg-surface-panel/95 text-text-subtle hover:bg-surface-panel hover:text-text-highlight absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-xs border border-transparent transition-colors duration-150"
             onClick={onClose}
             type="button"
           >
@@ -106,7 +121,10 @@ export function PinnedTerminalOverlay({
               strokeWidth={2}
             />
           </button>
-          <div className="h-full min-h-0 min-w-0" ref={hostRef} />
+          <div
+            className="pinned-terminal-overlay__viewport h-full min-h-0 min-w-0"
+            ref={hostRef}
+          />
         </div>
       </div>
     </div>

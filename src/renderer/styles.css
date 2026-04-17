@@ -154,3 +154,20 @@ button {
   width: 100% !important;
   background: var(--color-surface-terminal-theme) !important;
 }
+
+.pinned-terminal-overlay__viewport .xterm,
+.pinned-terminal-overlay__viewport .xterm-viewport,
+.pinned-terminal-overlay__viewport .xterm-screen {
+  width: 100% !important;
+  height: 100% !important;
+  background: var(--color-surface-terminal-theme) !important;
+}
+
+.pinned-terminal-overlay__viewport .xterm-viewport {
+  overflow: hidden !important;
+  scrollbar-width: none;
+}
+
+.pinned-terminal-overlay__viewport .xterm-viewport::-webkit-scrollbar {
+  display: none;
+}

@@ -1161,13 +1161,13 @@ function createTerminalSessionController(
 
   const writeTerminalOutput = (data: string): void => {
     appendReplayOutput(data);
-    terminal.write(data);
+    terminal.write(data, () => {
+      updatePinnedViewportMetrics();
 
-    for (const mirrorController of mirrorControllers) {
-      mirrorController.writeOutput(data);
-    }
-
-    updatePinnedViewportMetrics();
+      for (const mirrorController of mirrorControllers) {
+        mirrorController.writeOutput(data);
+      }
+    });
   };
 
   const focusTerminal = (): void => {

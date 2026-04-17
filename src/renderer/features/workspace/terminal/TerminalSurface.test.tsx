@@ -147,7 +147,11 @@ const {
         start: { x: column + 1, y: row + 1 },
       };
     });
-    write = vi.fn();
+    write = vi.fn((data: string, callback?: () => void) => {
+      if (typeof callback === "function") {
+        callback();
+      }
+    });
     dispose = vi.fn();
     attachCustomKeyEventHandler = vi.fn();
     onData = vi.fn(() => ({ dispose: vi.fn() }));
@@ -385,7 +389,10 @@ describe("TerminalSurface", () => {
     const terminal = terminalInstances[0];
 
     await waitFor(() => {
-      expect(terminal?.write).toHaveBeenCalledWith("saved output");
+      expect(terminal?.write).toHaveBeenCalledWith(
+        "saved output",
+        expect.any(Function),
+      );
     });
 
     const emitOutput = outputListeners[0];
@@ -408,7 +415,10 @@ describe("TerminalSurface", () => {
     });
 
     await waitFor(() => {
-      expect(terminal?.write).toHaveBeenCalledWith("\r\nnext line");
+      expect(terminal?.write).toHaveBeenCalledWith(
+        "\r\nnext line",
+        expect.any(Function),
+      );
     });
 
     expect(
