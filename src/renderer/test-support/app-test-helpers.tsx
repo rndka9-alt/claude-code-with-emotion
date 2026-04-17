@@ -1,11 +1,12 @@
+import type { Mock } from "vitest";
 import { createDefaultAssistantStatusSnapshot } from "../../shared/assistant-status";
 import {
   createDefaultAppThemeSelection,
   type AppThemeSelection,
 } from "../../shared/theme";
 
-export function installDisconnectedClaudeApp(sendInput = vi.fn()): {
-  saveThemeSelection: ReturnType<typeof vi.fn>;
+export function installDisconnectedClaudeApp(sendInput: Mock = vi.fn()): {
+  saveThemeSelection: Mock;
 } {
   const saveThemeSelection = vi.fn(
     async (selection: AppThemeSelection) => selection,

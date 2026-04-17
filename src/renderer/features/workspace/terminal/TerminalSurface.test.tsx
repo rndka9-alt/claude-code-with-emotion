@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { Mock } from "vitest";
 import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
 import { TerminalSurface } from "./TerminalSurface";
 import { handleTerminalExternalBrowserClick } from "./terminal-session-registry";
@@ -197,12 +198,12 @@ function requireElement<TElement extends Element>(
 }
 
 describe("TerminalSurface", () => {
-  let openExternal: ReturnType<typeof vi.fn>;
+  let openExternal: Mock<(url: string) => Promise<void>>;
 
   beforeEach(() => {
     searchAddonInstances.length = 0;
     terminalInstances.length = 0;
-    openExternal = vi.fn().mockResolvedValue(undefined);
+    openExternal = vi.fn<(url: string) => Promise<void>>().mockResolvedValue(undefined);
 
     Object.defineProperty(window, "claudeApp", {
       configurable: true,

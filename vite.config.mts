@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist/renderer",
       emptyOutDir: true,
-      minify: isDevelopmentMode ? false : "esbuild",
+      minify: !isDevelopmentMode,
       sourcemap: isDevelopmentMode,
     },
     server: {
@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => {
       globals: true,
       setupFiles: "./src/renderer/test/setup.ts",
       css: true,
+      exclude: ["**/node_modules/**", "**/dist/**"],
     },
   };
 });
