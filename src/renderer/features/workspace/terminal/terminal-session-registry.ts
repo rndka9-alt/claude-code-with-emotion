@@ -1,16 +1,11 @@
-import {
-  SearchAddon,
-} from "@xterm/addon-search";
+import { SearchAddon } from "@xterm/addon-search";
 import { Terminal, type ITheme } from "@xterm/xterm";
 import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
 import { DEFAULT_TERMINAL_HISTORY_LINES } from "../../../../shared/terminal-history";
 import { APP_THEME_FALLBACKS } from "../../../../shared/theme";
 import type { TerminalSession } from "../model";
 import { handleTerminalShortcut } from "./terminal-keyboard";
-import type {
-  TerminalSearchRequest,
-  TerminalSearchResults,
-} from "./search";
+import type { TerminalSearchRequest, TerminalSearchResults } from "./search";
 
 interface TerminalSize {
   cols: number;
@@ -39,6 +34,26 @@ interface TerminalSearchSegment {
   text: string;
 }
 
+export interface TerminalPinnedViewportMetrics {
+  cellHeightPx: number;
+  visibleRowCount: number;
+}
+
+export interface TerminalPinnedViewportSnapshot {
+  lineTexts: string[];
+  metrics: TerminalPinnedViewportMetrics | null;
+  pinSuggestionVersion: number;
+}
+
+export interface TerminalMirrorController {
+  attach: (host: HTMLDivElement) => void;
+  detach: () => void;
+  dispose: () => void;
+  focus: () => void;
+  requestFit: (reason: string) => void;
+  updateTheme: () => void;
+}
+
 const terminalThemeFallbacks = {
   background: APP_THEME_FALLBACKS.terminalBackground,
   foreground: APP_THEME_FALLBACKS.terminalForeground,
@@ -52,9 +67,13 @@ export interface TerminalSessionController {
     host: HTMLDivElement,
     onTitleChange: (tabId: string, title: string) => void,
   ) => void;
+  createMirrorController: () => TerminalMirrorController;
   detach: () => void;
   focus: () => void;
   requestFit: (reason: string) => void;
+  subscribePinnedViewport: (
+    listener: (snapshot: TerminalPinnedViewportSnapshot) => void,
+  ) => () => void;
   updateTheme: () => void;
   updateTitleChangeHandler: (
     onTitleChange: (tabId: string, title: string) => void,
@@ -68,6 +87,23 @@ interface TerminalSessionControllerRecord extends TerminalSessionController {
   updateSearchResultsHandler: (
     onSearchResultsChange: ((results: TerminalSearchResults) => void) | null,
   ) => void;
+}
+
+interface TerminalMirrorControllerRecord extends TerminalMirrorController {
+  writeOutput: (data: string) => void;
+}
+
+function isModifierOnlyKey(key: string): boolean {
+  return (
+    key === "Alt" ||
+    key === "CapsLock" ||
+    key === "Control" ||
+    key === "Fn" ||
+    key === "Meta" ||
+    key === "NumLock" ||
+    key === "ScrollLock" ||
+    key === "Shift"
+  );
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -103,10 +139,9 @@ function isTerminalViewportPinnedToBottom(terminal: Terminal): boolean {
   return activeBuffer.viewportY === activeBuffer.baseY;
 }
 
-function measureTerminalSize(
+function readTerminalCellDimensions(
   terminal: Terminal,
-  host: HTMLDivElement,
-): TerminalSize | null {
+): { height: number; width: number } | null {
   const core = Reflect.get(terminal, "_core");
   const cellWidth = readNestedNumber(core, [
     "_renderService",
@@ -132,15 +167,102 @@ function measureTerminalSize(
     return null;
   }
 
+  return {
+    height: cellHeight,
+    width: cellWidth,
+  };
+}
+
+function arePinnedViewportMetricsEqual(
+  left: TerminalPinnedViewportMetrics | null,
+  right: TerminalPinnedViewportMetrics | null,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  return (
+    left.cellHeightPx === right.cellHeightPx &&
+    left.visibleRowCount === right.visibleRowCount
+  );
+}
+
+function createPinnedViewportLineTexts(terminal: Terminal): string[] {
+  const activeBuffer = terminal.buffer.active;
+  const absoluteCursorRow = activeBuffer.baseY + activeBuffer.cursorY;
+  const maxStartRow = Math.max(0, activeBuffer.length - 5);
+  const startRow = Math.max(0, Math.min(absoluteCursorRow - 2, maxStartRow));
+  const lineTexts: string[] = [];
+
+  for (let rowOffset = 0; rowOffset < 5; rowOffset += 1) {
+    const line = activeBuffer.getLine(startRow + rowOffset);
+
+    lineTexts.push(line === undefined ? "" : line.translateToString());
+  }
+
+  return lineTexts;
+}
+
+function createPinnedViewportMetrics(
+  terminal: Terminal,
+): TerminalPinnedViewportMetrics | null {
+  const cellDimensions = readTerminalCellDimensions(terminal);
+
+  if (cellDimensions === null) {
+    return null;
+  }
+
+  const activeBuffer = terminal.buffer.active;
+  const absoluteCursorRow = activeBuffer.baseY + activeBuffer.cursorY;
+  let wrappedRowCount = 1;
+
+  for (
+    let row = absoluteCursorRow;
+    row > 0 && wrappedRowCount < 5;
+    row -= 1
+  ) {
+    const line = activeBuffer.getLine(row);
+
+    if (line === undefined || !line.isWrapped) {
+      break;
+    }
+
+    wrappedRowCount += 1;
+  }
+
+  return {
+    cellHeightPx: cellDimensions.height,
+    visibleRowCount: Math.max(1, Math.min(5, wrappedRowCount + 1)),
+  };
+}
+
+function measureTerminalSize(
+  terminal: Terminal,
+  host: HTMLDivElement,
+): TerminalSize | null {
+  const core = Reflect.get(terminal, "_core");
+  const cellDimensions = readTerminalCellDimensions(terminal);
+
+  if (cellDimensions === null) {
+    return null;
+  }
+
   const scrollBarWidth =
     terminal.options.scrollback === 0
       ? 0
       : (readNestedNumber(core, ["viewport", "scrollBarWidth"]) ?? 0);
   const cols = Math.max(
     2,
-    Math.floor((host.clientWidth - scrollBarWidth) / cellWidth),
+    Math.floor((host.clientWidth - scrollBarWidth) / cellDimensions.width),
   );
-  const rows = Math.max(1, Math.floor(host.clientHeight / cellHeight));
+  const rows = Math.max(
+    1,
+    Math.floor(host.clientHeight / cellDimensions.height),
+  );
 
   return {
     cols,
@@ -341,7 +463,11 @@ function parseCssHexColor(value: string): RgbColor | null {
     const longBlue = longHexMatch[3];
     const longAlpha = longHexMatch[4];
 
-    if (longRed === undefined || longGreen === undefined || longBlue === undefined) {
+    if (
+      longRed === undefined ||
+      longGreen === undefined ||
+      longBlue === undefined
+    ) {
       return null;
     }
 
@@ -474,7 +600,9 @@ function isLightColor(value: string): boolean {
   return luminance >= 0.6;
 }
 
-function createTerminalSelectionTheme(background: string): Pick<
+function createTerminalSelectionTheme(
+  background: string,
+): Pick<
   ITheme,
   "selectionBackground" | "selectionForeground" | "selectionInactiveBackground"
 > {
@@ -625,7 +753,10 @@ function collectTerminalSearchMatchesFromSegments(
   let searchStartIndex = 0;
 
   while (searchStartIndex <= normalizedText.length - normalizedQuery.length) {
-    const matchIndex = normalizedText.indexOf(normalizedQuery, searchStartIndex);
+    const matchIndex = normalizedText.indexOf(
+      normalizedQuery,
+      searchStartIndex,
+    );
 
     if (matchIndex < 0) {
       break;
@@ -900,63 +1031,141 @@ function createTerminalSessionController(
 
   // 터미널 텍스트에서 URL을 감지해 Cmd+클릭으로 열 수 잇게 하는 링크 프로바이더
   const LINKABLE_URL_REGEX = /https?:\/\/[^\s)>\]"']+|vscode:\/\/[^\s)>\]"']+/g;
-  terminal.registerLinkProvider({
-    provideLinks(bufferLineNumber, callback) {
-      const line = terminal.buffer.active.getLine(bufferLineNumber);
-      if (!line) {
-        callback(undefined);
-        return;
-      }
+  const registerTerminalLinks = (targetTerminal: Terminal): void => {
+    targetTerminal.registerLinkProvider({
+      provideLinks(bufferLineNumber, callback) {
+        const line = targetTerminal.buffer.active.getLine(bufferLineNumber);
+        if (!line) {
+          callback(undefined);
+          return;
+        }
 
-      const text = line.translateToString();
-      const links: Array<{
-        range: {
-          start: { x: number; y: number };
-          end: { x: number; y: number };
-        };
-        text: string;
-        activate: (_event: MouseEvent, linkText: string) => void;
-      }> = [];
-
-      LINKABLE_URL_REGEX.lastIndex = 0;
-      let match;
-      while ((match = LINKABLE_URL_REGEX.exec(text)) !== null) {
-        const url = match[0];
-        links.push({
+        const text = line.translateToString();
+        const links: Array<{
           range: {
-            start: { x: match.index + 1, y: bufferLineNumber },
-            end: { x: match.index + url.length, y: bufferLineNumber },
-          },
-          text: url,
-          activate(_event, linkText) {
-            void linksBridge?.openExternal(linkText);
-          },
-        });
-      }
+            start: { x: number; y: number };
+            end: { x: number; y: number };
+          };
+          text: string;
+          activate: (_event: MouseEvent, linkText: string) => void;
+        }> = [];
 
-      callback(links.length > 0 ? links : undefined);
-    },
-  });
+        LINKABLE_URL_REGEX.lastIndex = 0;
+        let match;
+        while ((match = LINKABLE_URL_REGEX.exec(text)) !== null) {
+          const url = match[0];
+          links.push({
+            range: {
+              start: { x: match.index + 1, y: bufferLineNumber },
+              end: { x: match.index + url.length, y: bufferLineNumber },
+            },
+            text: url,
+            activate(_event, linkText) {
+              void linksBridge?.openExternal(linkText);
+            },
+          });
+        }
+
+        callback(links.length > 0 ? links : undefined);
+      },
+    });
+  };
+
+  registerTerminalLinks(terminal);
 
   const container = createTerminalContainer();
   const bufferedOutputEvents: TerminalOutputEvent[] = [];
+  const mirrorControllers = new Set<TerminalMirrorControllerRecord>();
+  const pinnedViewportListeners = new Set<
+    (snapshot: TerminalPinnedViewportSnapshot) => void
+  >();
+  let pinnedViewportLineTexts = ["", "", "", "", ""];
+  const replayOutputSegments: string[] = [];
   const scheduledTasks: ScheduledTask[] = [];
   let bootstrapCompleted = false;
   let bootstrapStarted = false;
   let disposed = false;
   let host: HTMLDivElement | null = null;
+  let manualViewportInteractionAtMs = 0;
+  let pinSuggestionVersion = 0;
+  let pinnedViewportMetrics: TerminalPinnedViewportMetrics | null = null;
   let restoredOutputVersion = 0;
   let searchResultsChangeHandler:
     | ((results: TerminalSearchResults) => void)
     | null = null;
   let titleChangeHandler: ((tabId: string, title: string) => void) | null =
     null;
+  let userScrolledAwayFromBottom = false;
 
   const emitSearchResults = (results: TerminalSearchResults): void => {
     searchResultsChangeHandler?.({
       ...results,
       sessionId: session.id,
     });
+  };
+
+  const emitPinnedViewportSnapshot = (): void => {
+    const snapshot = {
+      lineTexts: pinnedViewportLineTexts,
+      metrics: pinnedViewportMetrics,
+      pinSuggestionVersion,
+    };
+
+    for (const listener of pinnedViewportListeners) {
+      listener(snapshot);
+    }
+  };
+
+  const updatePinnedViewportMetrics = (): void => {
+    const nextPinnedViewportMetrics =
+      host === null ? null : createPinnedViewportMetrics(terminal);
+    const nextPinnedViewportLineTexts =
+      host === null
+        ? ["", "", "", "", ""]
+        : createPinnedViewportLineTexts(terminal);
+    const didMetricsChange = !arePinnedViewportMetricsEqual(
+      pinnedViewportMetrics,
+      nextPinnedViewportMetrics,
+    );
+    const didLineTextsChange =
+      pinnedViewportLineTexts.length !== nextPinnedViewportLineTexts.length ||
+      pinnedViewportLineTexts.some((lineText, index) => {
+        const nextLineText = nextPinnedViewportLineTexts[index];
+
+        return nextLineText === undefined || lineText !== nextLineText;
+      });
+
+    if (!didMetricsChange && !didLineTextsChange) {
+      return;
+    }
+
+    pinnedViewportMetrics = nextPinnedViewportMetrics;
+    pinnedViewportLineTexts = nextPinnedViewportLineTexts;
+    emitPinnedViewportSnapshot();
+  };
+
+  const requestPinSuggestion = (): void => {
+    pinSuggestionVersion += 1;
+    emitPinnedViewportSnapshot();
+  };
+
+  const markManualViewportInteraction = (): void => {
+    manualViewportInteractionAtMs = Date.now();
+  };
+
+  const appendReplayOutput = (data: string): void => {
+    replayOutputSegments.push(data);
+  };
+
+  const writeTerminalOutput = (data: string): void => {
+    appendReplayOutput(data);
+    terminal.write(data);
+
+    for (const mirrorController of mirrorControllers) {
+      mirrorController.writeOutput(data);
+    }
+
+    updatePinnedViewportMetrics();
   };
 
   const focusTerminal = (): void => {
@@ -967,6 +1176,10 @@ function createTerminalSessionController(
   };
   const syncTheme = (): void => {
     terminal.options.theme = createTerminalTheme();
+
+    for (const mirrorController of mirrorControllers) {
+      mirrorController.updateTheme();
+    }
   };
   const removeOutputListener =
     bridge?.onOutput((event) => {
@@ -982,23 +1195,50 @@ function createTerminalSessionController(
       applyOutputEvent(event);
     }) ?? (() => {});
 
-  terminal.attachCustomKeyEventHandler((event) =>
-    handleTerminalShortcut(event, (data) => {
+  terminal.attachCustomKeyEventHandler((event) => {
+    if (
+      event.type === "keydown" &&
+      !isModifierOnlyKey(event.key) &&
+      !event.metaKey &&
+      !isTerminalViewportPinnedToBottom(terminal)
+    ) {
+      userScrolledAwayFromBottom = false;
+      requestPinSuggestion();
+    }
+
+    return handleTerminalShortcut(event, (data) => {
       if (bridge !== undefined) {
         void bridge.sendInput({ sessionId: session.id, data });
         return;
       }
 
       terminal.write("\r\n");
-    }),
-  );
+    });
+  });
 
   const inputSubscription = terminal.onData((data) => {
+    if (userScrolledAwayFromBottom) {
+      userScrolledAwayFromBottom = false;
+      requestPinSuggestion();
+    }
+
     if (bridge !== undefined) {
       void bridge.sendInput({ sessionId: session.id, data });
     } else {
       terminal.write(data);
     }
+  });
+  const cursorMoveSubscription = terminal.onCursorMove(() => {
+    updatePinnedViewportMetrics();
+  });
+  const scrollSubscription = terminal.onScroll(() => {
+    if (Date.now() - manualViewportInteractionAtMs <= 250) {
+      userScrolledAwayFromBottom = !isTerminalViewportPinnedToBottom(terminal);
+    } else if (isTerminalViewportPinnedToBottom(terminal)) {
+      userScrolledAwayFromBottom = false;
+    }
+
+    updatePinnedViewportMetrics();
   });
   const titleSubscription = terminal.onTitleChange((nextTitle) => {
     titleChangeHandler?.(session.id, nextTitle);
@@ -1040,7 +1280,7 @@ function createTerminalSessionController(
     }
 
     restoredOutputVersion = event.outputVersion;
-    terminal.write(event.data);
+    writeTerminalOutput(event.data);
   }
 
   function flushBufferedOutput(): void {
@@ -1088,7 +1328,7 @@ function createTerminalSessionController(
         }
 
         if (response.outputSnapshot.length > 0) {
-          terminal.write(response.outputSnapshot);
+          writeTerminalOutput(response.outputSnapshot);
         }
 
         restoredOutputVersion = response.outputVersion;
@@ -1102,7 +1342,7 @@ function createTerminalSessionController(
         bootstrapCompleted = true;
         bufferedOutputEvents.length = 0;
         console.error(`Failed to bootstrap ${session.id}: ${message}`);
-        terminal.write(
+        writeTerminalOutput(
           `\r\n[terminal bootstrap failed for ${session.id}: ${message}]\r\n`,
         );
       });
@@ -1119,6 +1359,7 @@ function createTerminalSessionController(
       if (nextSize !== null) {
         syncTerminalSize();
         bootstrapSession(nextSize);
+        updatePinnedViewportMetrics();
         return;
       }
 
@@ -1141,12 +1382,173 @@ function createTerminalSessionController(
         );
         syncTerminalSize();
         bootstrapSession(retrySize ?? getTerminalSize(terminal));
+        updatePinnedViewportMetrics();
       }, 32);
 
       scheduledTasks.push(retryTask);
     }, 0);
 
     scheduledTasks.push(task);
+  }
+
+  function createMirrorController(): TerminalMirrorControllerRecord {
+    const mirrorTerminal = new Terminal({
+      allowProposedApi: true,
+      allowTransparency: true,
+      convertEol: true,
+      cursorBlink: true,
+      fontFamily: '"SF Mono", "Menlo", monospace',
+      fontSize: 13,
+      lineHeight: 1.3,
+      scrollback: DEFAULT_TERMINAL_HISTORY_LINES,
+      theme: createTerminalTheme(),
+      linkHandler: {
+        activate(_event, uri) {
+          void linksBridge?.openExternal(uri);
+        },
+      },
+    });
+    const mirrorContainer = createTerminalContainer();
+    const mirrorScheduledTasks: ScheduledTask[] = [];
+    const focusMirrorTerminal = (): void => {
+      mirrorTerminal.focus();
+    };
+    let mirrorDisposed = false;
+    let mirrorHasReplayedOutput = false;
+    let mirrorHost: HTMLDivElement | null = null;
+
+    registerTerminalLinks(mirrorTerminal);
+
+    mirrorTerminal.attachCustomKeyEventHandler((event) =>
+      handleTerminalShortcut(event, (data) => {
+        if (bridge !== undefined) {
+          void bridge.sendInput({ sessionId: session.id, data });
+          return;
+        }
+
+        mirrorTerminal.write("\r\n");
+      }),
+    );
+
+    const mirrorInputSubscription = mirrorTerminal.onData((data) => {
+      if (bridge !== undefined) {
+        void bridge.sendInput({ sessionId: session.id, data });
+      } else {
+        mirrorTerminal.write(data);
+      }
+    });
+
+    const requestMirrorFit = (reason: string): void => {
+      const task = scheduleTask(() => {
+        if (mirrorDisposed || mirrorHost === null) {
+          return;
+        }
+
+        const nextSize = fitTerminalViewport(
+          mirrorTerminal,
+          mirrorHost,
+          `${session.id}-mirror`,
+          reason,
+        );
+
+        if (nextSize !== null) {
+          return;
+        }
+
+        const retryTask = scheduleTask(() => {
+          if (mirrorDisposed || mirrorHost === null) {
+            return;
+          }
+
+          fitTerminalViewport(
+            mirrorTerminal,
+            mirrorHost,
+            `${session.id}-mirror`,
+            `${reason}-retry`,
+          );
+        }, 32);
+
+        mirrorScheduledTasks.push(retryTask);
+      }, 0);
+
+      mirrorScheduledTasks.push(task);
+    };
+
+    const mirrorController: TerminalMirrorControllerRecord = {
+      attach(nextHost) {
+        if (!mirrorContainer.isConnected) {
+          nextHost.replaceChildren(mirrorContainer);
+          mirrorTerminal.open(mirrorContainer);
+        } else if (mirrorContainer.parentElement !== nextHost) {
+          nextHost.replaceChildren(mirrorContainer);
+        }
+
+        mirrorHost = nextHost;
+        mirrorHost.addEventListener("click", handleTerminalLinkClick, true);
+        mirrorHost.addEventListener("mousedown", focusMirrorTerminal);
+        mirrorHost.addEventListener("touchstart", focusMirrorTerminal, {
+          passive: true,
+        });
+
+        if (!mirrorHasReplayedOutput) {
+          const replayOutput = replayOutputSegments.join("");
+
+          if (replayOutput.length > 0) {
+            mirrorTerminal.write(replayOutput);
+          }
+
+          mirrorHasReplayedOutput = true;
+        }
+
+        requestMirrorFit("attach");
+      },
+      detach() {
+        if (mirrorHost === null || mirrorDisposed) {
+          return;
+        }
+
+        mirrorHost.removeEventListener("click", handleTerminalLinkClick, true);
+        mirrorHost.removeEventListener("mousedown", focusMirrorTerminal);
+        mirrorHost.removeEventListener("touchstart", focusMirrorTerminal);
+        getParkingLot().append(mirrorContainer);
+        mirrorHost = null;
+      },
+      dispose() {
+        if (mirrorDisposed) {
+          return;
+        }
+
+        this.detach();
+        mirrorDisposed = true;
+
+        for (const task of mirrorScheduledTasks) {
+          task.cancel();
+        }
+
+        mirrorInputSubscription.dispose();
+        mirrorTerminal.dispose();
+        mirrorContainer.remove();
+        mirrorControllers.delete(mirrorController);
+      },
+      focus() {
+        mirrorTerminal.focus();
+      },
+      requestFit: requestMirrorFit,
+      updateTheme() {
+        mirrorTerminal.options.theme = createTerminalTheme();
+      },
+      writeOutput(data) {
+        if (!mirrorHasReplayedOutput) {
+          return;
+        }
+
+        mirrorTerminal.write(data);
+      },
+    };
+
+    mirrorControllers.add(mirrorController);
+
+    return mirrorController;
   }
 
   return {
@@ -1163,16 +1565,25 @@ function createTerminalSessionController(
       host = nextHost;
       host.addEventListener("click", handleTerminalLinkClick, true);
       host.addEventListener("mousedown", focusTerminal);
+      host.addEventListener("mousedown", markManualViewportInteraction);
       host.addEventListener("touchstart", focusTerminal, { passive: true });
+      host.addEventListener("touchmove", markManualViewportInteraction, {
+        passive: true,
+      });
+      host.addEventListener("wheel", markManualViewportInteraction, {
+        passive: true,
+      });
       requestFit("attach");
+      updatePinnedViewportMetrics();
 
       if (bridge === undefined) {
-        terminal.write(
+        writeTerminalOutput(
           `No preload bridge detected for ${session.title}\r\n` +
             "The xterm surface is mounted, but Electron IPC is unavailable.\r\n",
         );
       }
     },
+    createMirrorController,
     detach() {
       if (host === null || disposed) {
         return;
@@ -1180,14 +1591,32 @@ function createTerminalSessionController(
 
       host.removeEventListener("click", handleTerminalLinkClick, true);
       host.removeEventListener("mousedown", focusTerminal);
+      host.removeEventListener("mousedown", markManualViewportInteraction);
       host.removeEventListener("touchstart", focusTerminal);
+      host.removeEventListener("touchmove", markManualViewportInteraction);
+      host.removeEventListener("wheel", markManualViewportInteraction);
       getParkingLot().append(container);
       host = null;
+      pinnedViewportMetrics = null;
+      pinnedViewportLineTexts = ["", "", "", "", ""];
+      emitPinnedViewportSnapshot();
     },
     focus() {
-      terminal.focus();
+      focusTerminal();
     },
     requestFit,
+    subscribePinnedViewport(listener) {
+      pinnedViewportListeners.add(listener);
+      listener({
+        lineTexts: pinnedViewportLineTexts,
+        metrics: pinnedViewportMetrics,
+        pinSuggestionVersion,
+      });
+
+      return () => {
+        pinnedViewportListeners.delete(listener);
+      };
+    },
     updateTheme() {
       syncTheme();
     },
@@ -1214,8 +1643,15 @@ function createTerminalSessionController(
       }
 
       removeOutputListener();
+      cursorMoveSubscription.dispose();
       inputSubscription.dispose();
+      scrollSubscription.dispose();
       titleSubscription.dispose();
+
+      for (const mirrorController of [...mirrorControllers]) {
+        mirrorController.dispose();
+      }
+
       terminal.dispose();
       container.remove();
     },

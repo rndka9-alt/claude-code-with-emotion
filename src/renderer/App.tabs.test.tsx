@@ -1,21 +1,55 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { App } from "./App";
 
 const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
+    _core: {
+      _renderService: {
+        dimensions: {
+          css: {
+            cell: {
+              height: number;
+              width: number;
+            };
+          };
+        };
+      };
+      viewport: {
+        scrollBarWidth: number;
+      };
+    };
     attachCustomKeyEventHandler: ReturnType<typeof vi.fn>;
+    buffer: {
+      active: {
+        baseY: number;
+        cursorY: number;
+        getLine: ReturnType<typeof vi.fn>;
+        length: number;
+        viewportY: number;
+      };
+    };
     clearSelection: ReturnType<typeof vi.fn>;
     cols: number;
     dispose: ReturnType<typeof vi.fn>;
     focus: ReturnType<typeof vi.fn>;
     loadAddon: ReturnType<typeof vi.fn>;
+    onCursorMove: ReturnType<typeof vi.fn>;
     onData: ReturnType<typeof vi.fn>;
+    onScroll: ReturnType<typeof vi.fn>;
     onTitleChange: ReturnType<typeof vi.fn>;
     open: ReturnType<typeof vi.fn>;
     options: { scrollback: number };
     registerLinkProvider: ReturnType<typeof vi.fn>;
     resize: ReturnType<typeof vi.fn>;
     rows: number;
+    scrollToBottom: ReturnType<typeof vi.fn>;
+    scrollLines: ReturnType<typeof vi.fn>;
     write: ReturnType<typeof vi.fn>;
   }> = [];
 
@@ -30,7 +64,34 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
   class HoistedMockTerminal {
     cols = 80;
     rows = 24;
+    _core = {
+      _renderService: {
+        dimensions: {
+          css: {
+            cell: {
+              height: 16,
+              width: 8,
+            },
+          },
+        },
+      },
+      viewport: {
+        scrollBarWidth: 0,
+      },
+    };
     options = { scrollback: 1000 };
+    buffer = {
+      active: {
+        baseY: 0,
+        cursorY: 0,
+        getLine: vi.fn(() => ({
+          isWrapped: false,
+          translateToString: () => "",
+        })),
+        length: 1,
+        viewportY: 0,
+      },
+    };
     clearSelection = vi.fn();
     focus = vi.fn();
     loadAddon = vi.fn();
@@ -39,10 +100,18 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
       this.cols = cols;
       this.rows = rows;
     });
+    scrollToBottom = vi.fn(() => {
+      this.buffer.active.viewportY = this.buffer.active.baseY;
+    });
+    scrollLines = vi.fn((lineCount: number) => {
+      this.buffer.active.viewportY += lineCount;
+    });
     write = vi.fn();
     dispose = vi.fn();
     attachCustomKeyEventHandler = vi.fn();
+    onCursorMove = vi.fn(() => ({ dispose: vi.fn() }));
     onData = vi.fn(() => ({ dispose: vi.fn() }));
+    onScroll = vi.fn(() => ({ dispose: vi.fn() }));
     onTitleChange = vi.fn(() => ({ dispose: vi.fn() }));
     registerLinkProvider = vi.fn(() => ({ dispose: vi.fn() }));
 
@@ -224,9 +293,7 @@ describe("App tab actions", () => {
       }),
     );
 
-    expect(
-      screen.getAllByRole("tab"),
-    ).toHaveLength(1);
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
     expect(
       screen.getByRole("tab", {
         name: "new session 2 · claude-code-with-emotion",

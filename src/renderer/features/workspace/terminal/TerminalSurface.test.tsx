@@ -1,10 +1,20 @@
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
 import { TerminalSurface } from "./TerminalSurface";
 import { handleTerminalExternalBrowserClick } from "./terminal-session-registry";
 
-const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances } =
-  vi.hoisted(() => {
+const {
+  MockSearchAddon,
+  searchAddonInstances,
+  MockTerminal,
+  terminalInstances,
+} = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
     _core: {
       _renderService: {
@@ -25,8 +35,10 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     buffer: {
       active: {
         baseY: number;
+        cursorY: number;
         getLine: ReturnType<typeof vi.fn>;
         length: number;
+        type: "alternate" | "normal";
         viewportY: number;
       };
     };
@@ -37,6 +49,8 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     getSelectionPosition: ReturnType<typeof vi.fn>;
     loadAddon: ReturnType<typeof vi.fn>;
     onData: ReturnType<typeof vi.fn>;
+    onCursorMove: ReturnType<typeof vi.fn>;
+    onScroll: ReturnType<typeof vi.fn>;
     onTitleChange: ReturnType<typeof vi.fn>;
     open: ReturnType<typeof vi.fn>;
     options: { scrollback: number };
@@ -49,27 +63,27 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     write: ReturnType<typeof vi.fn>;
   }> = [];
 
-    const hoistedSearchAddonInstances: Array<{
-      clearActiveDecoration: ReturnType<typeof vi.fn>;
-      clearDecorations: ReturnType<typeof vi.fn>;
-      findNext: ReturnType<typeof vi.fn>;
-      findPrevious: ReturnType<typeof vi.fn>;
-      onDidChangeResults: ReturnType<typeof vi.fn>;
-    }> = [];
+  const hoistedSearchAddonInstances: Array<{
+    clearActiveDecoration: ReturnType<typeof vi.fn>;
+    clearDecorations: ReturnType<typeof vi.fn>;
+    findNext: ReturnType<typeof vi.fn>;
+    findPrevious: ReturnType<typeof vi.fn>;
+    onDidChangeResults: ReturnType<typeof vi.fn>;
+  }> = [];
 
-    class HoistedMockSearchAddon {
-      clearActiveDecoration = vi.fn();
-      clearDecorations = vi.fn();
-      findNext = vi.fn(() => true);
-      findPrevious = vi.fn(() => true);
-      onDidChangeResults = vi.fn(() => ({ dispose: vi.fn() }));
+  class HoistedMockSearchAddon {
+    clearActiveDecoration = vi.fn();
+    clearDecorations = vi.fn();
+    findNext = vi.fn(() => true);
+    findPrevious = vi.fn(() => true);
+    onDidChangeResults = vi.fn(() => ({ dispose: vi.fn() }));
 
-      constructor() {
-        hoistedSearchAddonInstances.push(this);
-      }
+    constructor() {
+      hoistedSearchAddonInstances.push(this);
     }
+  }
 
-    class HoistedMockTerminal {
+  class HoistedMockTerminal {
     cols = 80;
     rows = 24;
     _core = {
@@ -94,6 +108,7 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     buffer = {
       active: {
         baseY: 0,
+        cursorY: 0,
         getLine: vi.fn((row: number) => {
           if (row !== 0) {
             return undefined;
@@ -105,6 +120,7 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
           };
         }),
         length: 1,
+        type: "normal" as const,
         viewportY: 0,
       },
     };
@@ -122,7 +138,9 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     scrollToBottom = vi.fn(() => {
       this.buffer.active.viewportY = this.buffer.active.baseY;
     });
-    scrollLines = vi.fn();
+    scrollLines = vi.fn((lineCount: number) => {
+      this.buffer.active.viewportY += lineCount;
+    });
     select = vi.fn((column: number, row: number, length: number) => {
       this.selectionPosition = {
         end: { x: column + length + 1, y: row + 1 },
@@ -133,21 +151,23 @@ const { MockSearchAddon, searchAddonInstances, MockTerminal, terminalInstances }
     dispose = vi.fn();
     attachCustomKeyEventHandler = vi.fn();
     onData = vi.fn(() => ({ dispose: vi.fn() }));
+    onCursorMove = vi.fn(() => ({ dispose: vi.fn() }));
+    onScroll = vi.fn(() => ({ dispose: vi.fn() }));
     onTitleChange = vi.fn(() => ({ dispose: vi.fn() }));
     registerLinkProvider = vi.fn(() => ({ dispose: vi.fn() }));
 
     constructor() {
       hoistedTerminalInstances.push(this);
     }
-    }
+  }
 
-    return {
-      MockSearchAddon: HoistedMockSearchAddon,
-      searchAddonInstances: hoistedSearchAddonInstances,
-      MockTerminal: HoistedMockTerminal,
-      terminalInstances: hoistedTerminalInstances,
-    };
-  });
+  return {
+    MockSearchAddon: HoistedMockSearchAddon,
+    searchAddonInstances: hoistedSearchAddonInstances,
+    MockTerminal: HoistedMockTerminal,
+    terminalInstances: hoistedTerminalInstances,
+  };
+});
 
 vi.mock("@xterm/xterm", () => {
   return {
@@ -663,6 +683,202 @@ describe("TerminalSurface", () => {
 
     expect(terminalInstances).toHaveLength(1);
     expect(terminalInstances[0]?.open).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a pin suggestion after typing while manually scrolled away", () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container } = render(
+        <TerminalSurface
+          focusRequestKey={0}
+          isActive={true}
+          onFocusPane={vi.fn()}
+          onSearchResultsChange={vi.fn()}
+          onTitleChange={vi.fn()}
+          paneId="pane-1"
+          searchRequest={null}
+          session={{
+            id: "session-1",
+            title: "new session 1 · claude-code-with-emotion",
+            cwd: "/tmp",
+            command: "",
+            lifecycle: "bootstrapping",
+            createdAtMs: Date.now(),
+          }}
+        />,
+      );
+
+      const terminal = terminalInstances[0];
+      const host = container.querySelector(".terminal-surface__viewport");
+      const inputListener = terminal?.onData.mock.calls[0]?.[0];
+      const scrollListener = terminal?.onScroll.mock.calls[0]?.[0];
+
+      if (
+        terminal === undefined ||
+        host === null ||
+        typeof inputListener !== "function" ||
+        typeof scrollListener !== "function"
+      ) {
+        throw new Error("Expected the terminal listeners to be registered.");
+      }
+
+      act(() => {
+        fireEvent.wheel(host);
+        terminal.buffer.active.baseY = 20;
+        terminal.buffer.active.viewportY = 10;
+        scrollListener();
+        inputListener("a");
+      });
+
+      expect(
+        screen.getByRole("button", { name: "Pin terminal input overlay" }),
+      ).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(
+        screen.queryByRole("button", { name: "Pin terminal input overlay" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("opens a pinned overlay that follows the cursor band", async () => {
+    const originalClientWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientWidth",
+    );
+    const originalClientHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientHeight",
+    );
+
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get() {
+        return 640;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get() {
+        return 320;
+      },
+    });
+
+    try {
+      const { container } = render(
+        <TerminalSurface
+          focusRequestKey={0}
+          isActive={true}
+          onFocusPane={vi.fn()}
+          onSearchResultsChange={vi.fn()}
+          onTitleChange={vi.fn()}
+          paneId="pane-1"
+          searchRequest={null}
+          session={{
+            id: "session-1",
+            title: "new session 1 · claude-code-with-emotion",
+            cwd: "/tmp",
+            command: "",
+            lifecycle: "bootstrapping",
+            createdAtMs: Date.now(),
+          }}
+        />,
+      );
+
+      const terminal = terminalInstances[0];
+      const host = container.querySelector(".terminal-surface__viewport");
+      const cursorMoveListener = terminal?.onCursorMove.mock.calls[0]?.[0];
+      const inputListener = terminal?.onData.mock.calls[0]?.[0];
+      const scrollListener = terminal?.onScroll.mock.calls[0]?.[0];
+
+      if (
+        terminal === undefined ||
+        host === null ||
+        typeof cursorMoveListener !== "function" ||
+        typeof inputListener !== "function" ||
+        typeof scrollListener !== "function"
+      ) {
+        throw new Error("Expected the terminal listeners to be registered.");
+      }
+
+      terminal.buffer.active.baseY = 20;
+      terminal.buffer.active.cursorY = 18;
+      terminal.buffer.active.length = 60;
+      terminal.buffer.active.viewportY = 10;
+      terminal.buffer.active.getLine.mockImplementation((row: number) => {
+        if (row === 38) {
+          return {
+            isWrapped: true,
+            translateToString: () => "wrapped input",
+          };
+        }
+
+        if (row === 37) {
+          return {
+            isWrapped: false,
+            translateToString: () => "prompt",
+          };
+        }
+
+        return {
+          isWrapped: false,
+          translateToString: () => "",
+        };
+      });
+
+      act(() => {
+        cursorMoveListener();
+        fireEvent.wheel(host);
+        scrollListener();
+        inputListener("a");
+      });
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Pin terminal input overlay" }),
+      );
+
+      await waitFor(() => {
+        expect(
+          container.querySelector('[data-pinned-terminal-overlay="true"]'),
+        ).not.toBeNull();
+      });
+
+      expect(screen.getByText("Pinned input")).toBeInTheDocument();
+      expect(terminalInstances).toHaveLength(2);
+      expect(terminalInstances[1]?.open).toHaveBeenCalledTimes(1);
+
+      const scrollContainer = container.querySelector(
+        '[data-pinned-terminal-scroll-container="true"]',
+      );
+
+      if (!(scrollContainer instanceof HTMLDivElement)) {
+        throw new Error("Expected the pinned scroll container to exist.");
+      }
+
+      expect(scrollContainer.style.height).toBe("48px");
+    } finally {
+      if (originalClientWidth !== undefined) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "clientWidth",
+          originalClientWidth,
+        );
+      }
+
+      if (originalClientHeight !== undefined) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "clientHeight",
+          originalClientHeight,
+        );
+      }
+    }
   });
 
   it("keeps a bottom-anchored viewport pinned after fitting to a resized pane", async () => {
