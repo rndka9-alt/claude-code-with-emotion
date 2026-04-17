@@ -70,6 +70,7 @@ export function PinnedTerminalOverlay({
     }
 
     mirrorControllerRef.current?.requestFit("pinned-overlay-resize");
+    mirrorControllerRef.current?.syncPinnedViewport(viewportMetrics);
   }, [isOpen, viewportMetrics]);
 
   if (!isOpen || viewportMetrics === null) {
@@ -78,20 +79,24 @@ export function PinnedTerminalOverlay({
 
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-30"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
       data-pinned-terminal-overlay="true"
       onPointerDownCapture={() => {
         onFocusPane();
       }}
     >
       <div className="border-border-subtle bg-surface-terminal mx-3 mb-3 overflow-hidden rounded-xl border shadow-lg">
-        <div className="border-border-ghost bg-surface-panel/95 pointer-events-auto flex items-center justify-between border-b px-3 py-2">
-          <span className="text-text-subtle text-[0.72rem] font-medium tracking-[0.08em] uppercase">
-            Pinned input
-          </span>
+        <div
+          className="pointer-events-auto relative overflow-hidden"
+          data-pinned-terminal-scroll-container="true"
+          style={{
+            height:
+              viewportMetrics.visibleRowCount * viewportMetrics.cellHeightPx,
+          }}
+        >
           <button
             aria-label="Unpin terminal input overlay"
-            className="text-text-subtle hover:bg-surface-panel hover:text-text-highlight inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-150"
+            className="bg-surface-panel/95 text-text-subtle hover:bg-surface-panel hover:text-text-highlight absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent transition-colors duration-150"
             onClick={onClose}
             type="button"
           >
@@ -101,15 +106,6 @@ export function PinnedTerminalOverlay({
               strokeWidth={2}
             />
           </button>
-        </div>
-        <div
-          className="pointer-events-auto relative overflow-hidden"
-          data-pinned-terminal-scroll-container="true"
-          style={{
-            height:
-              viewportMetrics.visibleRowCount * viewportMetrics.cellHeightPx,
-          }}
-        >
           <div className="h-full min-h-0 min-w-0" ref={hostRef} />
         </div>
       </div>

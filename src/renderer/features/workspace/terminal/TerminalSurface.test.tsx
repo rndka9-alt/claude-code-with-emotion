@@ -849,7 +849,9 @@ describe("TerminalSurface", () => {
         ).not.toBeNull();
       });
 
-      expect(screen.getByText("Pinned input")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Unpin terminal input overlay" }),
+      ).toBeInTheDocument();
       expect(terminalInstances).toHaveLength(2);
       expect(terminalInstances[1]?.open).toHaveBeenCalledTimes(1);
 
@@ -861,7 +863,7 @@ describe("TerminalSurface", () => {
         throw new Error("Expected the pinned scroll container to exist.");
       }
 
-      expect(scrollContainer.style.height).toBe("48px");
+      expect(scrollContainer.style.height).toBe("80px");
     } finally {
       if (originalClientWidth !== undefined) {
         Object.defineProperty(

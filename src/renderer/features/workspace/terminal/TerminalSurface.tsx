@@ -201,7 +201,7 @@ export function TerminalSurface({
         ref={hostRef}
       />
       {isActive && isPinSuggestionVisible ? (
-        <div className="pointer-events-none absolute right-4 bottom-4 z-30">
+        <div className="pointer-events-none absolute right-4 bottom-4 z-10">
           <button
             aria-label="Pin terminal input overlay"
             className="border-border-subtle bg-surface-panel/95 text-text-highlight hover:bg-surface-panel pointer-events-auto inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-lg transition-colors duration-150"

@@ -37,6 +37,7 @@ interface TerminalSearchSegment {
 export interface TerminalPinnedViewportMetrics {
   cellHeightPx: number;
   visibleRowCount: number;
+  viewportStartRow: number;
 }
 
 export interface TerminalPinnedViewportSnapshot {
@@ -51,6 +52,9 @@ export interface TerminalMirrorController {
   dispose: () => void;
   focus: () => void;
   requestFit: (reason: string) => void;
+  syncPinnedViewport: (
+    metrics: TerminalPinnedViewportMetrics | null,
+  ) => void;
   updateTheme: () => void;
 }
 
@@ -187,7 +191,8 @@ function arePinnedViewportMetricsEqual(
 
   return (
     left.cellHeightPx === right.cellHeightPx &&
-    left.visibleRowCount === right.visibleRowCount
+    left.visibleRowCount === right.visibleRowCount &&
+    left.viewportStartRow === right.viewportStartRow
   );
 }
 
@@ -218,25 +223,17 @@ function createPinnedViewportMetrics(
 
   const activeBuffer = terminal.buffer.active;
   const absoluteCursorRow = activeBuffer.baseY + activeBuffer.cursorY;
-  let wrappedRowCount = 1;
-
-  for (
-    let row = absoluteCursorRow;
-    row > 0 && wrappedRowCount < 5;
-    row -= 1
-  ) {
-    const line = activeBuffer.getLine(row);
-
-    if (line === undefined || !line.isWrapped) {
-      break;
-    }
-
-    wrappedRowCount += 1;
-  }
+  const visibleRowCount = Math.max(1, Math.min(5, activeBuffer.length));
+  const maxStartRow = Math.max(0, activeBuffer.length - visibleRowCount);
+  const viewportStartRow = Math.max(
+    0,
+    Math.min(absoluteCursorRow - 2, maxStartRow),
+  );
 
   return {
     cellHeightPx: cellDimensions.height,
-    visibleRowCount: Math.max(1, Math.min(5, wrappedRowCount + 1)),
+    visibleRowCount,
+    viewportStartRow,
   };
 }
 
@@ -1141,6 +1138,11 @@ function createTerminalSessionController(
 
     pinnedViewportMetrics = nextPinnedViewportMetrics;
     pinnedViewportLineTexts = nextPinnedViewportLineTexts;
+
+    for (const mirrorController of mirrorControllers) {
+      mirrorController.syncPinnedViewport(nextPinnedViewportMetrics);
+    }
+
     emitPinnedViewportSnapshot();
   };
 
@@ -1413,6 +1415,22 @@ function createTerminalSessionController(
     const focusMirrorTerminal = (): void => {
       mirrorTerminal.focus();
     };
+    const syncMirrorViewport = (
+      metrics: TerminalPinnedViewportMetrics | null,
+    ): void => {
+      if (metrics === null) {
+        return;
+      }
+
+      const viewportDelta =
+        metrics.viewportStartRow - mirrorTerminal.buffer.active.viewportY;
+
+      if (viewportDelta === 0) {
+        return;
+      }
+
+      mirrorTerminal.scrollLines(viewportDelta);
+    };
     let mirrorDisposed = false;
     let mirrorHasReplayedOutput = false;
     let mirrorHost: HTMLDivElement | null = null;
@@ -1452,6 +1470,7 @@ function createTerminalSessionController(
         );
 
         if (nextSize !== null) {
+          syncMirrorViewport(pinnedViewportMetrics);
           return;
         }
 
@@ -1466,6 +1485,7 @@ function createTerminalSessionController(
             `${session.id}-mirror`,
             `${reason}-retry`,
           );
+          syncMirrorViewport(pinnedViewportMetrics);
         }, 32);
 
         mirrorScheduledTasks.push(retryTask);
@@ -1500,6 +1520,7 @@ function createTerminalSessionController(
           mirrorHasReplayedOutput = true;
         }
 
+        syncMirrorViewport(pinnedViewportMetrics);
         requestMirrorFit("attach");
       },
       detach() {
@@ -1534,6 +1555,9 @@ function createTerminalSessionController(
         mirrorTerminal.focus();
       },
       requestFit: requestMirrorFit,
+      syncPinnedViewport(metrics) {
+        syncMirrorViewport(metrics);
+      },
       updateTheme() {
         mirrorTerminal.options.theme = createTerminalTheme();
       },
@@ -1543,6 +1567,7 @@ function createTerminalSessionController(
         }
 
         mirrorTerminal.write(data);
+        syncMirrorViewport(pinnedViewportMetrics);
       },
     };
 
