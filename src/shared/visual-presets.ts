@@ -25,6 +25,7 @@ export type VisualEmotionPresetId =
   | "contemptuous"
   | "crying"
   | "curious"
+  | "determined"
   | "dumbfounded"
   | "embarrassed"
   | "excited"
@@ -200,6 +201,13 @@ export const EMOTION_PRESETS: ReadonlyArray<VisualEmotionPreset> = [
     description: "Intrigued and digging into an interesting problem.",
     id: "curious",
     label: "Curious",
+  },
+  {
+    category: "emotion",
+    description:
+      "Steeled and resolute before a daunting challenge or high-stakes operation.",
+    id: "determined",
+    label: "Determined",
   },
   {
     category: "emotion",

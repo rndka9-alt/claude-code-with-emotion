@@ -44,6 +44,7 @@ function createEmotionDescriptionDrafts(
     contemptuous: "",
     crying: "",
     curious: "",
+    determined: "",
     dumbfounded: "",
     embarrassed: "",
     excited: "",
