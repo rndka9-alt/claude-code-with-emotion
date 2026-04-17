@@ -70,19 +70,20 @@ export function PinnedTerminalOverlay({
     }
 
     mirrorControllerRef.current?.requestFit("pinned-overlay-resize");
-  }, [isOpen, viewportMetrics?.cellHeightPx, viewportMetrics?.visibleRowCount]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    mirrorControllerRef.current?.syncPinnedViewport(viewportMetrics);
-  }, [isOpen, viewportMetrics?.viewportStartRow]);
+  }, [
+    isOpen,
+    viewportMetrics?.cellHeightPx,
+    viewportMetrics?.terminalRows,
+  ]);
 
   if (!isOpen || viewportMetrics === null) {
     return <></>;
   }
+
+  const { cellHeightPx, cursorViewportRow, terminalRows, visibleRowCount } =
+    viewportMetrics;
+  const maxOffsetRow = Math.max(0, terminalRows - visibleRowCount);
+  const offsetRow = Math.max(0, Math.min(cursorViewportRow - 2, maxOffsetRow));
 
   return (
     <div
@@ -105,8 +106,7 @@ export function PinnedTerminalOverlay({
             event.stopPropagation();
           }}
           style={{
-            height:
-              viewportMetrics.visibleRowCount * viewportMetrics.cellHeightPx,
+            height: visibleRowCount * cellHeightPx,
           }}
         >
           <button
@@ -122,8 +122,12 @@ export function PinnedTerminalOverlay({
             />
           </button>
           <div
-            className="pinned-terminal-overlay__viewport h-full min-h-0 min-w-0"
+            className="pinned-terminal-overlay__viewport min-h-0 min-w-0"
             ref={hostRef}
+            style={{
+              height: terminalRows * cellHeightPx,
+              transform: `translateY(${-offsetRow * cellHeightPx}px)`,
+            }}
           />
         </div>
       </div>

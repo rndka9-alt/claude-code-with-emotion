@@ -36,6 +36,8 @@ interface TerminalSearchSegment {
 
 export interface TerminalPinnedViewportMetrics {
   cellHeightPx: number;
+  cursorViewportRow: number;
+  terminalRows: number;
   visibleRowCount: number;
   viewportStartRow: number;
 }
@@ -191,6 +193,8 @@ function arePinnedViewportMetricsEqual(
 
   return (
     left.cellHeightPx === right.cellHeightPx &&
+    left.cursorViewportRow === right.cursorViewportRow &&
+    left.terminalRows === right.terminalRows &&
     left.visibleRowCount === right.visibleRowCount &&
     left.viewportStartRow === right.viewportStartRow
   );
@@ -232,6 +236,8 @@ function createPinnedViewportMetrics(
 
   return {
     cellHeightPx: cellDimensions.height,
+    cursorViewportRow: activeBuffer.cursorY,
+    terminalRows: Math.max(1, terminal.rows),
     visibleRowCount,
     viewportStartRow,
   };
@@ -1397,11 +1403,13 @@ function createTerminalSessionController(
     const mirrorTerminal = new Terminal({
       allowProposedApi: true,
       allowTransparency: true,
+      cols: Math.max(2, terminal.cols),
       convertEol: true,
       cursorBlink: true,
       fontFamily: '"SF Mono", "Menlo", monospace',
       fontSize: 13,
       lineHeight: 1.3,
+      rows: Math.max(1, terminal.rows),
       scrollback: DEFAULT_TERMINAL_HISTORY_LINES,
       theme: createTerminalTheme(),
       linkHandler: {
@@ -1416,20 +1424,10 @@ function createTerminalSessionController(
       mirrorTerminal.focus();
     };
     const syncMirrorViewport = (
-      metrics: TerminalPinnedViewportMetrics | null,
+      _metrics: TerminalPinnedViewportMetrics | null,
     ): void => {
-      if (metrics === null) {
-        return;
-      }
-
-      const viewportDelta =
-        metrics.viewportStartRow - mirrorTerminal.buffer.active.viewportY;
-
-      if (viewportDelta === 0) {
-        return;
-      }
-
-      mirrorTerminal.scrollLines(viewportDelta);
+      // No-op: the mirror runs at primary terminal dimensions.
+      // Visual clipping is handled by CSS transform in PinnedTerminalOverlay.
     };
     let mirrorDisposed = false;
     let mirrorHasReplayedOutput = false;
@@ -1456,39 +1454,21 @@ function createTerminalSessionController(
       }
     });
 
-    const requestMirrorFit = (reason: string): void => {
+    const requestMirrorFit = (_reason: string): void => {
       const task = scheduleTask(() => {
-        if (mirrorDisposed || mirrorHost === null) {
+        if (mirrorDisposed) {
           return;
         }
 
-        const nextSize = fitTerminalViewport(
-          mirrorTerminal,
-          mirrorHost,
-          `${session.id}-mirror`,
-          reason,
-        );
+        const primaryCols = Math.max(2, terminal.cols);
+        const primaryRows = Math.max(1, terminal.rows);
 
-        if (nextSize !== null) {
-          syncMirrorViewport(pinnedViewportMetrics);
-          return;
+        if (
+          mirrorTerminal.cols !== primaryCols ||
+          mirrorTerminal.rows !== primaryRows
+        ) {
+          mirrorTerminal.resize(primaryCols, primaryRows);
         }
-
-        const retryTask = scheduleTask(() => {
-          if (mirrorDisposed || mirrorHost === null) {
-            return;
-          }
-
-          fitTerminalViewport(
-            mirrorTerminal,
-            mirrorHost,
-            `${session.id}-mirror`,
-            `${reason}-retry`,
-          );
-          syncMirrorViewport(pinnedViewportMetrics);
-        }, 32);
-
-        mirrorScheduledTasks.push(retryTask);
       }, 0);
 
       mirrorScheduledTasks.push(task);
