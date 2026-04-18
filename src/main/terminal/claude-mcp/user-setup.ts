@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { ENV_KEYS } from "../../../shared/env-keys";
 import {
   getPlatformHelperBinResolver,
   joinPathList,
@@ -133,7 +134,7 @@ function createUserScopedVisualMcpJson(
     args: [],
     env: {
       PATH: getEffectivePath(),
-      CLAUDE_WITH_EMOTION_VISUAL_MCP_STATE_FILE: stateFilePath,
+      [ENV_KEYS.VISUAL_MCP_STATE_FILE]: stateFilePath,
     },
   });
 }

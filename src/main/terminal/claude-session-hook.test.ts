@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { ENV_KEYS } from "../../shared/env-keys";
 
 interface HookInvocationResult {
   hookStateFilePath: string;
@@ -104,10 +105,10 @@ function invokeHook(
     cwd: process.cwd(),
     env: {
       ...process.env,
-      CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
-      CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
-      CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: helperBinDir,
-      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: hookStateFilePath,
+      [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
+      [ENV_KEYS.TRACE_FILE]: traceFilePath,
+      [ENV_KEYS.HELPER_BIN_DIR]: helperBinDir,
+      [ENV_KEYS.HOOK_STATE_FILE]: hookStateFilePath,
     },
     input: JSON.stringify(payload),
     encoding: "utf8",

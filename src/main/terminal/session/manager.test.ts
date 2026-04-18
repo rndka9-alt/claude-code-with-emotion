@@ -5,6 +5,7 @@ import {
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { ENV_KEYS } from "../../../shared/env-keys";
 import type {
   TerminalBootstrapRequest,
   TerminalInputRequest,
@@ -51,14 +52,14 @@ describe("createRuntimeEnv", () => {
     expect(env.HEADLINE_LINE_MODE).toBe("off");
     expect(env.HEADLINE_DO_CLOCK).toBe("false");
     expect(env.PATH).toBe("/tmp/helper-bin:/usr/bin");
-    expect(env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH).toBe("/usr/bin");
-    expect(env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR).toBe("/tmp/helper-bin");
-    expect(env.CLAUDE_WITH_EMOTION_TRACE_FILE).toBe("/tmp/trace.log");
-    expect(env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE).toBe(
+    expect(env[ENV_KEYS.ORIGINAL_PATH]).toBe("/usr/bin");
+    expect(env[ENV_KEYS.HELPER_BIN_DIR]).toBe("/tmp/helper-bin");
+    expect(env[ENV_KEYS.TRACE_FILE]).toBe("/tmp/trace.log");
+    expect(env[ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]).toBe(
       "/tmp/visual-assets.json",
     );
-    expect(env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR).toBe("/tmp/event-queue");
-    expect(env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE).toBe(
+    expect(env[ENV_KEYS.EVENT_QUEUE_DIR]).toBe("/tmp/event-queue");
+    expect(env[ENV_KEYS.HOOK_STATE_FILE]).toBe(
       "/tmp/event-queue.hook-state.json",
     );
     expect(Object.hasOwn(env, "INVALID")).toBe(false);

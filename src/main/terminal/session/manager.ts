@@ -1,6 +1,7 @@
 import path from "node:path";
 import { spawn } from "node-pty";
 import type { IPty } from "node-pty";
+import { ENV_KEYS } from "../../../shared/env-keys";
 import {
   getPlatformShellAdapter,
   joinPathList,
@@ -130,12 +131,12 @@ export function createRuntimeEnv(
   // UTF-8 기본값을 주입해 멀티바이트 입력이 항상 UTF-8 로 해석되게 보장한다.
   return {
     ...Object.fromEntries(sanitizedEnvEntries),
-    CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
-    CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: `${eventQueueDir}.hook-state.json`,
-    CLAUDE_WITH_EMOTION_ORIGINAL_PATH: existingPath ?? "",
-    CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: helperBinDir,
-    CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
-    CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: visualAssetCatalogFilePath,
+    [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
+    [ENV_KEYS.HOOK_STATE_FILE]: `${eventQueueDir}.hook-state.json`,
+    [ENV_KEYS.ORIGINAL_PATH]: existingPath ?? "",
+    [ENV_KEYS.HELPER_BIN_DIR]: helperBinDir,
+    [ENV_KEYS.TRACE_FILE]: traceFilePath,
+    [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: visualAssetCatalogFilePath,
     PWD: cwd,
     PATH: joinPathList(pathSegments),
     LANG: env.LANG ?? "en_US.UTF-8",
@@ -208,7 +209,7 @@ export class TerminalSessionManager {
     const homeDir = resolveHomeDir(runtimeEnv);
 
     if (typeof homeDir === "string" && homeDir.length > 0) {
-      runtimeEnv.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE =
+      runtimeEnv[ENV_KEYS.HOOKS_SETTINGS_FILE] =
         ensureClaudeHooksSettingsFile(this.helperBinDir, homeDir);
     }
 

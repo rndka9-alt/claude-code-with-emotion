@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { ENV_KEYS } from "../../shared/env-keys";
 import {
   createPosixLaunchConfig,
   createPosixShellAdapter,
@@ -35,12 +36,12 @@ describe("createPosixLaunchConfig", () => {
     const env = {
       HOME: tempHome,
       PATH: "/tmp/helper-bin:/usr/bin",
-      CLAUDE_WITH_EMOTION_ORIGINAL_PATH: "/usr/bin",
-      CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: "/tmp/helper-bin",
-      CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: "/tmp/event-queue",
-      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: "/tmp/event-queue.hook-state.json",
-      CLAUDE_WITH_EMOTION_TRACE_FILE: "/tmp/trace.log",
-      CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: "/tmp/visual-assets.json",
+      [ENV_KEYS.ORIGINAL_PATH]: "/usr/bin",
+      [ENV_KEYS.HELPER_BIN_DIR]: "/tmp/helper-bin",
+      [ENV_KEYS.EVENT_QUEUE_DIR]: "/tmp/event-queue",
+      [ENV_KEYS.HOOK_STATE_FILE]: "/tmp/event-queue.hook-state.json",
+      [ENV_KEYS.TRACE_FILE]: "/tmp/trace.log",
+      [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: "/tmp/visual-assets.json",
     };
 
     try {
@@ -61,18 +62,18 @@ describe("createPosixLaunchConfig", () => {
       // PATH 는 유저 쉘 설정 실행 뒤에 동적으로 재조립돼야 하므로 정적 quoted export 엔 포함되면 안 된다.
       expect(zshrc).not.toContain("export PATH='/tmp/helper-bin:/usr/bin'");
       expect(zshrc).not.toContain(
-        "export CLAUDE_WITH_EMOTION_ORIGINAL_PATH='/usr/bin'",
+        `export ${ENV_KEYS.ORIGINAL_PATH}='/usr/bin'`,
       );
       expect(zshrc).toContain("__cwe_helper='/tmp/helper-bin'");
       expect(zshrc).toContain(
-        'export CLAUDE_WITH_EMOTION_ORIGINAL_PATH="${__cwe_stripped}"',
+        `export ${ENV_KEYS.ORIGINAL_PATH}="\${__cwe_stripped}"`,
       );
       expect(zshrc).toContain('export PATH="${__cwe_helper}:${__cwe_stripped}"');
       expect(zshrc).toContain(
-        "export CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR='/tmp/event-queue'",
+        `export ${ENV_KEYS.EVENT_QUEUE_DIR}='/tmp/event-queue'`,
       );
       expect(zshrc).toContain(
-        "export CLAUDE_WITH_EMOTION_HOOK_STATE_FILE='/tmp/event-queue.hook-state.json'",
+        `export ${ENV_KEYS.HOOK_STATE_FILE}='/tmp/event-queue.hook-state.json'`,
       );
     } finally {
       if (wrapperDir.length > 0) {

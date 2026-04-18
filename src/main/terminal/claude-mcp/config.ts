@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { ENV_KEYS } from "../../../shared/env-keys";
 import { getPlatformHelperBinResolver } from "../../platform";
 
 interface ClaudeMcpServerConfig {
@@ -39,11 +40,9 @@ export function createClaudeVisualMcpConfig(
         args: [],
         env: {
           PATH: "${PATH}",
-          CLAUDE_WITH_EMOTION_TRACE_FILE: "${CLAUDE_WITH_EMOTION_TRACE_FILE}",
-          CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE:
-            "${CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE}",
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR:
-            "${CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR}",
+          [ENV_KEYS.TRACE_FILE]: `\${${ENV_KEYS.TRACE_FILE}}`,
+          [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: `\${${ENV_KEYS.VISUAL_ASSET_CATALOG_FILE}}`,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: `\${${ENV_KEYS.EVENT_QUEUE_DIR}}`,
         },
       },
     },

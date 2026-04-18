@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { ENV_KEYS } from "../../shared/env-keys";
 
 function writeExecutable(filePath: string, contents: string): void {
   fs.writeFileSync(filePath, contents, "utf8");
@@ -69,7 +70,7 @@ describe("claude wrapper", () => {
       env: {
         ...process.env,
         CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
-        CLAUDE_WITH_EMOTION_ORIGINAL_PATH: `${binDir}:${process.env.PATH ?? ""}`,
+        [ENV_KEYS.ORIGINAL_PATH]: `${binDir}:${process.env.PATH ?? ""}`,
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
       },
       encoding: "utf8",

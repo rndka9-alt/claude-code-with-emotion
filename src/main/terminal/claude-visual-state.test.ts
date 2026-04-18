@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { ENV_KEYS } from "../../shared/env-keys";
 
 function readLatestQueueEvent(
   queueDir: string,
@@ -33,7 +34,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -57,7 +58,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -85,7 +86,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -98,7 +99,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -123,7 +124,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -142,7 +143,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -167,7 +168,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -182,7 +183,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -222,7 +223,7 @@ describe("claude-visual-state", () => {
       cwd: process.cwd(),
       env: {
         ...process.env,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
       encoding: "utf8",
     });
@@ -233,7 +234,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },
@@ -260,7 +261,7 @@ describe("claude-visual-state", () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
         },
         encoding: "utf8",
       },

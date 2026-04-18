@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { ENV_KEYS } from "../../shared/env-keys";
 
 interface JsonRpcMessage {
   id?: number;
@@ -251,8 +252,8 @@ describe("claude-visual-mcp", () => {
       ],
       {
         ...process.env,
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
     );
     const toolsListResponse = responses.find((response) => response.id === 2);
@@ -334,8 +335,8 @@ describe("claude-visual-mcp", () => {
       ],
       {
         ...process.env,
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
     );
 
@@ -393,8 +394,8 @@ describe("claude-visual-mcp", () => {
       ],
       {
         ...process.env,
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
     );
 
@@ -431,8 +432,8 @@ describe("claude-visual-mcp", () => {
       ],
       {
         ...process.env,
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
     );
 
@@ -503,8 +504,8 @@ describe("claude-visual-mcp", () => {
       ],
       {
         ...process.env,
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
     );
 
@@ -575,8 +576,8 @@ describe("claude-visual-mcp", () => {
       ],
       {
         ...process.env,
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
     );
 
@@ -609,8 +610,8 @@ describe("claude-visual-mcp", () => {
       ],
       {
         ...process.env,
-        CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: catalogFilePath,
-        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: eventQueueDir,
       },
     );
 

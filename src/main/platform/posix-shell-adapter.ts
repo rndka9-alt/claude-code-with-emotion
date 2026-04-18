@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { ENV_KEYS } from "../../shared/env-keys";
 import { resolveHomeDir } from "./platform-paths";
 import type {
   PlatformShellAdapter,
@@ -33,7 +34,7 @@ export function quoteForPosixShell(value: string): string {
 // 경로 - 예: /opt/homebrew/bin, nvm/asdf shim - 이 전부 사라져 `claude` 의 `env node` shebang 이 깨짐)
 const DYNAMIC_PATH_ENV_KEYS = new Set([
   "PATH",
-  "CLAUDE_WITH_EMOTION_ORIGINAL_PATH",
+  ENV_KEYS.ORIGINAL_PATH,
 ]);
 
 function createShellExports(env: Record<string, string>): string {
@@ -57,7 +58,7 @@ function createPathRebuildSnippet(helperBinDir: string): string {
     `__cwe_stripped="\${__cwe_stripped//:\${__cwe_helper}:/:}"`,
     `__cwe_stripped="\${__cwe_stripped#:}"`,
     `__cwe_stripped="\${__cwe_stripped%:}"`,
-    `export CLAUDE_WITH_EMOTION_ORIGINAL_PATH="\${__cwe_stripped}"`,
+    `export ${ENV_KEYS.ORIGINAL_PATH}="\${__cwe_stripped}"`,
     `if [ -n "\${__cwe_stripped}" ]; then`,
     `  export PATH="\${__cwe_helper}:\${__cwe_stripped}"`,
     `else`,
@@ -93,7 +94,7 @@ function getZshWrapperDir(homeDir: string): string {
 }
 
 function resolveHelperBinDir(env: Record<string, string>): string {
-  const helperBinDir = env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
+  const helperBinDir = env[ENV_KEYS.HELPER_BIN_DIR];
 
   if (typeof helperBinDir === "string" && helperBinDir.length > 0) {
     return helperBinDir;
