@@ -27,7 +27,6 @@ const avatarBackgroundVariableByState: Record<
   working: "--color-avatar-working",
   waiting: "--color-avatar-idle",
   permission_wait: "--color-avatar-idle",
-  interrupted: "--color-avatar-idle",
   tool_failed: "--color-avatar-error",
   // compacting 은 working 과 비슷한 "손 움직이는 중" 느낌이라 working 색상을 빌려 쓴다.
   compacting: "--color-avatar-working",

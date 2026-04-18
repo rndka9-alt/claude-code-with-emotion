@@ -35,7 +35,6 @@ function createStateLineDrafts(
     working: "",
     waiting: "",
     permission_wait: "",
-    interrupted: "",
     compacting: "",
     completed: "",
     error: "",
@@ -70,10 +69,6 @@ function getSituationMessageDescription(state: VisualStatePresetId): string {
 
   if (state === "permission_wait") {
     return "권한 허용이 필요해서 다음 툴 작업으로 못 넘어가고 멈춘 상태예요.";
-  }
-
-  if (state === "interrupted") {
-    return "현재 턴 작업이 중간에 끊긴 상태예요.";
   }
 
   if (state === "compacting") {

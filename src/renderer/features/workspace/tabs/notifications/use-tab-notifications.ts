@@ -11,7 +11,6 @@ const ATTENTION_STATES: ReadonlySet<AssistantSemanticState> = new Set([
   "permission_wait",
   "completed",
   "error",
-  "interrupted",
   "tool_failed",
 ]);
 

@@ -17,7 +17,6 @@ const SEMANTIC_STATES: ReadonlySet<string> = new Set([
   "working",
   "waiting",
   "permission_wait",
-  "interrupted",
   "tool_failed",
   "compacting",
   "completed",

@@ -229,14 +229,14 @@ describe("claude-session-hook", () => {
     expect(overlay.emotion).toBe("happy");
   });
 
-  it("maps interrupted stop signals into the interrupted state", () => {
+  it("maps interrupted stop signals into tool_failed", () => {
     const result = invokeHook("PostToolUseFailure", {
       tool_name: "Bash",
       is_interrupt: true,
     });
     const status = readLatestStatusEvent(result.eventQueueDir);
 
-    expect(status.state).toBe("interrupted");
+    expect(status.state).toBe("tool_failed");
     expect(status.line).toBe("유저가 도구 실행을 중간에 멈췃어요...!");
     expect(status.currentTask).toBe("Interrupted during tool use (Bash)");
   });

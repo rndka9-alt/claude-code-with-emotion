@@ -11,7 +11,6 @@ export type VisualStatePresetId =
   | "working"
   | "waiting"
   | "permission_wait"
-  | "interrupted"
   | "compacting"
   | "completed"
   | "error"
@@ -111,15 +110,6 @@ export const STATE_PRESETS: ReadonlyArray<VisualStatePreset> = [
       "Claude is blocked on a permission prompt before tool work can continue.",
     id: "permission_wait",
     label: "Permission Wait",
-    source: "synthetic",
-  },
-  {
-    category: "state",
-    defaultLine: "작업이 중간에 멈췃어요. 흐름 다시 잡아볼게요.",
-    description:
-      "Claude work stopped because the user interrupted the current turn.",
-    id: "interrupted",
-    label: "Interrupted",
     source: "synthetic",
   },
   {
@@ -354,10 +344,6 @@ export function normalizeAssistantSemanticState(
 
   if (state === "permission_wait") {
     return { state: "permission_wait", emotion: null };
-  }
-
-  if (state === "interrupted") {
-    return { state: "interrupted", emotion: null };
   }
 
   if (state === "tool_failed") {

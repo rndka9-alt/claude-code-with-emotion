@@ -18,7 +18,6 @@ function isSemanticState(value: string): value is AssistantSemanticState {
     value === "working" ||
     value === "waiting" ||
     value === "permission_wait" ||
-    value === "interrupted" ||
     value === "tool_failed" ||
     value === "compacting" ||
     value === "completed" ||
