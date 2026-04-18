@@ -462,6 +462,7 @@ function registerTerminalBridge(
     assistantStatusTraceFilePath,
     visualAssetCatalogFilePath,
     terminalOutputRootDir,
+    app.getPath("userData"),
   );
   const visualAssetStore = new VisualAssetStore(
     visualAssetCatalogFilePath,

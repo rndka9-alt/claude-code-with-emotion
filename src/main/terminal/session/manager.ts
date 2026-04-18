@@ -5,7 +5,6 @@ import { ENV_KEYS } from "../../../shared/env-keys";
 import {
   getPlatformShellAdapter,
   joinPathList,
-  resolveHomeDir,
 } from "../../platform";
 import { ensureClaudeHooksSettingsFile } from "../claude-hooks";
 import { stripScreenHardstatus } from "./strip-screen-hardstatus";
@@ -174,6 +173,7 @@ export class TerminalSessionManager {
     private readonly traceFilePath: string,
     private readonly visualAssetCatalogFilePath: string,
     private readonly outputRootDir: string,
+    private readonly userDataPath: string,
   ) {}
 
   bootstrapSession(
@@ -206,12 +206,8 @@ export class TerminalSessionManager {
       this.traceFilePath,
       this.visualAssetCatalogFilePath,
     );
-    const homeDir = resolveHomeDir(runtimeEnv);
-
-    if (typeof homeDir === "string" && homeDir.length > 0) {
-      runtimeEnv[ENV_KEYS.HOOKS_SETTINGS_FILE] =
-        ensureClaudeHooksSettingsFile(this.helperBinDir, homeDir);
-    }
+    runtimeEnv[ENV_KEYS.HOOKS_SETTINGS_FILE] =
+      ensureClaudeHooksSettingsFile(this.helperBinDir, this.userDataPath);
 
     const launchConfig = shellAdapter.createLaunchConfig(shell, runtimeEnv);
     const runtime = this.runtimeFactory({
@@ -325,6 +321,7 @@ export function createTerminalSessionManager(
   traceFilePath: string,
   visualAssetCatalogFilePath: string,
   outputRootDir: string,
+  userDataPath: string,
 ): TerminalSessionManager {
   return new TerminalSessionManager(
     createNodePtyRuntime,
@@ -334,5 +331,6 @@ export function createTerminalSessionManager(
     traceFilePath,
     visualAssetCatalogFilePath,
     outputRootDir,
+    userDataPath,
   );
 }

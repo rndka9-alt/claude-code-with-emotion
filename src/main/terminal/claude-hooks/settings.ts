@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import {
   getPlatformHelperBinResolver,
@@ -70,12 +69,8 @@ interface ClaudeHooksSettings {
   permissions: ClaudePermissionsConfig;
 }
 
-function getHooksSettingsDir(homeDir: string): string {
-  return path.join(
-    os.tmpdir(),
-    "claude-code-with-emotion-hooks",
-    Buffer.from(homeDir).toString("hex"),
-  );
+function getHooksSettingsDir(userDataPath: string): string {
+  return path.join(userDataPath, "claude-hooks");
 }
 
 export function buildClaudeHookCommand(
@@ -172,9 +167,9 @@ export function createClaudeHooksSettings(
 
 export function ensureClaudeHooksSettingsFile(
   helperBinDir: string,
-  homeDir: string,
+  userDataPath: string,
 ): string {
-  const settingsDir = getHooksSettingsDir(homeDir);
+  const settingsDir = getHooksSettingsDir(userDataPath);
   const settingsFilePath = path.join(settingsDir, "settings.json");
   const settingsJson = JSON.stringify(
     createClaudeHooksSettings(helperBinDir),

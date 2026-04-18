@@ -162,6 +162,7 @@ describe("TerminalSessionManager", () => {
       "/tmp/trace.log",
       "/tmp/visual-assets.json",
       outputRootDir,
+      "/tmp/user-data",
     );
     try {
       const response = manager.bootstrapSession(
@@ -275,6 +276,7 @@ describe("TerminalSessionManager", () => {
       "/tmp/trace.log",
       "/tmp/visual-assets.json",
       outputRootDir,
+      "/tmp/user-data",
     );
     try {
       manager.bootstrapSession(

@@ -82,23 +82,24 @@ describe("claude hooks settings", () => {
     );
   });
 
-  it("writes a reusable settings file for the current user home", () => {
-    const tempHome = fs.mkdtempSync(
-      path.join(os.tmpdir(), "claude-with-emotion-hooks-home-"),
+  it("writes a reusable settings file under the given user data path", () => {
+    const tempUserData = fs.mkdtempSync(
+      path.join(os.tmpdir(), "claude-with-emotion-hooks-userdata-"),
     );
 
     try {
       const settingsFilePath = ensureClaudeHooksSettingsFile(
         "/tmp/helper-bin",
-        tempHome,
+        tempUserData,
       );
       const settingsFile = fs.readFileSync(settingsFilePath, "utf8");
 
+      expect(settingsFilePath).toContain(tempUserData);
       expect(settingsFile).toContain('"SessionStart"');
       expect(settingsFile).toContain("claude-session-hook");
       expect(settingsFile).toContain("UserPromptSubmit");
     } finally {
-      fs.rmSync(tempHome, { recursive: true, force: true });
+      fs.rmSync(tempUserData, { recursive: true, force: true });
     }
   });
 });
