@@ -1,49 +1,24 @@
-import tailwindcss from "eslint-plugin-tailwindcss";
-import tseslint from "typescript-eslint";
-import tailwindTokens from "./tailwind.config.js";
-
-const escapeRegex = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-
-const colorNames = Object.keys(tailwindTokens.theme.extend.colors);
-const shadowNames = Object.keys(tailwindTokens.theme.extend.boxShadow);
-
-// 커스텀 컬러 토큰: 유틸리티·variant prefix + opacity modifier(/20 등) 허용
-const colorPatterns = colorNames.map(
-  (n) => `.*\\-${escapeRegex(n)}(/.*)?`,
-);
-// 커스텀 shadow 토큰
-const shadowPatterns = shadowNames.map((n) => `shadow\\-${escapeRegex(n)}`);
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
 
 export default [
   {
-    ignores: ["dist/**"],
-  },
-  ...tailwindcss.configs["flat/recommended"],
-  {
-    files: ["src/**/*.{ts,tsx}"],
+    files: ['src/**/*.ts'],
+    ignores: ['src/**/*.test.ts'],
     languageOptions: {
-      parser: tseslint.parser,
+      parser: tsparser,
       parserOptions: {
-        ecmaFeatures: { jsx: true },
+        project: ['./tsconfig.web.json', './tsconfig.node.json'],
       },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
     },
     rules: {
-      // Prettier가 정렬하므로 ESLint 정렬 룰은 끔
-      "tailwindcss/classnames-order": "off",
-      "tailwindcss/no-custom-classname": "error",
-    },
-    settings: {
-      tailwindcss: {
-        whitelist: [
-          ...colorPatterns,
-          ...shadowPatterns,
-          // CSS 셀렉터 기반 마커 클래스 — Tailwind 유틸리티가 아니므로 허용
-          "scrollbar\\-hide",
-          "status\\-panel__.*",
-          "tab\\-title\\-editor",
-          "tab\\-close\\-button",
-        ],
-      },
+      '@typescript-eslint/consistent-type-assertions': ['error', {
+        assertionStyle: 'never',
+      }],
+      '@typescript-eslint/no-non-null-assertion': 'error',
     },
   },
 ];
