@@ -37,11 +37,10 @@ describe("createPosixLaunchConfig", () => {
       PATH: "/tmp/helper-bin:/usr/bin",
       CLAUDE_WITH_EMOTION_ORIGINAL_PATH: "/usr/bin",
       CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: "/tmp/helper-bin",
-      CLAUDE_WITH_EMOTION_STATUS_FILE: "/tmp/status.json",
-      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: "/tmp/status.json.hook-state.json",
+      CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: "/tmp/event-queue",
+      CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: "/tmp/event-queue.hook-state.json",
       CLAUDE_WITH_EMOTION_TRACE_FILE: "/tmp/trace.log",
       CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: "/tmp/visual-assets.json",
-      CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: "/tmp/visual-overlay.json",
     };
 
     try {
@@ -70,10 +69,10 @@ describe("createPosixLaunchConfig", () => {
       );
       expect(zshrc).toContain('export PATH="${__cwe_helper}:${__cwe_stripped}"');
       expect(zshrc).toContain(
-        "export CLAUDE_WITH_EMOTION_STATUS_FILE='/tmp/status.json'",
+        "export CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR='/tmp/event-queue'",
       );
       expect(zshrc).toContain(
-        "export CLAUDE_WITH_EMOTION_HOOK_STATE_FILE='/tmp/status.json.hook-state.json'",
+        "export CLAUDE_WITH_EMOTION_HOOK_STATE_FILE='/tmp/event-queue.hook-state.json'",
       );
     } finally {
       if (wrapperDir.length > 0) {

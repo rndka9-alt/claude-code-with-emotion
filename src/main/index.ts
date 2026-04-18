@@ -13,9 +13,8 @@ import path from "node:path";
 import { createApplicationMenuTemplate } from "./application-menu";
 import { createRuntimeLog, resolveRuntimeLogPath, type RuntimeLog } from "./diagnostics";
 import {
-  AssistantStatusFileBridge,
+  AssistantEventQueueBridge,
   AssistantStatusStore,
-  AssistantVisualOverlayFileBridge,
 } from "./status";
 import {
   createTerminalSessionManager,
@@ -295,24 +294,17 @@ function registerTerminalBridge(
     "terminal-output",
   );
   const sessionStatusStores = new Map<string, AssistantStatusStore>();
-  const sessionStatusFileBridges = new Map<string, AssistantStatusFileBridge>();
-  const sessionOverlayFileBridges = new Map<
+  const sessionEventQueueBridges = new Map<
     string,
-    AssistantVisualOverlayFileBridge
+    AssistantEventQueueBridge
   >();
   const sessionStatusUnsubscribes = new Map<string, () => void>();
-  const sessionStatusRootDir = path.join(
+  const eventQueueRootDir = path.join(
     app.getPath("userData"),
-    "assistant-status",
+    "assistant-event-queue",
   );
-  const sessionOverlayRootDir = path.join(
-    app.getPath("userData"),
-    "assistant-visual-overlay",
-  );
-  const resolveStatusFilePath = (sessionId: string): string =>
-    path.join(sessionStatusRootDir, `${process.pid}-${sessionId}.json`);
-  const resolveOverlayFilePath = (sessionId: string): string =>
-    path.join(sessionOverlayRootDir, `${process.pid}-${sessionId}.json`);
+  const resolveEventQueueDir = (sessionId: string): string =>
+    path.join(eventQueueRootDir, `${process.pid}-${sessionId}`);
   // 파일명이 {pid}-{sessionId}.json 형태이므로, 해당 PID 가 아직 살아 잇으면
   // 다른 인스턴스가 소유한 파일이라 건드리면 안 된다. 죽은 PID 의 파일만 좀비로 간주해 정리한다.
   const isProcessAlive = (pid: number): boolean => {
@@ -354,7 +346,7 @@ function registerTerminalBridge(
       const entryPath = path.join(dir, entry);
 
       try {
-        fs.rmSync(entryPath, { force: true });
+        fs.rmSync(entryPath, { force: true, recursive: true });
       } catch (error) {
         runtimeLog.write(
           label,
@@ -364,16 +356,12 @@ function registerTerminalBridge(
     }
   };
 
-  clearStaleSessionArtifactDir(sessionStatusRootDir, "assistant-status-file");
-  clearStaleSessionArtifactDir(
-    sessionOverlayRootDir,
-    "assistant-visual-overlay",
-  );
-  const writeVisualMcpState = (visualOverlayFilePath: string): void => {
+  clearStaleSessionArtifactDir(eventQueueRootDir, "assistant-event-queue");
+  const writeVisualMcpState = (eventQueueDir: string): void => {
     const nextState = {
       traceFilePath: assistantStatusTraceFilePath,
       visualAssetCatalogFilePath,
-      visualOverlayFilePath,
+      eventQueueDir,
     };
 
     fs.mkdirSync(path.dirname(visualMcpStateFilePath), {
@@ -396,23 +384,13 @@ function registerTerminalBridge(
         `session=${sessionId} ${message}`,
       );
     });
-    const statusFilePath = resolveStatusFilePath(sessionId);
-    const statusFileBridge = new AssistantStatusFileBridge(
-      statusFilePath,
+    const eventQueueDir = resolveEventQueueDir(sessionId);
+    const eventQueueBridge = new AssistantEventQueueBridge(
+      eventQueueDir,
       statusStore,
       (message) => {
         runtimeLog.write(
-          "assistant-status-file",
-          `session=${sessionId} ${message}`,
-        );
-      },
-    );
-    const overlayFileBridge = new AssistantVisualOverlayFileBridge(
-      resolveOverlayFilePath(sessionId),
-      statusStore,
-      (message) => {
-        runtimeLog.write(
-          "assistant-visual-overlay",
+          "assistant-event-queue",
           `session=${sessionId} ${message}`,
         );
       },
@@ -428,39 +406,33 @@ function registerTerminalBridge(
     );
 
     sessionStatusStores.set(sessionId, statusStore);
-    sessionStatusFileBridges.set(sessionId, statusFileBridge);
-    sessionOverlayFileBridges.set(sessionId, overlayFileBridge);
+    sessionEventQueueBridges.set(sessionId, eventQueueBridge);
     sessionStatusUnsubscribes.set(sessionId, unsubscribe);
-    statusFileBridge.start();
-    overlayFileBridge.start();
+    eventQueueBridge.start();
   };
-  const removeSessionArtifact = (filePath: string, label: string): void => {
+  const removeSessionArtifact = (
+    artifactPath: string,
+    label: string,
+  ): void => {
     try {
-      // force:true 로 ENOENT 는 조용히 무시 — 파일 미생성 상태에서 dispose 댈 수도 잇음.
-      fs.rmSync(filePath, { force: true });
+      fs.rmSync(artifactPath, { force: true, recursive: true });
     } catch (error) {
       runtimeLog.write(
         label,
-        `failed to remove session artifact path=${filePath} error=${error instanceof Error ? error.message : String(error)}`,
+        `failed to remove session artifact path=${artifactPath} error=${error instanceof Error ? error.message : String(error)}`,
       );
     }
   };
   const disposeSessionStatusBridges = (sessionId: string): void => {
-    sessionStatusFileBridges.get(sessionId)?.stop();
-    sessionOverlayFileBridges.get(sessionId)?.stop();
+    sessionEventQueueBridges.get(sessionId)?.stop();
     sessionStatusUnsubscribes.get(sessionId)?.();
     sessionStatusStores.get(sessionId)?.dispose();
-    sessionStatusFileBridges.delete(sessionId);
-    sessionOverlayFileBridges.delete(sessionId);
+    sessionEventQueueBridges.delete(sessionId);
     sessionStatusUnsubscribes.delete(sessionId);
     sessionStatusStores.delete(sessionId);
     removeSessionArtifact(
-      resolveStatusFilePath(sessionId),
-      "assistant-status-file",
-    );
-    removeSessionArtifact(
-      resolveOverlayFilePath(sessionId),
-      "assistant-visual-overlay",
+      resolveEventQueueDir(sessionId),
+      "assistant-event-queue",
     );
   };
   const terminalSessionManager = createTerminalSessionManager(
@@ -621,13 +593,13 @@ function registerTerminalBridge(
         `bootstrap session=${request.sessionId} cwd=${request.cwd} command=${request.command} cols=${request.cols} rows=${request.rows}`,
       );
       ensureSessionStatusBridges(request.sessionId);
-      writeVisualMcpState(resolveOverlayFilePath(request.sessionId));
+      const sessionEventQueueDir = resolveEventQueueDir(request.sessionId);
+      writeVisualMcpState(sessionEventQueueDir);
 
       try {
         return terminalSessionManager.bootstrapSession(
           request,
-          resolveStatusFilePath(request.sessionId),
-          resolveOverlayFilePath(request.sessionId),
+          sessionEventQueueDir,
         );
       } catch (error) {
         const message =

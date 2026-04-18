@@ -138,7 +138,7 @@ function readAvailableVisualOptions() {
 function createToolsListResult() {
   const runtime = resolveVisualMcpRuntime();
 
-  if (runtime.visualOverlayFilePath.length === 0) {
+  if (runtime.eventQueueDir.length === 0) {
     return {
       tools: [],
     };

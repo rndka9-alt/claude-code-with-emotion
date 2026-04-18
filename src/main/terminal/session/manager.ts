@@ -111,10 +111,9 @@ export function createRuntimeEnv(
   env: NodeJS.ProcessEnv,
   cwd: string,
   helperBinDir: string,
-  statusFilePath: string,
+  eventQueueDir: string,
   traceFilePath: string,
   visualAssetCatalogFilePath: string,
-  visualOverlayFilePath: string,
 ): Record<string, string> {
   const sanitizedEnvEntries = Object.entries(env).filter((entry) => {
     return typeof entry[1] === "string";
@@ -131,13 +130,12 @@ export function createRuntimeEnv(
   // UTF-8 기본값을 주입해 멀티바이트 입력이 항상 UTF-8 로 해석되게 보장한다.
   return {
     ...Object.fromEntries(sanitizedEnvEntries),
-    CLAUDE_WITH_EMOTION_STATUS_FILE: statusFilePath,
-    CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: `${statusFilePath}.hook-state.json`,
+    CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: eventQueueDir,
+    CLAUDE_WITH_EMOTION_HOOK_STATE_FILE: `${eventQueueDir}.hook-state.json`,
     CLAUDE_WITH_EMOTION_ORIGINAL_PATH: existingPath ?? "",
     CLAUDE_WITH_EMOTION_HELPER_BIN_DIR: helperBinDir,
     CLAUDE_WITH_EMOTION_TRACE_FILE: traceFilePath,
     CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE: visualAssetCatalogFilePath,
-    CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE: visualOverlayFilePath,
     PWD: cwd,
     PATH: joinPathList(pathSegments),
     LANG: env.LANG ?? "en_US.UTF-8",
@@ -179,8 +177,7 @@ export class TerminalSessionManager {
 
   bootstrapSession(
     request: TerminalBootstrapRequest,
-    statusFilePath: string,
-    visualOverlayFilePath: string,
+    eventQueueDir: string,
   ): TerminalBootstrapResponse {
     const existingSession = this.sessions.get(request.sessionId);
 
@@ -204,10 +201,9 @@ export class TerminalSessionManager {
       process.env,
       request.cwd,
       this.helperBinDir,
-      statusFilePath,
+      eventQueueDir,
       this.traceFilePath,
       this.visualAssetCatalogFilePath,
-      visualOverlayFilePath,
     );
     const homeDir = resolveHomeDir(runtimeEnv);
 

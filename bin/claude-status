@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require("node:fs");
+const { writeQueueEvent } = require("./lib/event-queue-writer");
 
 function appendTrace(message) {
   const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
@@ -139,10 +140,10 @@ function main() {
     return;
   }
 
-  const statusFilePath = process.env.CLAUDE_WITH_EMOTION_STATUS_FILE;
+  const eventQueueDir = process.env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR;
 
-  if (typeof statusFilePath !== "string" || statusFilePath.length === 0) {
-    console.error("CLAUDE_WITH_EMOTION_STATUS_FILE is not set.");
+  if (typeof eventQueueDir !== "string" || eventQueueDir.length === 0) {
+    console.error("CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR is not set.");
     process.exit(1);
   }
 
@@ -158,7 +159,7 @@ function main() {
   appendTrace(
     `writing status state=${payload.state} emotion=${payload.emotion ?? "none"} line=${payload.line} activity=${payload.activityLabel ?? ""} task=${payload.currentTask ?? ""}`,
   );
-  fs.writeFileSync(statusFilePath, JSON.stringify(payload), "utf8");
+  writeQueueEvent(eventQueueDir, { type: "status", ...payload });
 }
 
 main();

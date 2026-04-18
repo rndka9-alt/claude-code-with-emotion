@@ -39,10 +39,9 @@ describe("createRuntimeEnv", () => {
       { HOME: "/tmp/home", PATH: "/usr/bin", INVALID: undefined },
       "/tmp/app",
       "/tmp/helper-bin",
-      "/tmp/status.json",
+      "/tmp/event-queue",
       "/tmp/trace.log",
       "/tmp/visual-assets.json",
-      "/tmp/visual-overlay.json",
     );
 
     expect(env.PWD).toBe("/tmp/app");
@@ -58,12 +57,9 @@ describe("createRuntimeEnv", () => {
     expect(env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE).toBe(
       "/tmp/visual-assets.json",
     );
-    expect(env.CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE).toBe(
-      "/tmp/visual-overlay.json",
-    );
-    expect(env.CLAUDE_WITH_EMOTION_STATUS_FILE).toBe("/tmp/status.json");
+    expect(env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR).toBe("/tmp/event-queue");
     expect(env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE).toBe(
-      "/tmp/status.json.hook-state.json",
+      "/tmp/event-queue.hook-state.json",
     );
     expect(Object.hasOwn(env, "INVALID")).toBe(false);
   });
@@ -79,10 +75,9 @@ describe("createRuntimeEnv", () => {
       },
       "/tmp/app",
       "/tmp/helper-bin",
-      "/tmp/status.json",
+      "/tmp/event-queue",
       "/tmp/trace.log",
       "/tmp/visual-assets.json",
-      "/tmp/visual-overlay.json",
     );
 
     expect(env.HEADLINE_INFO_MODE).toBe("precmd");
@@ -170,8 +165,7 @@ describe("TerminalSessionManager", () => {
     try {
       const response = manager.bootstrapSession(
         createBootstrapRequest(),
-        "/tmp/status.json",
-        "/tmp/visual-overlay.json",
+        "/tmp/event-queue",
       );
 
       expect(createdRuntimes).toHaveLength(1);
@@ -191,8 +185,7 @@ describe("TerminalSessionManager", () => {
       expect(
         manager.bootstrapSession(
           createBootstrapRequest(),
-          "/tmp/status.json",
-          "/tmp/visual-overlay.json",
+          "/tmp/event-queue",
         ),
       ).toEqual({
         outputSnapshot: "pong",
@@ -285,8 +278,7 @@ describe("TerminalSessionManager", () => {
     try {
       manager.bootstrapSession(
         createBootstrapRequest(),
-        "/tmp/status.json",
-        "/tmp/visual-overlay.json",
+        "/tmp/event-queue",
       );
       manager.closeSession({ sessionId: "session-1" });
 

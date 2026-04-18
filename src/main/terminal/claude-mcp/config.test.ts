@@ -19,8 +19,8 @@ describe("claude visual mcp config", () => {
         CLAUDE_WITH_EMOTION_TRACE_FILE: "${CLAUDE_WITH_EMOTION_TRACE_FILE}",
         CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE:
           "${CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE}",
-        CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE:
-          "${CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE}",
+        CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR:
+          "${CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR}",
       },
     });
   });
@@ -36,7 +36,7 @@ describe("claude visual mcp config", () => {
 
       expect(configFile).toContain('"claude-code-with-emotion-visuals"');
       expect(configFile).toContain("claude-visual-mcp");
-      expect(configFile).toContain('"CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE"');
+      expect(configFile).toContain('"CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR"');
       expect(configFile).toContain('"PATH"');
     } finally {
       fs.rmSync(helperBinDir, { recursive: true, force: true });

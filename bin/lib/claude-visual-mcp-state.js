@@ -46,16 +46,14 @@ function resolveVisualMcpRuntime(env = process.env) {
     (typeof state?.visualAssetCatalogFilePath === "string"
       ? state.visualAssetCatalogFilePath
       : "");
-  const visualOverlayFilePath =
-    env.CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE ||
-    (typeof state?.visualOverlayFilePath === "string"
-      ? state.visualOverlayFilePath
-      : "");
+  const eventQueueDir =
+    env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR ||
+    (typeof state?.eventQueueDir === "string" ? state.eventQueueDir : "");
 
   return {
     traceFilePath,
     visualAssetCatalogFilePath,
-    visualOverlayFilePath,
+    eventQueueDir,
   };
 }
 
@@ -73,10 +71,9 @@ function createVisualMcpChildEnv(env = process.env) {
             runtime.visualAssetCatalogFilePath,
         }
       : {}),
-    ...(runtime.visualOverlayFilePath.length > 0
+    ...(runtime.eventQueueDir.length > 0
       ? {
-          CLAUDE_WITH_EMOTION_VISUAL_OVERLAY_FILE:
-            runtime.visualOverlayFilePath,
+          CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: runtime.eventQueueDir,
         }
       : {}),
   };
