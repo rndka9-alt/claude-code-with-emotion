@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import { z } from "zod";
 import type {
-  AssistantEmotionalState,
   AssistantStatusUpdate,
   AssistantVisualOverlayUpdate,
 } from "../../shared/assistant-status";
@@ -11,19 +11,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-const SEMANTIC_STATES: ReadonlySet<string> = new Set([
-  "disconnected",
-  "thinking",
-  "working",
-  "waiting",
-  "permission_wait",
-  "tool_failed",
-  "compacting",
-  "completed",
-  "error",
-]);
-
-const EMOTIONAL_STATES: ReadonlySet<string> = new Set<AssistantEmotionalState>([
+const emotionalStateSchema = z.enum([
   "angry",
   "annoyed",
   "bored",
@@ -50,103 +38,63 @@ const EMOTIONAL_STATES: ReadonlySet<string> = new Set<AssistantEmotionalState>([
   "surprised",
 ]);
 
-function isEmotionalState(value: string): value is AssistantEmotionalState {
-  return EMOTIONAL_STATES.has(value);
-}
-
-function parseStatusPayload(
-  value: Record<string, unknown>,
-): AssistantStatusUpdate | null {
-  const { state, emotion, line, currentTask, activityLabel, intensity } = value;
-
-  if (
-    typeof state !== "string" ||
-    !SEMANTIC_STATES.has(state) ||
-    typeof line !== "string"
-  ) {
-    return null;
-  }
-
-  if (
-    emotion !== undefined &&
-    (typeof emotion !== "string" || !isEmotionalState(emotion))
-  ) {
-    return null;
-  }
-
-  if (currentTask !== undefined && typeof currentTask !== "string") {
-    return null;
-  }
-
-  if (activityLabel !== undefined && typeof activityLabel !== "string") {
-    return null;
-  }
-
-  if (
-    intensity !== undefined &&
-    intensity !== "low" &&
-    intensity !== "medium" &&
-    intensity !== "high"
-  ) {
-    return null;
-  }
-
-  const update: AssistantStatusUpdate = {
-    state: state as AssistantStatusUpdate["state"],
-    line,
-  };
-
-  if (emotion !== undefined && emotion !== "neutral") {
-    update.emotion = emotion as AssistantEmotionalState;
-  }
-
-  if (currentTask !== undefined) {
-    update.currentTask = currentTask;
-  }
-
-  if (activityLabel !== undefined) {
-    update.activityLabel = activityLabel;
-  }
-
-  if (
-    intensity === "low" ||
-    intensity === "medium" ||
-    intensity === "high"
-  ) {
-    update.intensity = intensity;
-  }
-
-  return update;
-}
-
-function parseOverlayPayload(
-  value: Record<string, unknown>,
-): AssistantVisualOverlayUpdate | null {
-  const { emotion, line } = value;
-  const update: AssistantVisualOverlayUpdate = {};
-
-  if (emotion !== undefined) {
-    if (emotion === null) {
-      update.emotion = null;
-    } else if (typeof emotion === "string" && isEmotionalState(emotion)) {
-      update.emotion = emotion === "neutral" ? null : emotion;
-    } else {
-      return null;
+const statusPayloadSchema = z
+  .object({
+    state: z.enum([
+      "disconnected",
+      "thinking",
+      "working",
+      "waiting",
+      "permission_wait",
+      "tool_failed",
+      "compacting",
+      "completed",
+      "error",
+    ]),
+    line: z.string(),
+    emotion: emotionalStateSchema.optional(),
+    currentTask: z.string().optional(),
+    activityLabel: z.string().optional(),
+    intensity: z.enum(["low", "medium", "high"]).optional(),
+  })
+  .transform((parsed): AssistantStatusUpdate => {
+    const update: AssistantStatusUpdate = {
+      state: parsed.state,
+      line: parsed.line,
+    };
+    if (parsed.emotion !== undefined && parsed.emotion !== "neutral") {
+      update.emotion = parsed.emotion;
     }
-  }
-
-  if (line !== undefined) {
-    if (line === null) {
-      update.line = null;
-    } else if (typeof line === "string") {
-      update.line = line;
-    } else {
-      return null;
+    if (parsed.currentTask !== undefined) {
+      update.currentTask = parsed.currentTask;
     }
-  }
+    if (parsed.activityLabel !== undefined) {
+      update.activityLabel = parsed.activityLabel;
+    }
+    if (parsed.intensity !== undefined) {
+      update.intensity = parsed.intensity;
+    }
+    return update;
+  });
 
-  return update;
-}
+const overlayPayloadSchema = z
+  .object({
+    emotion: emotionalStateSchema.nullable().optional(),
+    line: z.string().nullable().optional(),
+  })
+  .transform((parsed): AssistantVisualOverlayUpdate => {
+    const update: AssistantVisualOverlayUpdate = {};
+    if (parsed.emotion !== undefined) {
+      update.emotion =
+        parsed.emotion === null || parsed.emotion === "neutral"
+          ? null
+          : parsed.emotion;
+    }
+    if (parsed.line !== undefined) {
+      update.line = parsed.line;
+    }
+    return update;
+  });
 
 const POLL_INTERVAL_MS = 500;
 
@@ -257,27 +205,27 @@ export class AssistantEventQueueBridge {
       const eventType = parsed.type;
 
       if (eventType === "status") {
-        const update = parseStatusPayload(parsed);
+        const result = statusPayloadSchema.safeParse(parsed);
 
-        if (update !== null) {
+        if (result.success) {
           this.logEvent?.(
-            `status event state=${update.state} emotion=${update.emotion ?? "none"} file=${fileName}`,
+            `status event state=${result.data.state} emotion=${result.data.emotion ?? "none"} file=${fileName}`,
           );
-          this.statusStore.applyUpdate(update, "assistant-command");
+          this.statusStore.applyUpdate(result.data, "assistant-command");
         } else {
           this.logEvent?.(
             `invalid status payload file=${fileName}`,
           );
         }
       } else if (eventType === "overlay") {
-        const update = parseOverlayPayload(parsed);
+        const result = overlayPayloadSchema.safeParse(parsed);
 
-        if (update !== null) {
+        if (result.success) {
           this.logEvent?.(
-            `overlay event emotion=${update.emotion === undefined ? "untouched" : (update.emotion ?? "null")} line=${update.line === undefined ? "untouched" : JSON.stringify(update.line)} file=${fileName}`,
+            `overlay event emotion=${result.data.emotion === undefined ? "untouched" : (result.data.emotion ?? "null")} line=${result.data.line === undefined ? "untouched" : JSON.stringify(result.data.line)} file=${fileName}`,
           );
           this.statusStore.applyVisualOverlay(
-            update,
+            result.data,
             "assistant-visual-overlay",
           );
         } else {
