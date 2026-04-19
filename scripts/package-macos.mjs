@@ -100,7 +100,7 @@ if (existsSync(customIconPath)) {
 // --- asar 아카이브용 staging 디렉터리 구성 ---
 // 런타임에 실제로 필요한 파일만 모아서 asar 로 패키징한다.
 // renderer 측 의존성(react, xterm, lucide-react)은 vite 가 dist/renderer 번들에 흡수햇기 때문에
-// node_modules 에 남겨둘 외부 패키지는 main 이 require 하는 node-pty 하나뿐이다.
+// node_modules 에 남겨둘 외부 패키지는 main 이 require 하는 node-pty, zod 뿐이다.
 rmSync(stagingDir, { recursive: true, force: true });
 mkdirSync(stagingDir, { recursive: true });
 
@@ -147,6 +147,14 @@ console.log("Rebuilding node-pty for Electron…");
 execSync(
   `npx --yes @electron/rebuild --only node-pty --module-dir "${projectRoot}"`,
   { stdio: "inherit", cwd: projectRoot },
+);
+
+// zod 는 main 프로세스(assistant-event-queue-bridge)가 런타임에 require 하므로
+// node-pty 와 마찬가지로 staging 에 복사해야 한다.
+cpSync(
+  path.join(projectRoot, "node_modules", "zod"),
+  path.join(stagingDir, "node_modules", "zod"),
+  { recursive: true, force: true, dereference: true },
 );
 
 // node-pty 는 pnpm 심볼릭 링크 너머 .pnpm/node-pty@x.x.x/node_modules/node-pty/ 에 실존하므로
