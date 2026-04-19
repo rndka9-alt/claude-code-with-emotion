@@ -3,7 +3,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 function writeQueueEvent(queueDir, payload) {
-  fs.mkdirSync(queueDir, { recursive: true });
+  if (!fs.existsSync(queueDir)) {
+    return;
+  }
 
   const timestamp = Date.now();
   const random = crypto.randomBytes(4).toString("hex");

@@ -434,6 +434,10 @@ function registerTerminalBridge(
       resolveEventQueueDir(sessionId),
       "assistant-event-queue",
     );
+    removeSessionArtifact(
+      `${resolveEventQueueDir(sessionId)}.hook-state.json`,
+      "assistant-event-queue",
+    );
   };
   const terminalSessionManager = createTerminalSessionManager(
     (sessionId, event) => {
