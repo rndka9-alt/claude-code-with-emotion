@@ -5,3 +5,4 @@ coverage
 .pnpm-store
 .cache
 .runtime-logs
+*.tsbuildinfo
