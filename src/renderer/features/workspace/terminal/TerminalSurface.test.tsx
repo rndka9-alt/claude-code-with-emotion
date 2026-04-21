@@ -45,6 +45,9 @@ const {
     };
     clearSelection: ReturnType<typeof vi.fn>;
     cols: number;
+    constructorOptions: {
+      convertEol: boolean;
+    };
     dispose: ReturnType<typeof vi.fn>;
     focus: ReturnType<typeof vi.fn>;
     getSelectionPosition: ReturnType<typeof vi.fn>;
@@ -86,6 +89,7 @@ const {
 
   class HoistedMockTerminal {
     cols = 80;
+    constructorOptions;
     rows = 24;
     _core = {
       _renderService: {
@@ -161,7 +165,8 @@ const {
     onTitleChange = vi.fn(() => ({ dispose: vi.fn() }));
     registerLinkProvider = vi.fn(() => ({ dispose: vi.fn() }));
 
-    constructor() {
+    constructor(input: { convertEol: boolean }) {
+      this.constructorOptions = input;
       hoistedTerminalInstances.push(this);
     }
   }
@@ -425,6 +430,30 @@ describe("TerminalSurface", () => {
     expect(
       terminal?.write.mock.calls.filter(([value]) => value === "saved output"),
     ).toHaveLength(1);
+  });
+
+  it("creates the xterm instance without rewriting PTY line endings", () => {
+    render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={null}
+        session={{
+          id: "session-1",
+          title: "new session 1 · claude-code-with-emotion",
+          cwd: "/tmp",
+          command: "",
+          lifecycle: "bootstrapping",
+          createdAtMs: Date.now(),
+        }}
+      />,
+    );
+
+    expect(terminalInstances[0]?.constructorOptions.convertEol).toBe(false);
   });
 
   it("previews search results without moving the terminal selection", () => {

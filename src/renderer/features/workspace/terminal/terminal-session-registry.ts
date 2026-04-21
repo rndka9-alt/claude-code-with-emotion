@@ -1014,7 +1014,9 @@ function createTerminalSessionController(
   const terminal = new Terminal({
     allowProposedApi: true,
     allowTransparency: true,
-    convertEol: true,
+    // Claude Code is a full-screen TUI, so keep PTY line endings untouched.
+    // Rewriting LF into CRLF causes redraw frames to accumulate as plain text.
+    convertEol: false,
     cursorBlink: true,
     fontFamily: '"SF Mono", "Menlo", monospace',
     fontSize: 13,
@@ -1404,7 +1406,7 @@ function createTerminalSessionController(
       allowProposedApi: true,
       allowTransparency: true,
       cols: Math.max(2, terminal.cols),
-      convertEol: true,
+      convertEol: false,
       cursorBlink: true,
       fontFamily: '"SF Mono", "Menlo", monospace',
       fontSize: 13,
