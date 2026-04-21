@@ -5,8 +5,8 @@ import type { TerminalSession } from "../model";
 import {
   getTerminalSessionController,
   type TerminalMirrorController,
-  type TerminalPinnedViewportMetrics,
-} from "./terminal-session-registry";
+} from "./session";
+import type { TerminalPinnedViewportMetrics } from "./terminal-viewport";
 
 interface PinnedTerminalOverlayProps {
   focusRequestKey: number;

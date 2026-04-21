@@ -8,7 +8,7 @@ import {
 import type { Mock } from "vitest";
 import type { TerminalOutputEvent } from "../../../../shared/terminal-bridge";
 import { TerminalSurface } from "./TerminalSurface";
-import { handleTerminalExternalBrowserClick } from "./terminal-session-registry";
+import { handleTerminalExternalBrowserClick } from "./terminal-dom";
 
 const {
   MockSearchAddon,

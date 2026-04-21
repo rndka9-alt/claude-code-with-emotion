@@ -1,4 +1,9 @@
 export { TerminalSearchBar } from "./TerminalSearchBar";
+export {
+  createTerminalSearchNavigationResults,
+  createTerminalSearchPreviewResults,
+  updateTerminalSearchHighlights,
+} from "./terminal-search-engine";
 export { useActiveTerminalSearch } from "./_hooks";
 export type {
   TerminalSearchDirection,

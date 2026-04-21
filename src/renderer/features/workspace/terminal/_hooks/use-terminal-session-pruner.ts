@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { disposeTerminalSessionsExcept } from "../terminal-session-registry";
+import { disposeTerminalSessionsExcept } from "../session";
 
 export function useTerminalSessionPruner(sessionIds: string[]): void {
   const previousSessionIdsRef = useRef<string[]>(sessionIds);

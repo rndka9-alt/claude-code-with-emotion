@@ -8,9 +8,9 @@ import {
   applyTerminalSessionSearch,
   clearTerminalSessionSearch,
   getTerminalSessionController,
-  type TerminalPinnedViewportMetrics,
   updateTerminalSessionSearchResultsHandler,
-} from "./terminal-session-registry";
+} from "./session";
+import type { TerminalPinnedViewportMetrics } from "./terminal-viewport";
 
 interface TerminalSurfaceProps {
   focusRequestKey: number;

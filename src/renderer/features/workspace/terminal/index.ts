@@ -1,6 +1,14 @@
 export { TerminalLayout } from "./TerminalLayout";
 export { TerminalSurface } from "./TerminalSurface";
 export {
+  disposeAllTerminalSessions,
+  disposeTerminalSession,
+  disposeTerminalSessionsExcept,
+  getTerminalSessionController,
+  syncAllTerminalThemes,
+} from "./session";
+export { handleTerminalExternalBrowserClick } from "./terminal-dom";
+export {
   getPaneNavigationDirection,
   getSplitPaneDirection,
   getTabNavigationDirection,
@@ -11,14 +19,6 @@ export {
   shouldSendMultilineData,
   shouldUseCloseSessionShortcut,
 } from "./terminal-keyboard";
-export {
-  disposeAllTerminalSessions,
-  disposeTerminalSession,
-  disposeTerminalSessionsExcept,
-  getTerminalSessionController,
-  handleTerminalExternalBrowserClick,
-  syncAllTerminalThemes,
-} from "./terminal-session-registry";
 export {
   useTerminalSessionPruner,
   useWorkspaceTerminalExitSubscription,
