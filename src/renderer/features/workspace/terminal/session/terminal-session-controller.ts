@@ -156,7 +156,8 @@ export function createTerminalSessionController(
   >();
   let pinnedViewportLineTexts = ["", "", "", "", ""];
   const replayOutputSegments: string[] = [];
-  const scheduledTasks: ScheduledTask[] = [];
+  let replayNewlineCount = 0;
+  const pendingFitTasks = new Set<ScheduledTask>();
   let bootstrapCompleted = false;
   let bootstrapStarted = false;
   let disposed = false;
@@ -233,8 +234,30 @@ export function createTerminalSessionController(
     manualViewportInteractionAtMs = Date.now();
   };
 
+  const countNewlines = (text: string): number => {
+    let count = 0;
+
+    for (let i = 0; i < text.length; i += 1) {
+      if (text.charCodeAt(i) === 10) {
+        count += 1;
+      }
+    }
+
+    return count;
+  };
+
   const appendReplayOutput = (data: string): void => {
     replayOutputSegments.push(data);
+    replayNewlineCount += countNewlines(data);
+
+    while (
+      replayNewlineCount > DEFAULT_TERMINAL_HISTORY_LINES &&
+      replayOutputSegments.length > 1
+    ) {
+      const removed = replayOutputSegments.shift()!;
+
+      replayNewlineCount -= countNewlines(removed);
+    }
   };
 
   const writeTerminalOutput = (data: string): void => {
@@ -428,8 +451,21 @@ export function createTerminalSessionController(
       });
   }
 
+  function scheduleFitTask(
+    callback: () => void,
+    delayMs: number,
+  ): void {
+    let task: ScheduledTask;
+
+    task = scheduleTask(() => {
+      pendingFitTasks.delete(task);
+      callback();
+    }, delayMs);
+    pendingFitTasks.add(task);
+  }
+
   function requestFit(reason: string): void {
-    const task = scheduleTask(() => {
+    scheduleFitTask(() => {
       if (disposed || host === null) {
         return;
       }
@@ -449,7 +485,7 @@ export function createTerminalSessionController(
         return;
       }
 
-      const retryTask = scheduleTask(() => {
+      scheduleFitTask(() => {
         if (disposed || host === null) {
           return;
         }
@@ -464,11 +500,7 @@ export function createTerminalSessionController(
         bootstrapSession(retrySize ?? getTerminalSize(terminal));
         updatePinnedViewportMetrics();
       }, 32);
-
-      scheduledTasks.push(retryTask);
     }, 0);
-
-    scheduledTasks.push(task);
   }
 
   function createMirrorController(): TerminalMirrorControllerRecord {
@@ -491,7 +523,7 @@ export function createTerminalSessionController(
       },
     });
     const mirrorContainer = createTerminalContainer();
-    const mirrorScheduledTasks: ScheduledTask[] = [];
+    const pendingMirrorFitTasks = new Set<ScheduledTask>();
     const focusMirrorTerminal = (): void => {
       mirrorTerminal.focus();
     };
@@ -527,7 +559,11 @@ export function createTerminalSessionController(
     });
 
     const requestMirrorFit = (_reason: string): void => {
-      const task = scheduleTask(() => {
+      let task: ScheduledTask;
+
+      task = scheduleTask(() => {
+        pendingMirrorFitTasks.delete(task);
+
         if (mirrorDisposed) {
           return;
         }
@@ -542,8 +578,7 @@ export function createTerminalSessionController(
           mirrorTerminal.resize(primaryCols, primaryRows);
         }
       }, 0);
-
-      mirrorScheduledTasks.push(task);
+      pendingMirrorFitTasks.add(task);
     };
 
     const mirrorController: TerminalMirrorControllerRecord = {
@@ -594,7 +629,7 @@ export function createTerminalSessionController(
         this.detach();
         mirrorDisposed = true;
 
-        for (const task of mirrorScheduledTasks) {
+        for (const task of pendingMirrorFitTasks) {
           task.cancel();
         }
 
@@ -715,7 +750,7 @@ export function createTerminalSessionController(
       this.detach();
       disposed = true;
 
-      for (const task of scheduledTasks) {
+      for (const task of pendingFitTasks) {
         task.cancel();
       }
 
