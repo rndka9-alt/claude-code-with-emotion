@@ -172,6 +172,28 @@ export function createTerminalSessionController(
   let titleChangeHandler: ((tabId: string, title: string) => void) | null =
     null;
   let userScrolledAwayFromBottom = false;
+  let pinnedViewportUpdateFrameId: number | null = null;
+
+  const schedulePinnedViewportUpdate = (): void => {
+    if (pinnedViewportUpdateFrameId !== null) {
+      return;
+    }
+
+    pinnedViewportUpdateFrameId = requestAnimationFrame(() => {
+      pinnedViewportUpdateFrameId = null;
+
+      if (!disposed) {
+        updatePinnedViewportMetrics();
+      }
+    });
+  };
+
+  const cancelPinnedViewportUpdateFrame = (): void => {
+    if (pinnedViewportUpdateFrameId !== null) {
+      cancelAnimationFrame(pinnedViewportUpdateFrameId);
+      pinnedViewportUpdateFrameId = null;
+    }
+  };
 
   const emitSearchResults = (results: TerminalSearchResults): void => {
     searchResultsChangeHandler?.({
@@ -263,7 +285,7 @@ export function createTerminalSessionController(
   const writeTerminalOutput = (data: string): void => {
     appendReplayOutput(data);
     terminal.write(data, () => {
-      updatePinnedViewportMetrics();
+      schedulePinnedViewportUpdate();
 
       for (const mirrorController of mirrorControllers) {
         mirrorController.writeOutput(data);
@@ -332,7 +354,7 @@ export function createTerminalSessionController(
     }
   });
   const cursorMoveSubscription = terminal.onCursorMove(() => {
-    updatePinnedViewportMetrics();
+    schedulePinnedViewportUpdate();
   });
   const scrollSubscription = terminal.onScroll(() => {
     if (Date.now() - manualViewportInteractionAtMs <= 250) {
@@ -341,7 +363,7 @@ export function createTerminalSessionController(
       userScrolledAwayFromBottom = false;
     }
 
-    updatePinnedViewportMetrics();
+    schedulePinnedViewportUpdate();
   });
   const titleSubscription = terminal.onTitleChange((nextTitle) => {
     titleChangeHandler?.(session.id, nextTitle);
@@ -749,6 +771,7 @@ export function createTerminalSessionController(
 
       this.detach();
       disposed = true;
+      cancelPinnedViewportUpdateFrame();
 
       for (const task of pendingFitTasks) {
         task.cancel();
