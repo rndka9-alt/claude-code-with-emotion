@@ -1,3 +1,5 @@
+import type { VisualEmotionPresetId } from "./visual-presets";
+
 // 여기엔 순수 lifecycle 상태만 둔다. 기분·감정 토큰(happy/sad/surprised) 은
 // AssistantEmotionalState 전담 영역이라 여기 넣으면 카테고리 혼용이 댐.
 // 훅은 이제 state+emotion 두 축을 따로 emit 한다.
@@ -12,31 +14,7 @@ export type AssistantSemanticState =
   | "completed"
   | "error";
 
-export type AssistantEmotionalState =
-  | "angry"
-  | "annoyed"
-  | "bored"
-  | "confused"
-  | "contemptuous"
-  | "crying"
-  | "curious"
-  | "dumbfounded"
-  | "embarrassed"
-  | "excited"
-  | "exhausted"
-  | "happy"
-  | "laughing"
-  | "nervous"
-  | "neutral"
-  | "proud"
-  | "sad"
-  | "scared"
-  | "serious"
-  | "shy"
-  | "smile"
-  | "smirk"
-  | "smug"
-  | "surprised";
+export type AssistantEmotionalState = VisualEmotionPresetId;
 
 export type AssistantStatusIntensity = "low" | "medium" | "high";
 

@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import type {
-  AssistantEmotionalState,
   AssistantSemanticState,
   AssistantStatusUpdate,
 } from "../../shared/assistant-status";
+import { isVisualEmotionPresetId } from "../../shared/visual-presets";
 import { AssistantStatusStore } from "./assistant-status-store";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -23,37 +23,6 @@ function isSemanticState(value: string): value is AssistantSemanticState {
     value === "completed" ||
     value === "error"
   );
-}
-
-const EMOTIONAL_STATES: ReadonlySet<string> = new Set<AssistantEmotionalState>([
-  "angry",
-  "annoyed",
-  "bored",
-  "confused",
-  "contemptuous",
-  "crying",
-  "curious",
-  "dumbfounded",
-  "embarrassed",
-  "excited",
-  "exhausted",
-  "happy",
-  "laughing",
-  "nervous",
-  "neutral",
-  "proud",
-  "sad",
-  "scared",
-  "serious",
-  "shy",
-  "smile",
-  "smirk",
-  "smug",
-  "surprised",
-]);
-
-function isEmotionalState(value: string): value is AssistantEmotionalState {
-  return EMOTIONAL_STATES.has(value);
 }
 
 function parseAssistantStatusUpdate(
@@ -80,7 +49,7 @@ function parseAssistantStatusUpdate(
 
   if (
     emotion !== undefined &&
-    (typeof emotion !== "string" || !isEmotionalState(emotion))
+    (typeof emotion !== "string" || !isVisualEmotionPresetId(emotion))
   ) {
     return null;
   }

@@ -2,41 +2,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import type {
+  AssistantEmotionalState,
   AssistantStatusUpdate,
   AssistantVisualOverlayUpdate,
 } from "../../shared/assistant-status";
+import { isVisualEmotionPresetId } from "../../shared/visual-presets";
 import { AssistantStatusStore } from "./assistant-status-store";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-const emotionalStateSchema = z.enum([
-  "angry",
-  "annoyed",
-  "bored",
-  "confused",
-  "contemptuous",
-  "crying",
-  "curious",
-  "dumbfounded",
-  "embarrassed",
-  "excited",
-  "exhausted",
-  "happy",
-  "laughing",
-  "nervous",
-  "neutral",
-  "proud",
-  "sad",
-  "scared",
-  "serious",
-  "shy",
-  "smile",
-  "smirk",
-  "smug",
-  "surprised",
-]);
+const emotionalStateSchema = z.custom<AssistantEmotionalState>((value) => {
+  return typeof value === "string" && isVisualEmotionPresetId(value);
+});
 
 const statusPayloadSchema = z
   .object({
@@ -95,6 +74,18 @@ const overlayPayloadSchema = z
     }
     return update;
   });
+
+export function parseAssistantVisualOverlayEvent(
+  value: unknown,
+): AssistantVisualOverlayUpdate | null {
+  const result = overlayPayloadSchema.safeParse(value);
+
+  if (!result.success) {
+    return null;
+  }
+
+  return result.data;
+}
 
 const POLL_INTERVAL_MS = 500;
 
@@ -218,14 +209,14 @@ export class AssistantEventQueueBridge {
           );
         }
       } else if (eventType === "overlay") {
-        const result = overlayPayloadSchema.safeParse(parsed);
+        const update = parseAssistantVisualOverlayEvent(parsed);
 
-        if (result.success) {
+        if (update !== null) {
           this.logEvent?.(
-            `overlay event emotion=${result.data.emotion === undefined ? "untouched" : (result.data.emotion ?? "null")} line=${result.data.line === undefined ? "untouched" : JSON.stringify(result.data.line)} file=${fileName}`,
+            `overlay event emotion=${update.emotion === undefined ? "untouched" : (update.emotion ?? "null")} line=${update.line === undefined ? "untouched" : JSON.stringify(update.line)} file=${fileName}`,
           );
           this.statusStore.applyVisualOverlay(
-            result.data,
+            update,
             "assistant-visual-overlay",
           );
         } else {

@@ -1,44 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import type {
-  AssistantEmotionalState,
   AssistantVisualOverlayUpdate,
 } from "../../shared/assistant-status";
+import { isVisualEmotionPresetId } from "../../shared/visual-presets";
 import { AssistantStatusStore } from "./assistant-status-store";
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
-}
-
-const EMOTIONAL_STATES: ReadonlySet<string> = new Set<AssistantEmotionalState>([
-  "angry",
-  "annoyed",
-  "bored",
-  "confused",
-  "contemptuous",
-  "crying",
-  "curious",
-  "dumbfounded",
-  "embarrassed",
-  "excited",
-  "exhausted",
-  "happy",
-  "laughing",
-  "nervous",
-  "neutral",
-  "proud",
-  "sad",
-  "scared",
-  "serious",
-  "shy",
-  "smile",
-  "smirk",
-  "smug",
-  "surprised",
-]);
-
-function isEmotionalState(value: string): value is AssistantEmotionalState {
-  return EMOTIONAL_STATES.has(value);
 }
 
 function parseAssistantVisualOverlayUpdate(
@@ -55,7 +24,7 @@ function parseAssistantVisualOverlayUpdate(
   if (emotion !== undefined) {
     if (emotion === null) {
       update.emotion = null;
-    } else if (typeof emotion === "string" && isEmotionalState(emotion)) {
+    } else if (typeof emotion === "string" && isVisualEmotionPresetId(emotion)) {
       update.emotion = emotion === "neutral" ? null : emotion;
     } else {
       return null;

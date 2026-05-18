@@ -307,7 +307,9 @@ export function isVisualStatePresetId(value: string): boolean {
   return STATE_PRESETS.some((preset) => preset.id === value);
 }
 
-export function isVisualEmotionPresetId(value: string): boolean {
+export function isVisualEmotionPresetId(
+  value: string,
+): value is VisualEmotionPresetId {
   return EMOTION_PRESETS.some((preset) => preset.id === value);
 }
 
