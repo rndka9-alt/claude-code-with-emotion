@@ -10,6 +10,7 @@ import type { TerminalPinnedViewportMetrics } from "./terminal-viewport";
 
 interface PinnedTerminalOverlayProps {
   focusRequestKey: number;
+  focusRedirectRequestKey: number;
   isOpen: boolean;
   onClose: () => void;
   onFocusPane: () => void;
@@ -17,8 +18,23 @@ interface PinnedTerminalOverlayProps {
   viewportMetrics: TerminalPinnedViewportMetrics | null;
 }
 
+function calculatePinnedViewportOffsetRow(
+  viewportMetrics: TerminalPinnedViewportMetrics,
+): number {
+  const maxOffsetRow = Math.max(
+    0,
+    viewportMetrics.terminalRows - viewportMetrics.visibleRowCount,
+  );
+
+  return Math.max(
+    0,
+    Math.min(viewportMetrics.cursorViewportRow - 2, maxOffsetRow),
+  );
+}
+
 export function PinnedTerminalOverlay({
   focusRequestKey,
+  focusRedirectRequestKey,
   isOpen,
   onClose,
   onFocusPane,
@@ -27,6 +43,7 @@ export function PinnedTerminalOverlay({
 }: PinnedTerminalOverlayProps): ReactElement {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mirrorControllerRef = useRef<TerminalMirrorController | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -62,7 +79,7 @@ export function PinnedTerminalOverlay({
     }
 
     mirrorControllerRef.current?.focus();
-  }, [focusRequestKey, isOpen]);
+  }, [focusRedirectRequestKey, focusRequestKey, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -70,16 +87,68 @@ export function PinnedTerminalOverlay({
     }
 
     mirrorControllerRef.current?.requestFit("pinned-overlay-resize");
-  }, [isOpen, viewportMetrics?.cellHeightPx, viewportMetrics?.terminalRows]);
+  }, [
+    isOpen,
+    viewportMetrics?.cellHeightPx,
+    viewportMetrics?.cellWidthPx,
+    viewportMetrics?.terminalColumns,
+    viewportMetrics?.terminalRows,
+  ]);
+
+  useEffect(() => {
+    if (!isOpen || viewportMetrics === null) {
+      return;
+    }
+
+    const scrollContainer = scrollContainerRef.current;
+
+    if (scrollContainer === null) {
+      return;
+    }
+
+    const cursorLeft =
+      viewportMetrics.cursorViewportColumn * viewportMetrics.cellWidthPx;
+    const cursorRight = cursorLeft + viewportMetrics.cellWidthPx;
+    const visibleLeft = scrollContainer.scrollLeft;
+    const visibleRight = visibleLeft + scrollContainer.clientWidth;
+
+    scrollContainer.scrollTop =
+      calculatePinnedViewportOffsetRow(viewportMetrics) *
+      viewportMetrics.cellHeightPx;
+
+    if (cursorLeft < visibleLeft) {
+      scrollContainer.scrollLeft = cursorLeft;
+      return;
+    }
+
+    if (visibleRight < cursorRight) {
+      scrollContainer.scrollLeft = Math.max(
+        0,
+        cursorRight - scrollContainer.clientWidth,
+      );
+    }
+  }, [
+    isOpen,
+    viewportMetrics?.cellHeightPx,
+    viewportMetrics?.cellWidthPx,
+    viewportMetrics?.cursorViewportColumn,
+    viewportMetrics?.cursorViewportRow,
+    viewportMetrics?.terminalColumns,
+    viewportMetrics?.terminalRows,
+    viewportMetrics?.visibleRowCount,
+  ]);
 
   if (!isOpen || viewportMetrics === null) {
     return <></>;
   }
 
-  const { cellHeightPx, cursorViewportRow, terminalRows, visibleRowCount } =
-    viewportMetrics;
-  const maxOffsetRow = Math.max(0, terminalRows - visibleRowCount);
-  const offsetRow = Math.max(0, Math.min(cursorViewportRow - 2, maxOffsetRow));
+  const {
+    cellHeightPx,
+    cellWidthPx,
+    terminalColumns,
+    terminalRows,
+    visibleRowCount,
+  } = viewportMetrics;
 
   return (
     <div
@@ -91,16 +160,9 @@ export function PinnedTerminalOverlay({
     >
       <div className="border-border-subtle bg-surface-terminal mx-3 mb-3 overflow-hidden rounded-xs border shadow-lg">
         <div
-          className="pointer-events-auto relative overflow-hidden"
+          className="scrollbar-hide pointer-events-auto relative overflow-auto"
           data-pinned-terminal-scroll-container="true"
-          onTouchMoveCapture={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onWheelCapture={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
+          ref={scrollContainerRef}
           style={{
             height: visibleRowCount * cellHeightPx,
           }}
@@ -119,10 +181,11 @@ export function PinnedTerminalOverlay({
           </button>
           <div
             className="pinned-terminal-overlay__viewport min-h-0 min-w-0"
+            data-pinned-terminal-viewport="true"
             ref={hostRef}
             style={{
               height: terminalRows * cellHeightPx,
-              transform: `translateY(${-offsetRow * cellHeightPx}px)`,
+              width: terminalColumns * cellWidthPx,
             }}
           />
         </div>

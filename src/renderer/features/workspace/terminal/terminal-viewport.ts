@@ -7,7 +7,10 @@ export interface TerminalSize {
 
 export interface TerminalPinnedViewportMetrics {
   cellHeightPx: number;
+  cellWidthPx: number;
+  cursorViewportColumn: number;
   cursorViewportRow: number;
+  terminalColumns: number;
   terminalRows: number;
   visibleRowCount: number;
   viewportStartRow: number;
@@ -113,7 +116,10 @@ export function arePinnedViewportMetricsEqual(
 
   return (
     left.cellHeightPx === right.cellHeightPx &&
+    left.cellWidthPx === right.cellWidthPx &&
+    left.cursorViewportColumn === right.cursorViewportColumn &&
     left.cursorViewportRow === right.cursorViewportRow &&
+    left.terminalColumns === right.terminalColumns &&
     left.terminalRows === right.terminalRows &&
     left.visibleRowCount === right.visibleRowCount &&
     left.viewportStartRow === right.viewportStartRow
@@ -156,7 +162,10 @@ export function createPinnedViewportMetrics(
 
   return {
     cellHeightPx: cellDimensions.height,
+    cellWidthPx: cellDimensions.width,
+    cursorViewportColumn: activeBuffer.cursorX,
     cursorViewportRow: activeBuffer.cursorY,
+    terminalColumns: Math.max(2, terminal.cols),
     terminalRows: Math.max(1, terminal.rows),
     visibleRowCount,
     viewportStartRow,

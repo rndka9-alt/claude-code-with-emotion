@@ -36,6 +36,7 @@ const {
     buffer: {
       active: {
         baseY: number;
+        cursorX: number;
         cursorY: number;
         getLine: ReturnType<typeof vi.fn>;
         length: number;
@@ -113,6 +114,7 @@ const {
     buffer = {
       active: {
         baseY: 0,
+        cursorX: 0,
         cursorY: 0,
         getLine: vi.fn((row: number) => {
           if (row !== 0) {
@@ -907,6 +909,40 @@ describe("TerminalSurface", () => {
       }
 
       expect(scrollContainer.style.height).toBe("80px");
+      await waitFor(() => {
+        expect(scrollContainer.scrollTop).toBe(240);
+      });
+      expect(fireEvent.wheel(scrollContainer)).toBe(true);
+
+      const overlayViewport = container.querySelector(
+        '[data-pinned-terminal-viewport="true"]',
+      );
+
+      if (!(overlayViewport instanceof HTMLDivElement)) {
+        throw new Error("Expected the pinned viewport to exist.");
+      }
+
+      expect(overlayViewport.style.width).toBe("640px");
+
+      const mainFocusCount = terminal.focus.mock.calls.length;
+      const mirrorTerminal = terminalInstances[1];
+
+      if (mirrorTerminal === undefined) {
+        throw new Error("Expected the pinned mirror terminal to exist.");
+      }
+
+      const mirrorFocusCount = mirrorTerminal.focus.mock.calls.length;
+
+      act(() => {
+        fireEvent.mouseDown(host);
+      });
+
+      await waitFor(() => {
+        expect(mirrorTerminal.focus).toHaveBeenCalledTimes(
+          mirrorFocusCount + 1,
+        );
+      });
+      expect(terminal.focus).toHaveBeenCalledTimes(mainFocusCount);
     } finally {
       if (originalClientWidth !== undefined) {
         Object.defineProperty(

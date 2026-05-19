@@ -53,6 +53,8 @@ export function TerminalSurface({
   const [isPinned, setIsPinned] = useState(false);
   const [isPinSuggestionVisible, setIsPinSuggestionVisible] = useState(false);
   const [pinSuggestionVersion, setPinSuggestionVersion] = useState(0);
+  const [pinnedFocusRedirectRequestKey, setPinnedFocusRedirectRequestKey] =
+    useState(0);
   const [pinnedViewportMetrics, setPinnedViewportMetrics] =
     useState<TerminalPinnedViewportMetrics | null>(null);
 
@@ -73,6 +75,11 @@ export function TerminalSurface({
       setIsPinSuggestionVisible(false);
       pinSuggestionHideTaskRef.current = null;
     }, 2000);
+  };
+
+  const redirectFocusToPinnedOverlay = (): void => {
+    onFocusPane(paneId);
+    setPinnedFocusRedirectRequestKey((requestKey) => requestKey + 1);
   };
 
   useEffect(() => {
@@ -195,8 +202,26 @@ export function TerminalSurface({
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <div
         className="terminal-surface__viewport bg-surface-terminal m-0 flex h-full min-h-0 min-w-0 flex-1 items-stretch overflow-hidden border-0"
+        onMouseDownCapture={(event) => {
+          if (!isPinned) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+          redirectFocusToPinnedOverlay();
+        }}
         onPointerDownCapture={() => {
           onFocusPane(paneId);
+        }}
+        onTouchStartCapture={(event) => {
+          if (!isPinned) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+          redirectFocusToPinnedOverlay();
         }}
         ref={hostRef}
       />
@@ -229,6 +254,7 @@ export function TerminalSurface({
       ) : null}
       <PinnedTerminalOverlay
         focusRequestKey={focusRequestKey}
+        focusRedirectRequestKey={pinnedFocusRedirectRequestKey}
         isOpen={isActive && isPinned}
         onClose={() => {
           setIsPinned(false);
