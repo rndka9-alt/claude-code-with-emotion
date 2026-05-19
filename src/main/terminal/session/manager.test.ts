@@ -6,6 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { ENV_KEYS } from "../../../shared/env-keys";
+import type { AssistantProvider } from "../assistant-provider";
 import type {
   TerminalBootstrapRequest,
   TerminalInputRequest,
@@ -172,6 +173,9 @@ describe("TerminalSessionManager", () => {
 
       expect(createdRuntimes).toHaveLength(1);
       expect(createdRuntimes[0]?.writes).toEqual(["claude\r"]);
+      expect(createdRuntimes[0]?.env[ENV_KEYS.HOOKS_SETTINGS_FILE]).toBe(
+        path.join("/tmp/user-data", "claude-hooks", "settings.json"),
+      );
       expect(response).toEqual({
         outputSnapshot: "",
         outputVersion: 0,
@@ -212,6 +216,91 @@ describe("TerminalSessionManager", () => {
         fs.readFileSync(path.join(outputRootDir, "session-1.log"), "utf8"),
       ).toBe("pong");
     } finally {
+      fs.rmSync(outputRootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("lets an assistant provider add session-specific environment", () => {
+    const createdRuntimes: FakeRuntimeRecord[] = [];
+    const outputRootDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "assistant-provider-session-output-"),
+    );
+    const assistantProvider: AssistantProvider = {
+      displayName: "Test Assistant",
+      id: "test-assistant",
+      launchCommand: "test-assistant",
+      createSessionEnvironment: ({ eventQueueDir }) => {
+        return {
+          TEST_ASSISTANT_EVENT_QUEUE_DIR: eventQueueDir,
+        };
+      },
+      mcpSetup: {
+        getStatus: (stateFilePath) => {
+          return { installed: false, stateFilePath };
+        },
+        install: (_helperBinDir, stateFilePath) => {
+          return { installed: true, stateFilePath };
+        },
+        remove: (stateFilePath) => {
+          return { installed: false, stateFilePath };
+        },
+      },
+    };
+    const manager = new TerminalSessionManager(
+      ({ cols, rows, cwd, env, shell, shellArgs }) => {
+        const record: FakeRuntimeRecord = {
+          cols,
+          cwd,
+          env,
+          killed: false,
+          rows,
+          shell,
+          shellArgs,
+          writes: [],
+        };
+
+        createdRuntimes.push(record);
+
+        return {
+          write: (data) => {
+            record.writes.push(data);
+          },
+          resize: () => {},
+          kill: () => {
+            record.killed = true;
+          },
+          onData: () => {
+            return {
+              dispose: () => {},
+            };
+          },
+          onExit: () => {
+            return {
+              dispose: () => {},
+            };
+          },
+        };
+      },
+      () => {},
+      () => {},
+      "/tmp/helper-bin",
+      "/tmp/trace.log",
+      "/tmp/visual-assets.json",
+      outputRootDir,
+      "/tmp/user-data",
+      assistantProvider,
+    );
+    try {
+      manager.bootstrapSession(
+        createBootstrapRequest(),
+        "/tmp/provider-event-queue",
+      );
+
+      expect(createdRuntimes[0]?.env.TEST_ASSISTANT_EVENT_QUEUE_DIR).toBe(
+        "/tmp/provider-event-queue",
+      );
+    } finally {
+      manager.dispose();
       fs.rmSync(outputRootDir, { recursive: true, force: true });
     }
   });

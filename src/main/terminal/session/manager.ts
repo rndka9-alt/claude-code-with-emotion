@@ -6,7 +6,10 @@ import {
   getPlatformShellAdapter,
   joinPathList,
 } from "../../platform";
-import { ensureClaudeHooksSettingsFile } from "../claude-hooks";
+import {
+  getDefaultAssistantProvider,
+  type AssistantProvider,
+} from "../assistant-provider";
 import { stripScreenHardstatus } from "./strip-screen-hardstatus";
 import { TerminalOutputStore } from "./output-store";
 import type {
@@ -174,6 +177,8 @@ export class TerminalSessionManager {
     private readonly visualAssetCatalogFilePath: string,
     private readonly outputRootDir: string,
     private readonly userDataPath: string,
+    private readonly assistantProvider: AssistantProvider =
+      getDefaultAssistantProvider(),
   ) {}
 
   bootstrapSession(
@@ -198,7 +203,7 @@ export class TerminalSessionManager {
     const shellAdapter = getPlatformShellAdapter();
     const shell = shellAdapter.resolveDefaultShell(process.env);
     const size = normalizeTerminalDimensions(request.cols, request.rows);
-    const runtimeEnv = createRuntimeEnv(
+    const baseRuntimeEnv = createRuntimeEnv(
       process.env,
       request.cwd,
       this.helperBinDir,
@@ -206,8 +211,17 @@ export class TerminalSessionManager {
       this.traceFilePath,
       this.visualAssetCatalogFilePath,
     );
-    runtimeEnv[ENV_KEYS.HOOKS_SETTINGS_FILE] =
-      ensureClaudeHooksSettingsFile(this.helperBinDir, this.userDataPath);
+    const runtimeEnv = {
+      ...baseRuntimeEnv,
+      ...this.assistantProvider.createSessionEnvironment({
+        cwd: request.cwd,
+        eventQueueDir,
+        helperBinDir: this.helperBinDir,
+        traceFilePath: this.traceFilePath,
+        userDataPath: this.userDataPath,
+        visualAssetCatalogFilePath: this.visualAssetCatalogFilePath,
+      }),
+    };
 
     const launchConfig = shellAdapter.createLaunchConfig(shell, runtimeEnv);
     const runtime = this.runtimeFactory({

@@ -18,7 +18,7 @@ import {
   getVisualMcpSetupStatus,
   installVisualMcpUserSetup,
   removeVisualMcpUserSetup,
-} from "../claude-mcp";
+} from "../assistant-provider";
 import { createTerminalSessionManager } from "../session";
 import { AssistantSessionStatusBridgeRegistry } from "./assistant-session-status-bridge-registry";
 import { writeVisualMcpState } from "./visual-mcp-state";

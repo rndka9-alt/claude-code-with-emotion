@@ -1,0 +1,1 @@
+export { claudeAssistantProvider } from "./provider";
