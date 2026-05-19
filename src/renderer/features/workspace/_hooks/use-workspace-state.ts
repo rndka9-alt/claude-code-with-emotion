@@ -4,6 +4,7 @@ import {
   getAllSessionIds,
   getTabSessionIds,
   type PaneSplitDirection,
+  type WorkspaceState,
   workspaceReducer,
 } from "../model";
 import {
@@ -13,7 +14,7 @@ import {
 import { useWorkspaceKeyboardShortcuts } from "./use-workspace-keyboard-shortcuts";
 
 export interface WorkspaceViewModel {
-  state: ReturnType<typeof createInitialWorkspaceState>;
+  state: WorkspaceState;
   activateTab: (tabId: string) => void;
   closePane: (tabId: string, paneId: string, sessionId: string) => void;
   closeTab: (tabId: string) => void;
@@ -26,11 +27,18 @@ export interface WorkspaceViewModel {
   syncSessionTitle: (sessionId: string, title: string) => void;
 }
 
+function resolveInitialWorkspaceState(nowMs: number): WorkspaceState {
+  return (
+    window.claudeApp?.initialWorkspaceState ??
+    createInitialWorkspaceState(nowMs)
+  );
+}
+
 export function useWorkspaceState(): WorkspaceViewModel {
   const [state, dispatch] = useReducer(
     workspaceReducer,
     Date.now(),
-    createInitialWorkspaceState,
+    resolveInitialWorkspaceState,
   );
   useWorkspaceTerminalExitSubscription(dispatch);
   useWorkspaceKeyboardShortcuts(state, dispatch);

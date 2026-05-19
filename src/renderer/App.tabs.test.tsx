@@ -6,6 +6,10 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { App } from "./App";
+import {
+  createInitialWorkspaceState,
+  workspaceReducer,
+} from "./features/workspace/model";
 
 const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
@@ -176,6 +180,36 @@ describe("App tab actions", () => {
       key: "t",
       metaKey: true,
     });
+
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(
+      screen.getByRole("tab", {
+        name: "new session 2 · claude-code-with-emotion",
+      }),
+    ).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("starts from the injected workspace state when one is provided", () => {
+    const initialState = createInitialWorkspaceState(20_000);
+    const injectedState = workspaceReducer(initialState, {
+      type: "createTab",
+      nowMs: 21_000,
+    });
+    const claudeApp = window.claudeApp;
+
+    if (claudeApp === undefined) {
+      throw new Error("Expected claudeApp test bridge to be installed");
+    }
+
+    Object.defineProperty(window, "claudeApp", {
+      configurable: true,
+      value: {
+        ...claudeApp,
+        initialWorkspaceState: injectedState,
+      },
+    });
+
+    render(<App />);
 
     expect(screen.getAllByRole("tab")).toHaveLength(2);
     expect(

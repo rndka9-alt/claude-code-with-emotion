@@ -6,6 +6,7 @@ import type { VisualMcpSetupBridge } from "./mcp-setup-bridge";
 import type { TerminalBridge } from "./terminal-bridge";
 import type { VisualAssetBridge } from "./visual-assets-bridge";
 import type { WorkspaceCommandBridge } from "./workspace-command-bridge";
+import type { WorkspaceState } from "./workspace-state";
 
 export interface DiagnosticsBridge {
   onRuntimeEvent: (
@@ -15,6 +16,7 @@ export interface DiagnosticsBridge {
 
 export interface ClaudeAppApi {
   readonly appVersion: string;
+  readonly initialWorkspaceState?: WorkspaceState;
   readonly workspaceCwd: string;
   readonly appTheme: AppThemeBridge;
   readonly assistantStatus: AssistantStatusBridge;
