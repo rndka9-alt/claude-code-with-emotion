@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import {
   MouseSensor,
   useSensor,
@@ -10,6 +10,10 @@ import {
   type UniqueIdentifier,
 } from "@dnd-kit/core";
 import type { WorkspaceTab } from "../../../../model";
+import type {
+  WorkspaceWindowBridge,
+  WorkspaceWindowScreenPoint,
+} from "../../../../../../../shared/workspace-window-bridge";
 import {
   createAutoScrollController,
   type AutoScrollController,
@@ -42,6 +46,7 @@ export function useTabDragReorder(
   const onReorderTabRef = useRef(onReorderTab);
   const onDetachTabRef = useRef(onDetachTab);
   const autoScrollControllerRef = useRef<AutoScrollController | null>(null);
+  const isTabDragPreviewVisibleRef = useRef(false);
 
   tabsRef.current = tabs;
   onReorderTabRef.current = onReorderTab;
@@ -77,6 +82,13 @@ export function useTabDragReorder(
 
       edgeClientXRef.current = event.clientX;
       autoScrollController.update(event.clientX);
+      updateTabDragPreview({
+        activeTabId: activeDragTabIdRef.current,
+        isVisibleRef: isTabDragPreviewVisibleRef,
+        pointerPosition: pointerPositionRef.current,
+        stripElement: stripRef.current,
+        tabs: tabsRef.current,
+      });
     }
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -88,6 +100,7 @@ export function useTabDragReorder(
       pointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
       lastOverTabIdRef.current = null;
+      hideTabDragPreview(isTabDragPreviewVisibleRef);
       setActiveDragTabId(null);
       autoScrollControllerRef.current = null;
     };
@@ -104,6 +117,7 @@ export function useTabDragReorder(
 
       suppressClickTabIdRef.current = tabId;
       autoScrollControllerRef.current?.stop();
+      hideTabDragPreview(isTabDragPreviewVisibleRef);
       edgeClientXRef.current = null;
       pointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
@@ -127,6 +141,7 @@ export function useTabDragReorder(
 
       suppressClickTabIdRef.current = activeTabId;
       autoScrollControllerRef.current?.stop();
+      hideTabDragPreview(isTabDragPreviewVisibleRef);
       edgeClientXRef.current = null;
       pointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
@@ -175,6 +190,13 @@ export function useTabDragReorder(
         event.activatorEvent,
       );
       activeDragTabIdRef.current = tabId;
+      updateTabDragPreview({
+        activeTabId: tabId,
+        isVisibleRef: isTabDragPreviewVisibleRef,
+        pointerPosition: pointerPositionRef.current,
+        stripElement: stripRef.current,
+        tabs: tabsRef.current,
+      });
       setActiveDragTabId(tabId);
     },
     sensors,
@@ -188,6 +210,89 @@ export function useTabDragReorder(
     },
     sortableTabIds: tabs.map((tab) => tab.id),
     stripRef,
+  };
+}
+
+interface UpdateTabDragPreviewInput {
+  activeTabId: string | null;
+  isVisibleRef: MutableRefObject<boolean>;
+  pointerPosition: PointerClientPosition | null;
+  stripElement: HTMLDivElement | null;
+  tabs: WorkspaceTab[];
+}
+
+function updateTabDragPreview({
+  activeTabId,
+  isVisibleRef,
+  pointerPosition,
+  stripElement,
+  tabs,
+}: UpdateTabDragPreviewInput): void {
+  if (
+    activeTabId === null ||
+    !shouldDetachActiveTab(stripElement, pointerPosition)
+  ) {
+    hideTabDragPreview(isVisibleRef);
+    return;
+  }
+
+  if (pointerPosition === null) {
+    throw new Error("Cannot show tab drag preview without a pointer position.");
+  }
+
+  const workspaceWindowsBridge = resolveWorkspaceWindowsBridge();
+  const screenPoint = resolveScreenPoint(pointerPosition);
+
+  if (workspaceWindowsBridge === null) {
+    return;
+  }
+
+  if (isVisibleRef.current) {
+    workspaceWindowsBridge.moveTabDragPreview({ screenPoint });
+    return;
+  }
+
+  const activeTab = tabs.find((tab) => tab.id === activeTabId);
+
+  if (activeTab === undefined) {
+    throw new Error("Cannot show tab drag preview for an unknown tab.");
+  }
+
+  workspaceWindowsBridge.showTabDragPreview({
+    screenPoint,
+    title: activeTab.title,
+  });
+  isVisibleRef.current = true;
+}
+
+function hideTabDragPreview(isVisibleRef: MutableRefObject<boolean>): void {
+  if (!isVisibleRef.current) {
+    return;
+  }
+
+  const workspaceWindowsBridge = resolveWorkspaceWindowsBridge();
+
+  if (workspaceWindowsBridge !== null) {
+    workspaceWindowsBridge.hideTabDragPreview();
+  }
+
+  isVisibleRef.current = false;
+}
+
+function resolveWorkspaceWindowsBridge(): WorkspaceWindowBridge | null {
+  if (window.claudeApp === undefined) {
+    return null;
+  }
+
+  return window.claudeApp.workspaceWindows;
+}
+
+function resolveScreenPoint(
+  pointerPosition: PointerClientPosition,
+): WorkspaceWindowScreenPoint {
+  return {
+    x: pointerPosition.screenX,
+    y: pointerPosition.screenY,
   };
 }
 

@@ -167,6 +167,9 @@ export function useWorkspaceState(): WorkspaceViewModel {
       }
 
       await workspaceWindowsBridge.openDetachedWorkspaceWindow({
+        ...(screenPoint === undefined
+          ? {}
+          : { initialScreenPoint: screenPoint }),
         initialWorkspaceState: result.detachedState,
       });
       dispatch({ type: "replaceState", state: result.sourceState });

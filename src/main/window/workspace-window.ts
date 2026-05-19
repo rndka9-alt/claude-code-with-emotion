@@ -8,6 +8,7 @@ import {
   createInitialWorkspaceStateArgument,
   type WorkspaceState,
 } from "../../shared/workspace-state";
+import type { WorkspaceWindowScreenPoint } from "../../shared/workspace-window-bridge";
 import {
   resolveInitialWindowBounds,
   WORKSPACE_WINDOW_SIZE,
@@ -18,6 +19,7 @@ import { attachWorkspaceWindowNavigationPolicy } from "./workspace-window-naviga
 import type { WindowBoundsStore } from "./window-bounds-store";
 
 export interface CreateWorkspaceWindowOptions {
+  initialScreenPoint?: WorkspaceWindowScreenPoint;
   initialWorkspaceState?: WorkspaceState;
 }
 
@@ -28,7 +30,10 @@ export function createWorkspaceWindow(
 ): BrowserWindow {
   const preloadPath = path.join(__dirname, "../../preload/index.js");
   const themeDefinition = getAppThemeDefinition(themeSelection.themeId);
-  const initialBounds = resolveInitialWindowBounds(boundsStore.getBounds());
+  const initialBounds = resolveInitialWindowBounds(
+    boundsStore.getBounds(),
+    options.initialScreenPoint,
+  );
   const additionalArguments =
     options.initialWorkspaceState === undefined
       ? []

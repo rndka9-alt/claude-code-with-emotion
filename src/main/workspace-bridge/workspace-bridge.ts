@@ -10,6 +10,7 @@ import type { RuntimeLog } from "../diagnostics";
 import { TerminalSessionService } from "../terminal";
 import type { ThemeStore } from "../theme";
 import { VisualAssetStore } from "../visual-assets";
+import { TabDragPreviewWindow } from "../window";
 import { attachRendererDiagnosticListener } from "./renderer-diagnostic-listener";
 import { registerWorkspaceIpcHandlers } from "./workspace-ipc-handlers";
 import { resolveWorkspaceBridgePaths } from "./workspace-bridge-paths";
@@ -40,6 +41,7 @@ export function registerWorkspaceBridge({
 }: RegisterWorkspaceBridgeOptions): WorkspaceBridge {
   const workspaceWindows = new Set<BrowserWindow>();
   const detachWorkspaceWindowSubscriptions = new Map<number, () => void>();
+  const tabDragPreviewWindow = new TabDragPreviewWindow();
   let isDisposed = false;
   const bridgePaths = {
     ...resolveWorkspaceBridgePaths({
@@ -115,6 +117,7 @@ export function registerWorkspaceBridge({
 
     detachWorkspaceWindowSubscriptions.clear();
     workspaceWindows.clear();
+    tabDragPreviewWindow.dispose();
     visualAssetStore.dispose();
     terminalSessionService.dispose();
     detachRendererDiagnosticListener();
@@ -180,6 +183,12 @@ export function registerWorkspaceBridge({
     attachWorkspaceStateToWindowAtPoint,
     closeCurrentWorkspaceWindow,
     getFocusedWindow: () => BrowserWindow.getFocusedWindow(),
+    hideTabDragPreview: () => {
+      tabDragPreviewWindow.hide();
+    },
+    moveTabDragPreview: (request) => {
+      tabDragPreviewWindow.move(request.screenPoint);
+    },
     openDetachedWorkspaceWindow: (request) => {
       const workspaceWindow = createDetachedWindow(request);
 
@@ -189,6 +198,9 @@ export function registerWorkspaceBridge({
       );
     },
     runtimeLog,
+    showTabDragPreview: (request) => {
+      tabDragPreviewWindow.show(request.title, request.screenPoint);
+    },
     terminalSessionService,
     themeStore,
     visualAssetStore,

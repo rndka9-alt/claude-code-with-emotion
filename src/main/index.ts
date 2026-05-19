@@ -106,7 +106,12 @@ void app.whenReady().then(() => {
       windowBoundsStore,
       request === undefined
         ? {}
-        : { initialWorkspaceState: request.initialWorkspaceState },
+        : {
+            ...(request.initialScreenPoint === undefined
+              ? {}
+              : { initialScreenPoint: request.initialScreenPoint }),
+            initialWorkspaceState: request.initialWorkspaceState,
+          },
     );
 
     attachWorkspaceWindowDiagnostics(workspaceWindow, runtimeLog);

@@ -60,6 +60,8 @@ function installWorkspaceWindowBridge(
       workspaceWindows: {
         attachWorkspaceStateToWindowAtPoint,
         closeCurrentWorkspaceWindow,
+        hideTabDragPreview: vi.fn(),
+        moveTabDragPreview: vi.fn(),
         onAttachWorkspaceState: vi.fn(
           (listener: (request: AttachWorkspaceStateRequest) => void) => {
             attachWorkspaceStateListener = listener;
@@ -70,6 +72,7 @@ function installWorkspaceWindowBridge(
           },
         ),
         openDetachedWorkspaceWindow,
+        showTabDragPreview: vi.fn(),
       },
     },
   });
@@ -163,6 +166,36 @@ describe("useWorkspaceState", () => {
     expect(screen.getByTestId("tab-titles")).toHaveTextContent(
       "new session 1 · claude-code-with-emotion,new session 2 · claude-code-with-emotion",
     );
+  });
+
+  it("opens a detached workspace window near the drag screen point when no target window accepts the tab", async () => {
+    const openDetachedWorkspaceWindow = vi.fn().mockResolvedValue(undefined);
+    const attachWorkspaceStateToWindowAtPoint = vi
+      .fn()
+      .mockResolvedValue(false);
+    installWorkspaceWindowBridge(
+      openDetachedWorkspaceWindow,
+      attachWorkspaceStateToWindowAtPoint,
+    );
+
+    render(<WorkspaceStateHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "create" }));
+    fireEvent.click(screen.getByRole("button", { name: "attach first" }));
+
+    await waitFor(() => {
+      expect(openDetachedWorkspaceWindow).toHaveBeenCalledTimes(1);
+    });
+    expect(openDetachedWorkspaceWindow).toHaveBeenCalledWith({
+      initialScreenPoint: { x: 500, y: 120 },
+      initialWorkspaceState: expect.objectContaining({
+        tabs: [
+          expect.objectContaining({
+            title: "new session 1 · claude-code-with-emotion",
+          }),
+        ],
+      }),
+    });
   });
 
   it("attaches incoming workspace state from the workspace window bridge", async () => {

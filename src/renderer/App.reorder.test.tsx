@@ -16,7 +16,10 @@ function requireParentElement(element: HTMLElement): HTMLElement {
 }
 
 function installDetachedWorkspaceWindowBridge() {
+  const hideTabDragPreview = vi.fn();
+  const moveTabDragPreview = vi.fn();
   const openDetachedWorkspaceWindow = vi.fn().mockResolvedValue(undefined);
+  const showTabDragPreview = vi.fn();
 
   Object.defineProperty(window, "claudeApp", {
     configurable: true,
@@ -39,13 +42,21 @@ function installDetachedWorkspaceWindowBridge() {
       workspaceWindows: {
         attachWorkspaceStateToWindowAtPoint: vi.fn().mockResolvedValue(false),
         closeCurrentWorkspaceWindow: vi.fn().mockResolvedValue(undefined),
+        hideTabDragPreview,
+        moveTabDragPreview,
         onAttachWorkspaceState: vi.fn(() => () => {}),
         openDetachedWorkspaceWindow,
+        showTabDragPreview,
       },
     },
   });
 
-  return openDetachedWorkspaceWindow;
+  return {
+    hideTabDragPreview,
+    moveTabDragPreview,
+    openDetachedWorkspaceWindow,
+    showTabDragPreview,
+  };
 }
 
 describe("App tab reordering", () => {
@@ -143,7 +154,11 @@ describe("App tab reordering", () => {
   });
 
   it("detaches a dragged tab when it is dropped below the tab strip", async () => {
-    const openDetachedWorkspaceWindow = installDetachedWorkspaceWindowBridge();
+    const {
+      hideTabDragPreview,
+      openDetachedWorkspaceWindow,
+      showTabDragPreview,
+    } = installDetachedWorkspaceWindowBridge();
 
     render(<App />);
 
@@ -200,6 +215,8 @@ describe("App tab reordering", () => {
           buttons: 1,
           clientX: 40,
           clientY: 12,
+          screenX: 440,
+          screenY: 112,
         });
       });
       act(() => {
@@ -207,6 +224,8 @@ describe("App tab reordering", () => {
           buttons: 1,
           clientX: 80,
           clientY: 20,
+          screenX: 480,
+          screenY: 120,
         });
       });
       act(() => {
@@ -214,19 +233,35 @@ describe("App tab reordering", () => {
           buttons: 1,
           clientX: 80,
           clientY: 90,
+          screenX: 480,
+          screenY: 190,
         });
       });
       act(() => {
         fireEvent.mouseUp(document, {
           clientX: 80,
           clientY: 90,
+          screenX: 480,
+          screenY: 190,
         });
       });
 
+      expect(showTabDragPreview).toHaveBeenCalledWith({
+        screenPoint: {
+          x: 480,
+          y: 190,
+        },
+        title: "new session 1 · claude-code-with-emotion",
+      });
+      expect(hideTabDragPreview).toHaveBeenCalledTimes(1);
       await waitFor(() => {
         expect(openDetachedWorkspaceWindow).toHaveBeenCalledTimes(1);
       });
       expect(openDetachedWorkspaceWindow).toHaveBeenCalledWith({
+        initialScreenPoint: {
+          x: 480,
+          y: 190,
+        },
         initialWorkspaceState: expect.objectContaining({
           tabs: [
             expect.objectContaining({

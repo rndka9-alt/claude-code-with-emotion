@@ -3,6 +3,7 @@ import {
   ipcMain,
   shell,
   type BrowserWindow,
+  type IpcMainEvent,
   type OpenDialogOptions,
   type WebContents,
 } from "electron";
@@ -27,8 +28,12 @@ import {
   WORKSPACE_WINDOW_CHANNELS,
   parseAttachWorkspaceStateToWindowAtPointRequest,
   parseOpenDetachedWorkspaceWindowRequest,
+  parseWorkspaceTabDragPreviewMoveRequest,
+  parseWorkspaceTabDragPreviewRequest,
   type AttachWorkspaceStateToWindowAtPointRequest,
   type OpenDetachedWorkspaceWindowRequest,
+  type WorkspaceTabDragPreviewMoveRequest,
+  type WorkspaceTabDragPreviewRequest,
 } from "../../shared/workspace-window-bridge";
 import type { RuntimeLog } from "../diagnostics";
 import type { TerminalSessionService } from "../terminal";
@@ -43,12 +48,15 @@ interface RegisterWorkspaceIpcHandlersOptions {
     sender: WebContents,
   ) => boolean;
   closeCurrentWorkspaceWindow: (sender: WebContents) => void;
+  hideTabDragPreview: () => void;
+  moveTabDragPreview: (request: WorkspaceTabDragPreviewMoveRequest) => void;
   openDetachedWorkspaceWindow: (
     request: OpenDetachedWorkspaceWindowRequest,
   ) => void;
   runtimeLog: RuntimeLog;
   terminalSessionService: TerminalSessionService;
   themeStore: ThemeStore;
+  showTabDragPreview: (request: WorkspaceTabDragPreviewRequest) => void;
   visualAssetStore: VisualAssetStore;
 }
 
@@ -56,8 +64,11 @@ export function registerWorkspaceIpcHandlers({
   attachWorkspaceStateToWindowAtPoint,
   closeCurrentWorkspaceWindow,
   getFocusedWindow,
+  hideTabDragPreview,
+  moveTabDragPreview,
   openDetachedWorkspaceWindow,
   runtimeLog,
+  showTabDragPreview,
   terminalSessionService,
   themeStore,
   visualAssetStore,
@@ -74,6 +85,34 @@ export function registerWorkspaceIpcHandlers({
   ipcMain.handle(WORKSPACE_WINDOW_CHANNELS.closeCurrent, (event) => {
     closeCurrentWorkspaceWindow(event.sender);
   });
+  const showTabDragPreviewListener = (
+    _event: IpcMainEvent,
+    request: unknown,
+  ) => {
+    showTabDragPreview(parseWorkspaceTabDragPreviewRequest(request));
+  };
+  const moveTabDragPreviewListener = (
+    _event: IpcMainEvent,
+    request: unknown,
+  ) => {
+    moveTabDragPreview(parseWorkspaceTabDragPreviewMoveRequest(request));
+  };
+  const hideTabDragPreviewListener = () => {
+    hideTabDragPreview();
+  };
+
+  ipcMain.on(
+    WORKSPACE_WINDOW_CHANNELS.showTabDragPreview,
+    showTabDragPreviewListener,
+  );
+  ipcMain.on(
+    WORKSPACE_WINDOW_CHANNELS.moveTabDragPreview,
+    moveTabDragPreviewListener,
+  );
+  ipcMain.on(
+    WORKSPACE_WINDOW_CHANNELS.hideTabDragPreview,
+    hideTabDragPreviewListener,
+  );
   ipcMain.handle(
     ASSISTANT_STATUS_CHANNELS.getSnapshot,
     async (_event, request: AssistantStatusSnapshotRequest) => {
@@ -215,5 +254,17 @@ export function registerWorkspaceIpcHandlers({
     ipcMain.removeHandler(WORKSPACE_WINDOW_CHANNELS.attachToWindowAtPoint);
     ipcMain.removeHandler(WORKSPACE_WINDOW_CHANNELS.closeCurrent);
     ipcMain.removeHandler(WORKSPACE_WINDOW_CHANNELS.openDetached);
+    ipcMain.removeListener(
+      WORKSPACE_WINDOW_CHANNELS.showTabDragPreview,
+      showTabDragPreviewListener,
+    );
+    ipcMain.removeListener(
+      WORKSPACE_WINDOW_CHANNELS.moveTabDragPreview,
+      moveTabDragPreviewListener,
+    );
+    ipcMain.removeListener(
+      WORKSPACE_WINDOW_CHANNELS.hideTabDragPreview,
+      hideTabDragPreviewListener,
+    );
   };
 }

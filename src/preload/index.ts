@@ -37,6 +37,8 @@ import {
   parseAttachWorkspaceStateRequest,
   type AttachWorkspaceStateToWindowAtPointRequest,
   type OpenDetachedWorkspaceWindowRequest,
+  type WorkspaceTabDragPreviewMoveRequest,
+  type WorkspaceTabDragPreviewRequest,
 } from "../shared/workspace-window-bridge";
 
 // Finder 에서 실행한 패키지 앱은 process.cwd() 가 `/` 로 설정돼서 터미널이 루트에서 열린다.
@@ -238,6 +240,12 @@ const claudeAppApi: ClaudeAppApi = {
     closeCurrentWorkspaceWindow: async () => {
       await ipcRenderer.invoke(WORKSPACE_WINDOW_CHANNELS.closeCurrent);
     },
+    hideTabDragPreview: () => {
+      ipcRenderer.send(WORKSPACE_WINDOW_CHANNELS.hideTabDragPreview);
+    },
+    moveTabDragPreview: (request: WorkspaceTabDragPreviewMoveRequest) => {
+      ipcRenderer.send(WORKSPACE_WINDOW_CHANNELS.moveTabDragPreview, request);
+    },
     onAttachWorkspaceState: (listener) => {
       const subscription = (_event: IpcRendererEvent, payload: unknown) => {
         listener(parseAttachWorkspaceStateRequest(payload));
@@ -256,6 +264,9 @@ const claudeAppApi: ClaudeAppApi = {
       request: OpenDetachedWorkspaceWindowRequest,
     ) => {
       await ipcRenderer.invoke(WORKSPACE_WINDOW_CHANNELS.openDetached, request);
+    },
+    showTabDragPreview: (request: WorkspaceTabDragPreviewRequest) => {
+      ipcRenderer.send(WORKSPACE_WINDOW_CHANNELS.showTabDragPreview, request);
     },
   },
 };

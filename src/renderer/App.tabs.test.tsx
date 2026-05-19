@@ -172,8 +172,11 @@ describe("App tab actions", () => {
         workspaceWindows: {
           attachWorkspaceStateToWindowAtPoint: vi.fn().mockResolvedValue(false),
           closeCurrentWorkspaceWindow: vi.fn().mockResolvedValue(undefined),
+          hideTabDragPreview: vi.fn(),
+          moveTabDragPreview: vi.fn(),
           onAttachWorkspaceState: vi.fn(() => () => {}),
           openDetachedWorkspaceWindow: vi.fn().mockResolvedValue(undefined),
+          showTabDragPreview: vi.fn(),
         },
       },
     });
