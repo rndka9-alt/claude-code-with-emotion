@@ -1,6 +1,10 @@
 import { BrowserWindow } from "electron";
 import path from "node:path";
 import {
+  createInitialAssistantSnapshotsBySessionIdArgument,
+  type AssistantSnapshotsBySessionId,
+} from "../../shared/assistant-status";
+import {
   getAppThemeDefinition,
   type AppThemeSelection,
 } from "../../shared/theme";
@@ -19,6 +23,7 @@ import { attachWorkspaceWindowNavigationPolicy } from "./workspace-window-naviga
 import type { WindowBoundsStore } from "./window-bounds-store";
 
 export interface CreateWorkspaceWindowOptions {
+  initialAssistantSnapshotsBySessionId?: AssistantSnapshotsBySessionId;
   initialScreenPoint?: WorkspaceWindowScreenPoint;
   initialWorkspaceState?: WorkspaceState;
 }
@@ -38,6 +43,14 @@ export function createWorkspaceWindow(
     options.initialWorkspaceState === undefined
       ? []
       : [createInitialWorkspaceStateArgument(options.initialWorkspaceState)];
+  const assistantSnapshotArguments =
+    options.initialAssistantSnapshotsBySessionId === undefined
+      ? []
+      : [
+          createInitialAssistantSnapshotsBySessionIdArgument(
+            options.initialAssistantSnapshotsBySessionId,
+          ),
+        ];
   const workspaceWindow = new BrowserWindow({
     ...initialBounds,
     minWidth: WORKSPACE_WINDOW_SIZE.minWidth,
@@ -47,7 +60,10 @@ export function createWorkspaceWindow(
     title: "Claude Code With Emotion",
     webPreferences: {
       preload: preloadPath,
-      additionalArguments,
+      additionalArguments: [
+        ...additionalArguments,
+        ...assistantSnapshotArguments,
+      ],
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

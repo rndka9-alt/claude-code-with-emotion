@@ -10,6 +10,7 @@ import { APP_THEME_CHANNELS } from "../shared/app-theme-bridge";
 import type { AppThemeSelection } from "../shared/theme";
 import {
   ASSISTANT_STATUS_CHANNELS,
+  parseInitialAssistantSnapshotsBySessionIdFromArguments,
   type AssistantStatusSnapshotEvent,
   type AssistantStatusSnapshot,
 } from "../shared/assistant-status";
@@ -45,8 +46,13 @@ import {
 // 유저 홈 디렉터리를 기본 cwd 로 고정해, 개발(npm run dev) 환경과 패키징 환경 모두 홈에서 시작하도록 맞춘다.
 const initialWorkspaceState: WorkspaceState | undefined =
   parseInitialWorkspaceStateFromArguments(process.argv);
+const initialAssistantSnapshotsBySessionId =
+  parseInitialAssistantSnapshotsBySessionIdFromArguments(process.argv);
 const claudeAppApi: ClaudeAppApi = {
   appVersion: process.versions.electron,
+  ...(initialAssistantSnapshotsBySessionId !== undefined
+    ? { initialAssistantSnapshotsBySessionId }
+    : {}),
   ...(initialWorkspaceState !== undefined ? { initialWorkspaceState } : {}),
   workspaceCwd: os.homedir(),
   appTheme: {

@@ -1,22 +1,75 @@
-import type { VisualEmotionPresetId } from "./visual-presets";
+import { z } from "zod";
 
 // 여기엔 순수 lifecycle 상태만 둔다. 기분·감정 토큰(happy/sad/surprised) 은
 // AssistantEmotionalState 전담 영역이라 여기 넣으면 카테고리 혼용이 댐.
 // 훅은 이제 state+emotion 두 축을 따로 emit 한다.
-export type AssistantSemanticState =
-  | "disconnected"
-  | "thinking"
-  | "working"
-  | "waiting"
-  | "permission_wait"
-  | "tool_failed"
-  | "compacting"
-  | "completed"
-  | "error";
+const INITIAL_ASSISTANT_SNAPSHOTS_ARGUMENT_PREFIX =
+  "--initial-assistant-snapshots=";
 
-export type AssistantEmotionalState = VisualEmotionPresetId;
+export const assistantSemanticStateSchema = z.enum([
+  "disconnected",
+  "thinking",
+  "working",
+  "waiting",
+  "permission_wait",
+  "tool_failed",
+  "compacting",
+  "completed",
+  "error",
+]);
 
-export type AssistantStatusIntensity = "low" | "medium" | "high";
+export const assistantEmotionalStateSchema = z.enum([
+  "angry",
+  "annoyed",
+  "bored",
+  "confused",
+  "contemptuous",
+  "crying",
+  "curious",
+  "determined",
+  "dumbfounded",
+  "embarrassed",
+  "excited",
+  "exhausted",
+  "happy",
+  "laughing",
+  "nervous",
+  "neutral",
+  "proud",
+  "sad",
+  "scared",
+  "serious",
+  "shy",
+  "smile",
+  "smirk",
+  "smug",
+  "surprised",
+]);
+
+const assistantStatusIntensitySchema = z.enum(["low", "medium", "high"]);
+const assistantStatusSnapshotSchema = z.object({
+  activityLabel: z.string(),
+  emotion: assistantEmotionalStateSchema.nullable(),
+  overlayLine: z.string().nullable(),
+  state: assistantSemanticStateSchema,
+  line: z.string(),
+  currentTask: z.string(),
+  updatedAtMs: z.number().finite(),
+  intensity: assistantStatusIntensitySchema,
+  source: z.string(),
+});
+
+export type AssistantSemanticState = z.infer<
+  typeof assistantSemanticStateSchema
+>;
+
+export type AssistantEmotionalState = z.infer<
+  typeof assistantEmotionalStateSchema
+>;
+
+export type AssistantStatusIntensity = z.infer<
+  typeof assistantStatusIntensitySchema
+>;
 
 export interface AssistantStatusUpdate {
   activityLabel?: string;
@@ -37,17 +90,14 @@ export interface AssistantVisualOverlayUpdate {
   line?: string | null;
 }
 
-export interface AssistantStatusSnapshot {
-  activityLabel: string;
-  emotion: AssistantEmotionalState | null;
-  overlayLine: string | null;
-  state: AssistantSemanticState;
-  line: string;
-  currentTask: string;
-  updatedAtMs: number;
-  intensity: AssistantStatusIntensity;
-  source: string;
-}
+export type AssistantStatusSnapshot = z.infer<
+  typeof assistantStatusSnapshotSchema
+>;
+
+export type AssistantSnapshotsBySessionId = Record<
+  string,
+  AssistantStatusSnapshot
+>;
 
 export interface AssistantStatusBridge {
   getSnapshot: (
@@ -90,4 +140,63 @@ export function createDefaultAssistantStatusSnapshot(
     intensity: "low",
     source: "app",
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function parseAssistantStatusSnapshot(
+  value: unknown,
+): AssistantStatusSnapshot {
+  const result = assistantStatusSnapshotSchema.safeParse(value);
+
+  if (!result.success) {
+    throw new Error("Assistant status snapshot payload is invalid.");
+  }
+
+  return result.data;
+}
+
+export function parseAssistantSnapshotsBySessionId(
+  value: unknown,
+): AssistantSnapshotsBySessionId {
+  if (!isRecord(value)) {
+    throw new Error("Assistant snapshots payload must be an object.");
+  }
+
+  const snapshotsBySessionId: AssistantSnapshotsBySessionId = {};
+
+  for (const [sessionId, snapshot] of Object.entries(value)) {
+    snapshotsBySessionId[sessionId] = parseAssistantStatusSnapshot(snapshot);
+  }
+
+  return snapshotsBySessionId;
+}
+
+export function createInitialAssistantSnapshotsBySessionIdArgument(
+  snapshotsBySessionId: AssistantSnapshotsBySessionId,
+): string {
+  return `${INITIAL_ASSISTANT_SNAPSHOTS_ARGUMENT_PREFIX}${encodeURIComponent(
+    JSON.stringify(snapshotsBySessionId),
+  )}`;
+}
+
+export function parseInitialAssistantSnapshotsBySessionIdFromArguments(
+  args: string[],
+): AssistantSnapshotsBySessionId | undefined {
+  const argument = args.find((candidate) =>
+    candidate.startsWith(INITIAL_ASSISTANT_SNAPSHOTS_ARGUMENT_PREFIX),
+  );
+
+  if (argument === undefined) {
+    return undefined;
+  }
+
+  const encodedValue = argument.slice(
+    INITIAL_ASSISTANT_SNAPSHOTS_ARGUMENT_PREFIX.length,
+  );
+  const parsed: unknown = JSON.parse(decodeURIComponent(encodedValue));
+
+  return parseAssistantSnapshotsBySessionId(parsed);
 }

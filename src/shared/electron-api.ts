@@ -1,5 +1,8 @@
 import type { AppThemeBridge } from "./app-theme-bridge";
-import type { AssistantStatusBridge } from "./assistant-status";
+import type {
+  AssistantSnapshotsBySessionId,
+  AssistantStatusBridge,
+} from "./assistant-status";
 import type { RuntimeDiagnosticPayload } from "./diagnostics";
 import type { LinksBridge } from "./links-bridge";
 import type { VisualMcpSetupBridge } from "./mcp-setup-bridge";
@@ -17,6 +20,7 @@ export interface DiagnosticsBridge {
 
 export interface ClaudeAppApi {
   readonly appVersion: string;
+  readonly initialAssistantSnapshotsBySessionId?: AssistantSnapshotsBySessionId;
   readonly initialWorkspaceState?: WorkspaceState;
   readonly workspaceCwd: string;
   readonly appTheme: AppThemeBridge;

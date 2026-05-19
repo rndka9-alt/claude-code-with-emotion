@@ -107,6 +107,12 @@ void app.whenReady().then(() => {
       request === undefined
         ? {}
         : {
+            ...(request.assistantSnapshotsBySessionId === undefined
+              ? {}
+              : {
+                  initialAssistantSnapshotsBySessionId:
+                    request.assistantSnapshotsBySessionId,
+                }),
             ...(request.initialScreenPoint === undefined
               ? {}
               : { initialScreenPoint: request.initialScreenPoint }),

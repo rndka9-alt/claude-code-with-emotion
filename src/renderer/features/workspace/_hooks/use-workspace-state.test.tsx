@@ -1,5 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  createDefaultAssistantStatusSnapshot,
+  type AssistantSnapshotsBySessionId,
+} from "../../../../shared/assistant-status";
 import type { ReactElement } from "react";
+import { useState } from "react";
 import { useWorkspaceState } from "./use-workspace-state";
 import {
   createInitialWorkspaceState,
@@ -79,14 +84,36 @@ function installWorkspaceWindowBridge(
 }
 
 function WorkspaceStateHarness(): ReactElement {
-  const { createTab, detachTab, state } = useWorkspaceState();
+  const [handoffTask, setHandoffTask] = useState("none");
+  const { createTab, detachTab, state } = useWorkspaceState({
+    onAssistantSnapshotsHandoff: (
+      snapshotsBySessionId: AssistantSnapshotsBySessionId,
+    ) => {
+      const snapshot = snapshotsBySessionId["session-handoff"];
+
+      if (snapshot !== undefined) {
+        setHandoffTask(snapshot.currentTask);
+      }
+    },
+  });
   const firstTabId = state.tabs[0]?.id ?? "";
+  const firstSessionId = state.tabs[0]?.primarySessionId ?? "";
+  const assistantSnapshotsBySessionId: AssistantSnapshotsBySessionId = {
+    [firstSessionId]: {
+      ...createDefaultAssistantStatusSnapshot(30_000),
+      currentTask: "handoff task",
+      line: "handoff line",
+      source: "assistant-status-test",
+      state: "working",
+    },
+  };
 
   return (
     <div>
       <div data-testid="tab-titles">
         {state.tabs.map((tab) => tab.title).join(",")}
       </div>
+      <div data-testid="handoff-task">{handoffTask}</div>
       <button onClick={createTab} type="button">
         create
       </button>
@@ -105,6 +132,18 @@ function WorkspaceStateHarness(): ReactElement {
         type="button"
       >
         attach first
+      </button>
+      <button
+        onClick={() => {
+          void detachTab(
+            firstTabId,
+            { x: 500, y: 120 },
+            assistantSnapshotsBySessionId,
+          ).catch(() => {});
+        }}
+        type="button"
+      >
+        attach first with snapshots
       </button>
     </div>
   );
@@ -198,6 +237,45 @@ describe("useWorkspaceState", () => {
     });
   });
 
+  it("passes assistant snapshots when opening a dragged tab in a new window", async () => {
+    const openDetachedWorkspaceWindow = vi.fn().mockResolvedValue(undefined);
+    const attachWorkspaceStateToWindowAtPoint = vi
+      .fn()
+      .mockResolvedValue(false);
+    installWorkspaceWindowBridge(
+      openDetachedWorkspaceWindow,
+      attachWorkspaceStateToWindowAtPoint,
+    );
+
+    render(<WorkspaceStateHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "create" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "attach first with snapshots" }),
+    );
+
+    await waitFor(() => {
+      expect(openDetachedWorkspaceWindow).toHaveBeenCalledTimes(1);
+    });
+    const openDetachedRequest = openDetachedWorkspaceWindow.mock.calls[0]?.[0];
+
+    if (openDetachedRequest === undefined) {
+      throw new Error("Expected open detached workspace window request.");
+    }
+
+    if (openDetachedRequest.assistantSnapshotsBySessionId === undefined) {
+      throw new Error("Expected assistant snapshots handoff payload.");
+    }
+
+    expect(
+      Object.values(openDetachedRequest.assistantSnapshotsBySessionId),
+    ).toContainEqual(
+      expect.objectContaining({
+        currentTask: "handoff task",
+      }),
+    );
+  });
+
   it("attaches incoming workspace state from the workspace window bridge", async () => {
     const openDetachedWorkspaceWindow = vi.fn().mockResolvedValue(undefined);
     const detachedSourceState = workspaceReducer(
@@ -233,6 +311,49 @@ describe("useWorkspaceState", () => {
     });
   });
 
+  it("receives assistant snapshots from an attached workspace state handoff", async () => {
+    const openDetachedWorkspaceWindow = vi.fn().mockResolvedValue(undefined);
+    const detachedSourceState = workspaceReducer(
+      createInitialWorkspaceState(20_000),
+      {
+        type: "createTab",
+        nowMs: 20_500,
+      },
+    );
+    const detachedResult = getDetachedWorkspaceTabResult(
+      detachWorkspaceTab(
+        detachedSourceState,
+        getTabAt(detachedSourceState, 1).id,
+        21_000,
+      ),
+    );
+    installWorkspaceWindowBridge(openDetachedWorkspaceWindow);
+
+    render(<WorkspaceStateHarness />);
+
+    if (attachWorkspaceStateListener === null) {
+      throw new Error("Expected attach workspace state listener to be set.");
+    }
+
+    attachWorkspaceStateListener({
+      assistantSnapshotsBySessionId: {
+        "session-handoff": {
+          ...createDefaultAssistantStatusSnapshot(31_000),
+          currentTask: "attached handoff task",
+          source: "assistant-status-test",
+          state: "working",
+        },
+      },
+      attachedWorkspaceState: detachedResult.detachedState,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("handoff-task")).toHaveTextContent(
+        "attached handoff task",
+      );
+    });
+  });
+
   it("removes the source tab when attaching it to another workspace window succeeds", async () => {
     const openDetachedWorkspaceWindow = vi.fn().mockResolvedValue(undefined);
     const attachWorkspaceStateToWindowAtPoint = vi.fn().mockResolvedValue(true);
@@ -244,21 +365,43 @@ describe("useWorkspaceState", () => {
     render(<WorkspaceStateHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "create" }));
-    fireEvent.click(screen.getByRole("button", { name: "attach first" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "attach first with snapshots" }),
+    );
 
     await waitFor(() => {
       expect(attachWorkspaceStateToWindowAtPoint).toHaveBeenCalledTimes(1);
     });
-    expect(attachWorkspaceStateToWindowAtPoint).toHaveBeenCalledWith({
-      attachedWorkspaceState: expect.objectContaining({
-        tabs: [
-          expect.objectContaining({
-            title: "new session 1 · claude-code-with-emotion",
-          }),
-        ],
+    const attachRequest =
+      attachWorkspaceStateToWindowAtPoint.mock.calls[0]?.[0];
+
+    if (attachRequest === undefined) {
+      throw new Error("Expected attach workspace state request.");
+    }
+
+    expect(attachRequest).toEqual(
+      expect.objectContaining({
+        attachedWorkspaceState: expect.objectContaining({
+          tabs: [
+            expect.objectContaining({
+              title: "new session 1 · claude-code-with-emotion",
+            }),
+          ],
+        }),
+        screenPoint: { x: 500, y: 120 },
       }),
-      screenPoint: { x: 500, y: 120 },
-    });
+    );
+    if (attachRequest.assistantSnapshotsBySessionId === undefined) {
+      throw new Error("Expected assistant snapshots handoff payload.");
+    }
+
+    expect(
+      Object.values(attachRequest.assistantSnapshotsBySessionId),
+    ).toContainEqual(
+      expect.objectContaining({
+        currentTask: "handoff task",
+      }),
+    );
     expect(openDetachedWorkspaceWindow).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.getByTestId("tab-titles")).toHaveTextContent(

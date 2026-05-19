@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  type AssistantSnapshotsBySessionId,
   createDefaultAssistantStatusSnapshot,
   type AssistantStatusSnapshot,
 } from "../../../../shared/assistant-status";
@@ -15,7 +16,13 @@ import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
 import type { WorkspaceWindowScreenPoint } from "../../../../shared/workspace-window-bridge";
 import { useToast } from "../../toast/ToastProvider";
-import { getAllSessionIds, getActiveTab, getFocusedSession } from "../model";
+import {
+  getAllSessionIds,
+  getActiveTab,
+  getFocusedSession,
+  getTabSessionIds,
+  type WorkspaceState,
+} from "../model";
 import {
   formatStatusPanelLine,
   resolveStatusPanelVisual,
@@ -126,6 +133,49 @@ function createClaudeLaunchPendingSnapshot(
   };
 }
 
+interface CollectAssistantSnapshotsForTabHandoffInput {
+  pendingSnapshotsBySessionId: Readonly<AssistantSnapshotsBySessionId>;
+  snapshotsBySessionId: Readonly<AssistantSnapshotsBySessionId>;
+  state: WorkspaceState;
+  tabId: string;
+}
+
+function shouldHandoffAssistantSnapshot(
+  snapshot: AssistantStatusSnapshot,
+): boolean {
+  return !(snapshot.source === "app" && snapshot.state === "disconnected");
+}
+
+function collectAssistantSnapshotsForTabHandoff({
+  pendingSnapshotsBySessionId,
+  snapshotsBySessionId,
+  state,
+  tabId,
+}: CollectAssistantSnapshotsForTabHandoffInput):
+  | AssistantSnapshotsBySessionId
+  | undefined {
+  const tab = state.tabs.find((candidateTab) => candidateTab.id === tabId);
+
+  if (tab === undefined) {
+    return undefined;
+  }
+
+  const snapshotsByDetachedSessionId: AssistantSnapshotsBySessionId = {};
+
+  for (const sessionId of getTabSessionIds(tab)) {
+    const snapshot =
+      snapshotsBySessionId[sessionId] ?? pendingSnapshotsBySessionId[sessionId];
+
+    if (snapshot !== undefined && shouldHandoffAssistantSnapshot(snapshot)) {
+      snapshotsByDetachedSessionId[sessionId] = snapshot;
+    }
+  }
+
+  return Object.keys(snapshotsByDetachedSessionId).length === 0
+    ? undefined
+    : snapshotsByDetachedSessionId;
+}
+
 export interface WorkspaceScreenViewModel {
   activateTab: (tabId: string) => void;
   activeTabId: string;
@@ -191,6 +241,21 @@ export interface WorkspaceScreenViewModel {
 }
 
 export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
+  const [
+    pendingAssistantSnapshotsBySessionId,
+    setPendingAssistantSnapshotsBySessionId,
+  ] = useState<AssistantSnapshotsBySessionId>(() => {
+    return window.claudeApp?.initialAssistantSnapshotsBySessionId ?? {};
+  });
+  const handleAssistantSnapshotsHandoff = useCallback(
+    (snapshotsBySessionId: AssistantSnapshotsBySessionId): void => {
+      setPendingAssistantSnapshotsBySessionId((current) => ({
+        ...current,
+        ...snapshotsBySessionId,
+      }));
+    },
+    [],
+  );
   const {
     activateTab,
     closePane,
@@ -203,7 +268,9 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     resizeSplit,
     renameTab,
     syncSessionTitle,
-  } = useWorkspaceState();
+  } = useWorkspaceState({
+    onAssistantSnapshotsHandoff: handleAssistantSnapshotsHandoff,
+  });
   const { notifiedTabIds, dismissNotification } = useTabNotifications(
     state.tabs.map((tab) => ({
       id: tab.id,
@@ -223,10 +290,6 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   const [mcpSetupStatus, setMcpSetupStatus] =
     useState<VisualMcpSetupStatus | null>(null);
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
-  const [
-    pendingAssistantSnapshotsBySessionId,
-    setPendingAssistantSnapshotsBySessionId,
-  ] = useState<Record<string, AssistantStatusSnapshot>>({});
   const activeTab = getActiveTab(state);
   const activeSession = getFocusedSession(state);
   const fallbackAssistantSnapshot: AssistantStatusSnapshot =
@@ -421,7 +484,14 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     tabId: string,
     screenPoint?: WorkspaceWindowScreenPoint,
   ): void => {
-    void detachTab(tabId, screenPoint)
+    const handoffAssistantSnapshots = collectAssistantSnapshotsForTabHandoff({
+      pendingSnapshotsBySessionId: pendingAssistantSnapshotsBySessionId,
+      snapshotsBySessionId,
+      state,
+      tabId,
+    });
+
+    void detachTab(tabId, screenPoint, handoffAssistantSnapshots)
       .then((didDetach) => {
         if (!didDetach) {
           toast.showToast({

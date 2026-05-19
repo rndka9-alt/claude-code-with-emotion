@@ -1,3 +1,7 @@
+import {
+  parseAssistantSnapshotsBySessionId,
+  type AssistantSnapshotsBySessionId,
+} from "./assistant-status";
 import { parseWorkspaceState, type WorkspaceState } from "./workspace-state";
 
 export const WORKSPACE_WINDOW_CHANNELS: {
@@ -20,6 +24,7 @@ export const WORKSPACE_WINDOW_CHANNELS: {
 
 export interface AttachWorkspaceStateRequest {
   attachedWorkspaceState: WorkspaceState;
+  assistantSnapshotsBySessionId?: AssistantSnapshotsBySessionId;
 }
 
 export interface WorkspaceWindowScreenPoint {
@@ -32,6 +37,7 @@ export interface AttachWorkspaceStateToWindowAtPointRequest extends AttachWorksp
 }
 
 export interface OpenDetachedWorkspaceWindowRequest {
+  assistantSnapshotsBySessionId?: AssistantSnapshotsBySessionId;
   initialWorkspaceState: WorkspaceState;
   initialScreenPoint?: WorkspaceWindowScreenPoint;
 }
@@ -70,6 +76,15 @@ export function parseAttachWorkspaceStateRequest(
 ): AttachWorkspaceStateRequest {
   if (!isRecord(value)) {
     throw new Error("Attach workspace state request must be an object.");
+  }
+
+  if (value.assistantSnapshotsBySessionId !== undefined) {
+    return {
+      assistantSnapshotsBySessionId: parseAssistantSnapshotsBySessionId(
+        value.assistantSnapshotsBySessionId,
+      ),
+      attachedWorkspaceState: parseWorkspaceState(value.attachedWorkspaceState),
+    };
   }
 
   return {
@@ -118,11 +133,36 @@ export function parseOpenDetachedWorkspaceWindowRequest(
     throw new Error("Detached workspace window request must be an object.");
   }
 
+  const assistantSnapshotsBySessionId =
+    value.assistantSnapshotsBySessionId === undefined
+      ? undefined
+      : parseAssistantSnapshotsBySessionId(value.assistantSnapshotsBySessionId);
+
+  if (
+    value.initialScreenPoint !== undefined &&
+    assistantSnapshotsBySessionId !== undefined
+  ) {
+    return {
+      assistantSnapshotsBySessionId,
+      initialScreenPoint: parseWorkspaceWindowScreenPoint(
+        value.initialScreenPoint,
+      ),
+      initialWorkspaceState: parseWorkspaceState(value.initialWorkspaceState),
+    };
+  }
+
   if (value.initialScreenPoint !== undefined) {
     return {
       initialScreenPoint: parseWorkspaceWindowScreenPoint(
         value.initialScreenPoint,
       ),
+      initialWorkspaceState: parseWorkspaceState(value.initialWorkspaceState),
+    };
+  }
+
+  if (assistantSnapshotsBySessionId !== undefined) {
+    return {
+      assistantSnapshotsBySessionId,
       initialWorkspaceState: parseWorkspaceState(value.initialWorkspaceState),
     };
   }

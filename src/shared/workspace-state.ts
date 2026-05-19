@@ -1,21 +1,11 @@
-import { z } from "zod";
-import type {
-  AssistantEmotionalState,
-  AssistantSemanticState,
+import {
+  assistantEmotionalStateSchema,
+  assistantSemanticStateSchema,
+  type AssistantEmotionalState,
+  type AssistantSemanticState,
 } from "./assistant-status";
 
 const INITIAL_WORKSPACE_STATE_ARGUMENT_PREFIX = "--initial-workspace-state=";
-const assistantSemanticStateSchema = z.enum([
-  "disconnected",
-  "thinking",
-  "working",
-  "waiting",
-  "permission_wait",
-  "tool_failed",
-  "compacting",
-  "completed",
-  "error",
-]);
 
 export type SessionLifecycle = "bootstrapping" | "ready";
 export type PaneSplitDirection = "horizontal" | "vertical";
@@ -105,7 +95,8 @@ function isAssistantStatus(value: unknown): value is AssistantStatus {
   return (
     isString(value.visualState) &&
     assistantSemanticStateSchema.safeParse(value.visualState).success &&
-    (value.emotion === undefined || isString(value.emotion)) &&
+    (value.emotion === undefined ||
+      assistantEmotionalStateSchema.safeParse(value.emotion).success) &&
     isString(value.line) &&
     isString(value.currentTask) &&
     isFiniteNumber(value.statusSinceMs)

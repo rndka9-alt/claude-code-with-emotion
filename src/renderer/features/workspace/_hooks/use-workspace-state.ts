@@ -10,6 +10,7 @@ import {
   type WorkspaceState,
   workspaceReducer,
 } from "../model";
+import type { AssistantSnapshotsBySessionId } from "../../../../shared/assistant-status";
 import type { WorkspaceWindowScreenPoint } from "../../../../shared/workspace-window-bridge";
 import {
   useTerminalSessionPruner,
@@ -26,6 +27,7 @@ export interface WorkspaceViewModel {
   detachTab: (
     tabId: string,
     screenPoint?: WorkspaceWindowScreenPoint,
+    assistantSnapshotsBySessionId?: AssistantSnapshotsBySessionId,
   ) => Promise<boolean>;
   focusPane: (tabId: string, paneId: string) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
@@ -35,6 +37,12 @@ export interface WorkspaceViewModel {
   syncSessionTitle: (sessionId: string, title: string) => void;
 }
 
+interface UseWorkspaceStateOptions {
+  onAssistantSnapshotsHandoff?: (
+    snapshotsBySessionId: AssistantSnapshotsBySessionId,
+  ) => void;
+}
+
 function resolveInitialWorkspaceState(nowMs: number): WorkspaceState {
   return (
     window.claudeApp?.initialWorkspaceState ??
@@ -42,7 +50,10 @@ function resolveInitialWorkspaceState(nowMs: number): WorkspaceState {
   );
 }
 
-export function useWorkspaceState(): WorkspaceViewModel {
+export function useWorkspaceState(
+  options: UseWorkspaceStateOptions = {},
+): WorkspaceViewModel {
+  const onAssistantSnapshotsHandoff = options.onAssistantSnapshotsHandoff;
   const [state, dispatch] = useReducer(
     workspaceReducer,
     Date.now(),
@@ -64,6 +75,10 @@ export function useWorkspaceState(): WorkspaceViewModel {
     }
 
     return workspaceWindowsBridge.onAttachWorkspaceState((request) => {
+      if (request.assistantSnapshotsBySessionId !== undefined) {
+        onAssistantSnapshotsHandoff?.(request.assistantSnapshotsBySessionId);
+      }
+
       dispatch({
         type: "replaceState",
         state: attachWorkspaceState(
@@ -73,7 +88,7 @@ export function useWorkspaceState(): WorkspaceViewModel {
         ),
       });
     });
-  }, []);
+  }, [onAssistantSnapshotsHandoff]);
 
   return {
     state,
@@ -122,6 +137,7 @@ export function useWorkspaceState(): WorkspaceViewModel {
     detachTab: async (
       tabId: string,
       screenPoint?: WorkspaceWindowScreenPoint,
+      assistantSnapshotsBySessionId?: AssistantSnapshotsBySessionId,
     ) => {
       const nowMs = Date.now();
       const currentState = stateRef.current;
@@ -141,6 +157,9 @@ export function useWorkspaceState(): WorkspaceViewModel {
         if (attachResult !== null) {
           const didAttach =
             await workspaceWindowsBridge.attachWorkspaceStateToWindowAtPoint({
+              ...(assistantSnapshotsBySessionId === undefined
+                ? {}
+                : { assistantSnapshotsBySessionId }),
               attachedWorkspaceState: attachResult.attachedState,
               screenPoint,
             });
@@ -167,6 +186,9 @@ export function useWorkspaceState(): WorkspaceViewModel {
       }
 
       await workspaceWindowsBridge.openDetachedWorkspaceWindow({
+        ...(assistantSnapshotsBySessionId === undefined
+          ? {}
+          : { assistantSnapshotsBySessionId }),
         ...(screenPoint === undefined
           ? {}
           : { initialScreenPoint: screenPoint }),
