@@ -9,6 +9,11 @@ export {
   resizePaneSizes,
   workspaceReducer,
 } from "./workspace-state";
+export {
+  attachWorkspaceState,
+  prepareWorkspaceTabAttach,
+} from "./workspace-tab-attach";
+export type { PreparedWorkspaceTabAttach } from "./workspace-tab-attach";
 export { detachWorkspaceTab } from "./workspace-tab-detach";
 export type {
   AssistantStatus,

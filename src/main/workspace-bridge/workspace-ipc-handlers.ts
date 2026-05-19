@@ -4,6 +4,7 @@ import {
   shell,
   type BrowserWindow,
   type OpenDialogOptions,
+  type WebContents,
 } from "electron";
 import { APP_THEME_CHANNELS } from "../../shared/app-theme-bridge";
 import {
@@ -24,7 +25,9 @@ import type { VisualAssetCatalog } from "../../shared/visual-assets";
 import type { AppThemeSelection } from "../../shared/theme";
 import {
   WORKSPACE_WINDOW_CHANNELS,
+  parseAttachWorkspaceStateToWindowAtPointRequest,
   parseOpenDetachedWorkspaceWindowRequest,
+  type AttachWorkspaceStateToWindowAtPointRequest,
   type OpenDetachedWorkspaceWindowRequest,
 } from "../../shared/workspace-window-bridge";
 import type { RuntimeLog } from "../diagnostics";
@@ -35,6 +38,11 @@ import { isExternalBrowserUrl } from "../window";
 
 interface RegisterWorkspaceIpcHandlersOptions {
   getFocusedWindow: () => BrowserWindow | null;
+  attachWorkspaceStateToWindowAtPoint: (
+    request: AttachWorkspaceStateToWindowAtPointRequest,
+    sender: WebContents,
+  ) => boolean;
+  closeCurrentWorkspaceWindow: (sender: WebContents) => void;
   openDetachedWorkspaceWindow: (
     request: OpenDetachedWorkspaceWindowRequest,
   ) => void;
@@ -45,6 +53,8 @@ interface RegisterWorkspaceIpcHandlersOptions {
 }
 
 export function registerWorkspaceIpcHandlers({
+  attachWorkspaceStateToWindowAtPoint,
+  closeCurrentWorkspaceWindow,
   getFocusedWindow,
   openDetachedWorkspaceWindow,
   runtimeLog,
@@ -52,6 +62,18 @@ export function registerWorkspaceIpcHandlers({
   themeStore,
   visualAssetStore,
 }: RegisterWorkspaceIpcHandlersOptions): () => void {
+  ipcMain.handle(
+    WORKSPACE_WINDOW_CHANNELS.attachToWindowAtPoint,
+    (event, request) => {
+      return attachWorkspaceStateToWindowAtPoint(
+        parseAttachWorkspaceStateToWindowAtPointRequest(request),
+        event.sender,
+      );
+    },
+  );
+  ipcMain.handle(WORKSPACE_WINDOW_CHANNELS.closeCurrent, (event) => {
+    closeCurrentWorkspaceWindow(event.sender);
+  });
   ipcMain.handle(
     ASSISTANT_STATUS_CHANNELS.getSnapshot,
     async (_event, request: AssistantStatusSnapshotRequest) => {
@@ -190,6 +212,8 @@ export function registerWorkspaceIpcHandlers({
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);
     ipcMain.removeHandler(TERMINAL_CHANNELS.close);
+    ipcMain.removeHandler(WORKSPACE_WINDOW_CHANNELS.attachToWindowAtPoint);
+    ipcMain.removeHandler(WORKSPACE_WINDOW_CHANNELS.closeCurrent);
     ipcMain.removeHandler(WORKSPACE_WINDOW_CHANNELS.openDetached);
   };
 }

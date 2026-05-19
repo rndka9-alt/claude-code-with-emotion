@@ -34,6 +34,8 @@ import {
 } from "../shared/workspace-state";
 import {
   WORKSPACE_WINDOW_CHANNELS,
+  parseAttachWorkspaceStateRequest,
+  type AttachWorkspaceStateToWindowAtPointRequest,
   type OpenDetachedWorkspaceWindowRequest,
 } from "../shared/workspace-window-bridge";
 
@@ -225,6 +227,31 @@ const claudeAppApi: ClaudeAppApi = {
     },
   },
   workspaceWindows: {
+    attachWorkspaceStateToWindowAtPoint: async (
+      request: AttachWorkspaceStateToWindowAtPointRequest,
+    ) => {
+      return ipcRenderer.invoke(
+        WORKSPACE_WINDOW_CHANNELS.attachToWindowAtPoint,
+        request,
+      );
+    },
+    closeCurrentWorkspaceWindow: async () => {
+      await ipcRenderer.invoke(WORKSPACE_WINDOW_CHANNELS.closeCurrent);
+    },
+    onAttachWorkspaceState: (listener) => {
+      const subscription = (_event: IpcRendererEvent, payload: unknown) => {
+        listener(parseAttachWorkspaceStateRequest(payload));
+      };
+
+      ipcRenderer.on(WORKSPACE_WINDOW_CHANNELS.attachState, subscription);
+
+      return () => {
+        ipcRenderer.removeListener(
+          WORKSPACE_WINDOW_CHANNELS.attachState,
+          subscription,
+        );
+      };
+    },
     openDetachedWorkspaceWindow: async (
       request: OpenDetachedWorkspaceWindowRequest,
     ) => {

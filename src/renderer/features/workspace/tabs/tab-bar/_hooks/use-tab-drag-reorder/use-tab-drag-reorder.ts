@@ -67,6 +67,8 @@ export function useTabDragReorder(
       pointerPositionRef.current = {
         clientX: event.clientX,
         clientY: event.clientY,
+        screenX: event.screenX,
+        screenY: event.screenY,
       };
 
       if (activeDragTabIdRef.current === null) {
@@ -132,7 +134,15 @@ export function useTabDragReorder(
       setActiveDragTabId(null);
 
       if (shouldDetachTab) {
-        onDetachTabRef.current(activeTabId);
+        onDetachTabRef.current(
+          activeTabId,
+          pointerPosition === null
+            ? undefined
+            : {
+                x: pointerPosition.screenX,
+                y: pointerPosition.screenY,
+              },
+        );
         return;
       }
 
@@ -194,6 +204,8 @@ function resolveDragEndPointerPosition(
   return {
     clientX: activatorPosition.clientX + event.delta.x,
     clientY: activatorPosition.clientY + event.delta.y,
+    screenX: activatorPosition.screenX + event.delta.x,
+    screenY: activatorPosition.screenY + event.delta.y,
   };
 }
 
@@ -204,6 +216,8 @@ function resolvePointerClientPosition(
     return {
       clientX: event.clientX,
       clientY: event.clientY,
+      screenX: event.screenX,
+      screenY: event.screenY,
     };
   }
 

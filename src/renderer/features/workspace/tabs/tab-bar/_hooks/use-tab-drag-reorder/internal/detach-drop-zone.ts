@@ -3,6 +3,8 @@ const TAB_DETACH_DISTANCE_PX = 32;
 export interface PointerClientPosition {
   clientX: number;
   clientY: number;
+  screenX: number;
+  screenY: number;
 }
 
 interface ViewportSize {

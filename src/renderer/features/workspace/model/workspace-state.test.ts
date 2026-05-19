@@ -1,10 +1,12 @@
 import {
+  attachWorkspaceState,
   createInitialWorkspaceState,
   detachWorkspaceTab,
   formatElapsedLabel,
   getFocusedSession,
   getTabSessionIds,
   getVisibleSessions,
+  prepareWorkspaceTabAttach,
   resizePaneSizes,
   workspaceReducer,
 } from "./index";
@@ -552,6 +554,108 @@ describe("detachWorkspaceTab", () => {
     });
 
     expect(detachWorkspaceTab(state, "missing-tab", 21_500)).toBeNull();
+  });
+});
+
+describe("attachWorkspaceState", () => {
+  it("appends detached tabs and sessions to the target workspace", () => {
+    const sourceState = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: "createTab",
+      nowMs: 20_500,
+    });
+    const detachedResult = getDetachedWorkspaceTabResult(
+      detachWorkspaceTab(sourceState, getTabAt(sourceState, 0).id, 21_000),
+    );
+    const targetState = createInitialWorkspaceState(30_000);
+    const targetTab = getTabAt(targetState, 0);
+    const detachedTab = getTabAt(detachedResult.detachedState, 0);
+
+    const attachedState = attachWorkspaceState(
+      targetState,
+      detachedResult.detachedState,
+      31_000,
+    );
+
+    expect(attachedState.tabs).toEqual([targetTab, detachedTab]);
+    expect(attachedState.activeTabId).toBe(detachedTab.id);
+    expect(Object.keys(attachedState.sessions)).toEqual([
+      targetTab.primarySessionId,
+      ...getTabSessionIds(detachedTab),
+    ]);
+    expect(attachedState.nextSessionNumber).toBe(
+      Math.max(
+        targetState.nextSessionNumber,
+        detachedResult.detachedState.nextSessionNumber,
+      ),
+    );
+    expect(attachedState.assistantStatus.currentTask).toBe(
+      "Attached a detached workspace tab",
+    );
+  });
+
+  it("rejects duplicate tab ids instead of merging ambiguous state", () => {
+    const state = createInitialWorkspaceState(20_000);
+    const tab = getTabAt(state, 0);
+
+    expect(() => {
+      attachWorkspaceState(
+        state,
+        {
+          ...state,
+          tabs: [tab],
+        },
+        21_000,
+      );
+    }).toThrow(`Cannot attach workspace tab "${tab.id}"`);
+  });
+
+  it("rejects attached tabs with missing sessions", () => {
+    const sourceState = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: "createTab",
+      nowMs: 20_500,
+    });
+    const detachedResult = getDetachedWorkspaceTabResult(
+      detachWorkspaceTab(sourceState, getTabAt(sourceState, 0).id, 21_000),
+    );
+    const detachedTab = getTabAt(detachedResult.detachedState, 0);
+    const sessionIds = getTabSessionIds(detachedTab);
+    const missingSessionId = sessionIds[0];
+
+    if (missingSessionId === undefined) {
+      throw new Error("Expected detached tab to have a session.");
+    }
+
+    const attachedSessions = { ...detachedResult.detachedState.sessions };
+    delete attachedSessions[missingSessionId];
+
+    expect(() => {
+      attachWorkspaceState(
+        createInitialWorkspaceState(30_000),
+        {
+          ...detachedResult.detachedState,
+          sessions: attachedSessions,
+        },
+        31_000,
+      );
+    }).toThrow(
+      `Cannot attach workspace tab "${detachedTab.id}" because session "${missingSessionId}" is missing.`,
+    );
+  });
+
+  it("prepares the last tab for attach without creating an empty source state", () => {
+    const state = createInitialWorkspaceState(20_000);
+    const tab = getTabAt(state, 0);
+    const result = prepareWorkspaceTabAttach(state, tab.id, 21_000);
+
+    if (result === null) {
+      throw new Error("Expected workspace tab attach preparation result.");
+    }
+
+    expect(result.sourceState).toBeNull();
+    expect(result.attachedState.tabs).toEqual([tab]);
+    expect(Object.keys(result.attachedState.sessions)).toEqual([
+      tab.primarySessionId,
+    ]);
   });
 });
 

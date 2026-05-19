@@ -83,6 +83,9 @@ export function installDisconnectedClaudeApp(sendInput: Mock = vi.fn()): {
         onOpenTerminalSearch: vi.fn(() => () => {}),
       },
       workspaceWindows: {
+        attachWorkspaceStateToWindowAtPoint: vi.fn().mockResolvedValue(false),
+        closeCurrentWorkspaceWindow: vi.fn().mockResolvedValue(undefined),
+        onAttachWorkspaceState: vi.fn(() => () => {}),
         openDetachedWorkspaceWindow: vi.fn().mockResolvedValue(undefined),
       },
     },

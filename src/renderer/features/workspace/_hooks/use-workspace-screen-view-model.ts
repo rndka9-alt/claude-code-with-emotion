@@ -13,6 +13,7 @@ import {
 } from "../../../../shared/visual-presets";
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
+import type { WorkspaceWindowScreenPoint } from "../../../../shared/workspace-window-bridge";
 import { useToast } from "../../toast/ToastProvider";
 import { getAllSessionIds, getActiveTab, getFocusedSession } from "../model";
 import {
@@ -135,7 +136,7 @@ export interface WorkspaceScreenViewModel {
   dismissNotification: (tabId: string) => void;
   currentThemeId: AppThemeId;
   createTab: () => void;
-  detachTab: (tabId: string) => void;
+  detachTab: (tabId: string, screenPoint?: WorkspaceWindowScreenPoint) => void;
   dismissMcpSetupPrompt: () => void;
   dropVisualAssets: (files: ReadonlyArray<File>) => void;
   handleLaunchClaude: () => void;
@@ -416,8 +417,11 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       });
   };
 
-  const requestDetachTab = (tabId: string): void => {
-    void detachTab(tabId)
+  const requestDetachTab = (
+    tabId: string,
+    screenPoint?: WorkspaceWindowScreenPoint,
+  ): void => {
+    void detachTab(tabId, screenPoint)
       .then((didDetach) => {
         if (!didDetach) {
           toast.showToast({

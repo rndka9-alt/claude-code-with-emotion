@@ -6,6 +6,7 @@ import type {
   DragStartEvent,
   SensorDescriptor,
 } from "@dnd-kit/core";
+import type { WorkspaceWindowScreenPoint } from "../../../../../../../../shared/workspace-window-bridge";
 import type { WorkspaceTab } from "../../../../../model";
 
 export interface TabDragReorderHandlers {
@@ -21,7 +22,10 @@ export interface TabDragReorderHandlers {
   stripRef: RefObject<HTMLDivElement | null>;
 }
 
-export type DetachTabHandler = (tabId: string) => void;
+export type DetachTabHandler = (
+  tabId: string,
+  screenPoint?: WorkspaceWindowScreenPoint,
+) => void;
 
 export type ReorderTabHandler = (
   tabId: string,

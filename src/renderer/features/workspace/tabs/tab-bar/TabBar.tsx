@@ -6,6 +6,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import type { WorkspaceTab } from "../../model";
+import type { WorkspaceWindowScreenPoint } from "../../../../../shared/workspace-window-bridge";
 import { SortableTab, TabDragOverlay } from "./_components";
 import { useTabDragReorder, useTabTitleEditor } from "./_hooks";
 
@@ -16,7 +17,10 @@ interface TabBarProps {
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
-  onDetachTab: (tabId: string) => void;
+  onDetachTab: (
+    tabId: string,
+    screenPoint?: WorkspaceWindowScreenPoint,
+  ) => void;
   onDismissNotification: (tabId: string) => void;
   onRenameTab: (tabId: string, title: string) => void;
   onReorderTab: (tabId: string, destinationIndex: number) => void;

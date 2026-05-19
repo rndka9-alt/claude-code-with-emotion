@@ -1,8 +1,11 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, type WebContents } from "electron";
 import type { AssistantStatusSnapshotEvent } from "../../shared/assistant-status";
 import { ASSISTANT_STATUS_CHANNELS } from "../../shared/assistant-status";
 import { TERMINAL_CHANNELS } from "../../shared/terminal-bridge";
-import type { OpenDetachedWorkspaceWindowRequest } from "../../shared/workspace-window-bridge";
+import type {
+  AttachWorkspaceStateToWindowAtPointRequest,
+  OpenDetachedWorkspaceWindowRequest,
+} from "../../shared/workspace-window-bridge";
 import type { RuntimeLog } from "../diagnostics";
 import { TerminalSessionService } from "../terminal";
 import type { ThemeStore } from "../theme";
@@ -11,6 +14,7 @@ import { attachRendererDiagnosticListener } from "./renderer-diagnostic-listener
 import { registerWorkspaceIpcHandlers } from "./workspace-ipc-handlers";
 import { resolveWorkspaceBridgePaths } from "./workspace-bridge-paths";
 import { attachWorkspaceWindowSubscriptions } from "./workspace-window-subscriptions";
+import { routeAttachWorkspaceStateToWindowAtPoint } from "./workspace-window-attach-routing";
 
 interface RegisterWorkspaceBridgeOptions {
   createDetachedWindow: (
@@ -148,7 +152,33 @@ export function registerWorkspaceBridge({
     });
   }
 
+  function attachWorkspaceStateToWindowAtPoint(
+    request: AttachWorkspaceStateToWindowAtPointRequest,
+    sender: WebContents,
+  ): boolean {
+    return routeAttachWorkspaceStateToWindowAtPoint({
+      attachedRequest: {
+        attachedWorkspaceState: request.attachedWorkspaceState,
+      },
+      screenPoint: request.screenPoint,
+      sourceWindow: BrowserWindow.fromWebContents(sender),
+      workspaceWindows,
+    });
+  }
+
+  function closeCurrentWorkspaceWindow(sender: WebContents): void {
+    const sourceWindow = BrowserWindow.fromWebContents(sender);
+
+    if (sourceWindow === null) {
+      throw new Error("Cannot close workspace window for an unknown sender.");
+    }
+
+    sourceWindow.close();
+  }
+
   const removeWorkspaceIpcHandlers = registerWorkspaceIpcHandlers({
+    attachWorkspaceStateToWindowAtPoint,
+    closeCurrentWorkspaceWindow,
     getFocusedWindow: () => BrowserWindow.getFocusedWindow(),
     openDetachedWorkspaceWindow: (request) => {
       const workspaceWindow = createDetachedWindow(request);
