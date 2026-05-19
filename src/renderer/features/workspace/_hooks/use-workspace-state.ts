@@ -1,6 +1,7 @@
 import { useReducer } from "react";
 import {
   createInitialWorkspaceState,
+  detachWorkspaceTab,
   getAllSessionIds,
   getTabSessionIds,
   type PaneSplitDirection,
@@ -19,6 +20,7 @@ export interface WorkspaceViewModel {
   closePane: (tabId: string, paneId: string, sessionId: string) => void;
   closeTab: (tabId: string) => void;
   createTab: () => void;
+  detachTab: (tabId: string) => Promise<boolean>;
   focusPane: (tabId: string, paneId: string) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
   renameTab: (tabId: string, title: string) => void;
@@ -87,6 +89,26 @@ export function useWorkspaceState(): WorkspaceViewModel {
     },
     createTab: () => {
       dispatch({ type: "createTab", nowMs: Date.now() });
+    },
+    detachTab: async (tabId: string) => {
+      const result = detachWorkspaceTab(state, tabId, Date.now());
+
+      if (result === null) {
+        return false;
+      }
+
+      const workspaceWindowsBridge = window.claudeApp?.workspaceWindows;
+
+      if (workspaceWindowsBridge === undefined) {
+        throw new Error("Workspace window bridge is unavailable.");
+      }
+
+      await workspaceWindowsBridge.openDetachedWorkspaceWindow({
+        initialWorkspaceState: result.detachedState,
+      });
+      dispatch({ type: "replaceState", state: result.sourceState });
+
+      return true;
     },
     focusPane: (tabId: string, paneId: string) => {
       dispatch({

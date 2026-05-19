@@ -88,6 +88,7 @@ export type WorkspaceAction =
       destinationIndex: number;
       nowMs: number;
     }
+  | { type: "replaceState"; state: WorkspaceState }
   | { type: "resizeSplit"; splitId: string; deltaRatio: number };
 
 interface PaneRect {
@@ -1472,6 +1473,10 @@ export function workspaceReducer(
 
   if (action.type === "reorderTab") {
     return reorderTabState(state, action);
+  }
+
+  if (action.type === "replaceState") {
+    return action.state;
   }
 
   return resizeSplitState(state, action);

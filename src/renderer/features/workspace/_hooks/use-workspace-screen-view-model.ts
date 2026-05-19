@@ -141,6 +141,7 @@ export interface WorkspaceScreenViewModel {
   dismissNotification: (tabId: string) => void;
   currentThemeId: AppThemeId;
   createTab: () => void;
+  detachTab: (tabId: string) => Promise<boolean>;
   dismissMcpSetupPrompt: () => void;
   dropVisualAssets: (files: ReadonlyArray<File>) => void;
   handleLaunchClaude: () => void;
@@ -199,6 +200,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     state,
     closeTab,
     createTab,
+    detachTab,
     focusPane,
     reorderTab,
     resizeSplit,
@@ -426,6 +428,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     currentThemeId,
     dismissNotification,
     createTab,
+    detachTab,
     dismissMcpSetupPrompt: () => {
       setIsMcpSetupPromptDismissed(true);
       persistMcpSetupPromptDismissedPreference(true);
