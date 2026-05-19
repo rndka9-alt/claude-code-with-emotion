@@ -4,7 +4,6 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
-  screen,
   shell,
   type IpcMainEvent,
 } from "electron";
@@ -25,7 +24,13 @@ import {
 } from "./terminal";
 import { ThemeStore } from "./theme";
 import { VisualAssetStore } from "./visual-assets";
-import { WindowBoundsStore, type WindowBounds } from "./window";
+import {
+  attachWorkspaceWindowDiagnostics,
+  createWorkspaceWindow,
+  hasOpenWorkspaceWindows,
+  isExternalBrowserUrl,
+  WindowBoundsStore,
+} from "./window";
 import { APP_THEME_CHANNELS } from "../shared/app-theme-bridge";
 import {
   ASSISTANT_STATUS_CHANNELS,
@@ -36,7 +41,6 @@ import {
 } from "../shared/assistant-status";
 import {
   DIAGNOSTICS_CHANNELS,
-  RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX,
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
 } from "../shared/diagnostics";
@@ -54,162 +58,6 @@ import type { VisualAssetCatalog } from "../shared/visual-assets";
 import { getAppThemeDefinition, type AppThemeSelection } from "../shared/theme";
 import { WORKSPACE_COMMAND_CHANNELS } from "../shared/workspace-command-bridge";
 
-const WINDOW_SIZE = {
-  width: 920,
-  height: 680,
-  minWidth: 640,
-  minHeight: 520,
-};
-const EXTERNAL_BROWSER_PROTOCOLS = new Set(["http:", "https:", "vscode:"]);
-
-function isExternalBrowserUrl(url: string): boolean {
-  try {
-    const protocol = new URL(url).protocol;
-
-    return EXTERNAL_BROWSER_PROTOCOLS.has(protocol);
-  } catch {
-    return false;
-  }
-}
-
-function getRendererEntry():
-  | { kind: "url"; value: string }
-  | { kind: "file"; value: string } {
-  const devServerUrl = process.env.VITE_DEV_SERVER_URL;
-
-  if (typeof devServerUrl === "string" && devServerUrl.length > 0) {
-    return { kind: "url", value: devServerUrl };
-  }
-
-  return {
-    kind: "file",
-    value: path.join(__dirname, "../renderer/index.html"),
-  };
-}
-
-function resolveInitialWindowBounds(savedBounds: WindowBounds | null): {
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-} {
-  if (!savedBounds) {
-    return { width: WINDOW_SIZE.width, height: WINDOW_SIZE.height };
-  }
-
-  const width = Math.max(WINDOW_SIZE.minWidth, Math.round(savedBounds.width));
-  const height = Math.max(
-    WINDOW_SIZE.minHeight,
-    Math.round(savedBounds.height),
-  );
-
-  // 저장된 좌표가 음수 sentinel(최초 저장 전 상태)이면 OS 가 중앙 배치하도록 맡긴다
-  if (savedBounds.x < 0 || savedBounds.y < 0) {
-    return { width, height };
-  }
-
-  // 외장 모니터가 사라진 경우 오프스크린으로 복원되는 것을 막기 위해 디스플레이 범위와 교차 검증
-  const displays = screen.getAllDisplays();
-  const visible = displays.some((display) => {
-    const { x: dx, y: dy, width: dw, height: dh } = display.workArea;
-    const right = savedBounds.x + width;
-    const bottom = savedBounds.y + height;
-
-    return (
-      savedBounds.x < dx + dw &&
-      right > dx &&
-      savedBounds.y < dy + dh &&
-      bottom > dy
-    );
-  });
-
-  if (!visible) {
-    return { width, height };
-  }
-
-  return {
-    width,
-    height,
-    x: Math.round(savedBounds.x),
-    y: Math.round(savedBounds.y),
-  };
-}
-
-function createMainWindow(
-  themeSelection: AppThemeSelection,
-  boundsStore: WindowBoundsStore,
-): BrowserWindow {
-  const preloadPath = path.join(__dirname, "../preload/index.js");
-  const themeDefinition = getAppThemeDefinition(themeSelection.themeId);
-  const initialBounds = resolveInitialWindowBounds(boundsStore.getBounds());
-  const mainWindow = new BrowserWindow({
-    ...initialBounds,
-    minWidth: WINDOW_SIZE.minWidth,
-    minHeight: WINDOW_SIZE.minHeight,
-    show: false,
-    backgroundColor: themeDefinition.windowBackground,
-    title: "Claude Code With Emotion",
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-    },
-  });
-
-  const persistBounds = (): void => {
-    // 최대화/최소화/풀스크린 상태의 bounds 는 저장하지 않아야 다음 실행에서 원래 크기로 복귀 가능
-    if (
-      mainWindow.isMaximized() ||
-      mainWindow.isMinimized() ||
-      mainWindow.isFullScreen()
-    ) {
-      return;
-    }
-
-    const { x, y, width, height } = mainWindow.getBounds();
-
-    boundsStore.save({ x, y, width, height });
-  };
-
-  mainWindow.on("resized", persistBounds);
-  mainWindow.on("moved", persistBounds);
-  mainWindow.on("close", persistBounds);
-
-  const rendererEntry = getRendererEntry();
-
-  if (rendererEntry.kind === "url") {
-    void mainWindow.loadURL(rendererEntry.value);
-  } else {
-    void mainWindow.loadFile(rendererEntry.value);
-  }
-
-  mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
-  });
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isExternalBrowserUrl(url)) {
-      void shell.openExternal(url);
-    }
-
-    return { action: "deny" };
-  });
-  mainWindow.webContents.on("will-navigate", (event, url) => {
-    if (!isExternalBrowserUrl(url)) {
-      return;
-    }
-
-    event.preventDefault();
-    void shell.openExternal(url);
-  });
-
-  return mainWindow;
-}
-
-function hasOpenWindows(): boolean {
-  return BrowserWindow.getAllWindows().length > 0;
-}
-
 function installApplicationMenu(): void {
   const template = createApplicationMenuTemplate(app.name, {
     openTerminalSearch: () => {
@@ -220,48 +68,6 @@ function installApplicationMenu(): void {
   });
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-}
-
-function attachWindowDiagnostics(
-  mainWindow: BrowserWindow,
-  runtimeLog: RuntimeLog,
-): void {
-  mainWindow.webContents.on(
-    "console-message",
-    (_event, level, message, line, sourceId) => {
-      if (message.startsWith(RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX)) {
-        return;
-      }
-
-      runtimeLog.write(
-        "renderer-console",
-        `level=${level} source=${sourceId}:${line} message=${message}`,
-      );
-    },
-  );
-  mainWindow.webContents.on(
-    "did-fail-load",
-    (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
-      runtimeLog.write(
-        "window-load",
-        `did-fail-load code=${errorCode} description=${errorDescription} url=${validatedUrl} mainFrame=${isMainFrame}`,
-      );
-    },
-  );
-  mainWindow.webContents.on("render-process-gone", (_event, details) => {
-    runtimeLog.write(
-      "window-process",
-      `render-process-gone reason=${details.reason} exitCode=${details.exitCode}`,
-    );
-  });
-  mainWindow.webContents.on("did-finish-load", () => {
-    runtimeLog.write("window-load", "did-finish-load");
-
-    if (!app.isPackaged) {
-      mainWindow.webContents.openDevTools({ mode: "detach" });
-      runtimeLog.write("window-load", "opened devtools automatically");
-    }
-  });
 }
 
 function registerTerminalBridge(
@@ -756,27 +562,27 @@ void app.whenReady().then(() => {
     },
   );
   installApplicationMenu();
-  const mainWindow = createMainWindow(
+  const mainWindow = createWorkspaceWindow(
     themeStore.getSelection(),
     windowBoundsStore,
   );
 
-  attachWindowDiagnostics(mainWindow, runtimeLog);
+  attachWorkspaceWindowDiagnostics(mainWindow, runtimeLog);
   registerTerminalBridge(mainWindow, runtimeLog, themeStore);
 
   app.on("activate", () => {
     const openCount = BrowserWindow.getAllWindows().length;
     runtimeLog.write(
       "window-lifecycle",
-      `activate fired — hasOpenWindows=${openCount > 0} count=${openCount}`,
+      `activate fired — hasOpenWorkspaceWindows=${openCount > 0} count=${openCount}`,
     );
-    if (!hasOpenWindows()) {
-      const nextMainWindow = createMainWindow(
+    if (!hasOpenWorkspaceWindows()) {
+      const nextMainWindow = createWorkspaceWindow(
         themeStore.getSelection(),
         windowBoundsStore,
       );
 
-      attachWindowDiagnostics(nextMainWindow, runtimeLog);
+      attachWorkspaceWindowDiagnostics(nextMainWindow, runtimeLog);
       registerTerminalBridge(nextMainWindow, runtimeLog, themeStore);
       runtimeLog.write(
         "window-lifecycle",
