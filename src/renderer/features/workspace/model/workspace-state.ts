@@ -66,10 +66,7 @@ export interface WorkspaceState {
   tabs: WorkspaceTab[];
   sessions: Record<string, TerminalSession>;
   activeTabId: string;
-  nextPaneNumber: number;
   nextSessionNumber: number;
-  nextSplitNumber: number;
-  nextTabNumber: number;
   assistantStatus: AssistantStatus;
 }
 
@@ -165,12 +162,9 @@ function resolveDefaultSessionCwd(): string {
   return "/tmp";
 }
 
-function createSession(
-  sessionNumber: number,
-  nowMs: number,
-): TerminalSession {
+function createSession(sessionNumber: number, nowMs: number): TerminalSession {
   return {
-    id: createSessionId(sessionNumber),
+    id: createSessionId(),
     title: createSessionTitle(sessionNumber),
     cwd: resolveDefaultSessionCwd(),
     command: "",
@@ -186,24 +180,20 @@ function createRecoverySession(
   return createSession(sessionNumber, nowMs);
 }
 
-function createPaneNode(
-  paneNumber: number,
-  sessionId: string,
-): WorkspacePaneNode {
+function createPaneNode(sessionId: string): WorkspacePaneNode {
   return {
     kind: "pane",
-    id: createPaneId(paneNumber),
+    id: createPaneId(),
     sessionId,
   };
 }
 
 function createWorkspaceTab(
-  tabNumber: number,
   pane: WorkspacePaneNode,
   session: TerminalSession,
 ): WorkspaceTab {
   return {
-    id: createTabId(tabNumber),
+    id: createTabId(),
     title: session.title,
     focusedPaneId: pane.id,
     focusedSessionId: session.id,
@@ -391,12 +381,8 @@ function createReplacementWorkspaceState(
   const replacementSession = shouldPauseAutoLaunch
     ? createRecoverySession(state.nextSessionNumber, nowMs)
     : createSession(state.nextSessionNumber, nowMs);
-  const replacementPane = createPaneNode(
-    state.nextPaneNumber,
-    replacementSession.id,
-  );
+  const replacementPane = createPaneNode(replacementSession.id);
   const replacementTab = createWorkspaceTab(
-    state.nextTabNumber,
     replacementPane,
     replacementSession,
   );
@@ -412,10 +398,7 @@ function createReplacementWorkspaceState(
       [replacementSession.id]: replacementSession,
     },
     activeTabId: replacementTab.id,
-    nextPaneNumber: state.nextPaneNumber + 1,
     nextSessionNumber: state.nextSessionNumber + 1,
-    nextSplitNumber: state.nextSplitNumber,
-    nextTabNumber: state.nextTabNumber + 1,
     assistantStatus: createAssistantStatus(
       shouldPauseAutoLaunch ? "error" : "waiting",
       replacementLine,
@@ -898,8 +881,8 @@ function closeSessionState(
 
 export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
   const firstSession = createSession(1, nowMs - 2_500);
-  const firstPane = createPaneNode(1, firstSession.id);
-  const firstTab = createWorkspaceTab(1, firstPane, firstSession);
+  const firstPane = createPaneNode(firstSession.id);
+  const firstTab = createWorkspaceTab(firstPane, firstSession);
 
   return {
     tabs: [firstTab],
@@ -907,10 +890,7 @@ export function createInitialWorkspaceState(nowMs: number): WorkspaceState {
       [firstSession.id]: firstSession,
     },
     activeTabId: firstTab.id,
-    nextPaneNumber: 2,
     nextSessionNumber: 2,
-    nextSplitNumber: 1,
-    nextTabNumber: 2,
     assistantStatus: createAssistantStatus(
       "disconnected",
       "Claude 아직 미연결이에요. 준비되면 바로 붙을게요...!",
@@ -1273,8 +1253,8 @@ function createTabState(
   action: Extract<WorkspaceAction, { type: "createTab" }>,
 ): WorkspaceState {
   const nextSession = createSession(state.nextSessionNumber, action.nowMs);
-  const nextPane = createPaneNode(state.nextPaneNumber, nextSession.id);
-  const nextTab = createWorkspaceTab(state.nextTabNumber, nextPane, nextSession);
+  const nextPane = createPaneNode(nextSession.id);
+  const nextTab = createWorkspaceTab(nextPane, nextSession);
 
   return {
     tabs: [...state.tabs, nextTab],
@@ -1283,10 +1263,7 @@ function createTabState(
       [nextSession.id]: nextSession,
     },
     activeTabId: nextTab.id,
-    nextPaneNumber: state.nextPaneNumber + 1,
     nextSessionNumber: state.nextSessionNumber + 1,
-    nextSplitNumber: state.nextSplitNumber,
-    nextTabNumber: state.nextTabNumber + 1,
     assistantStatus: createAssistantStatus(
       "completed",
       "새 탭 하나 추가햇어요. 멀티세션 기분 좋다...!",
@@ -1308,12 +1285,12 @@ function splitPaneState(
   }
 
   const nextSession = createSession(state.nextSessionNumber, action.nowMs);
-  const nextPane = createPaneNode(state.nextPaneNumber, nextSession.id);
+  const nextPane = createPaneNode(nextSession.id);
   const nextLayout = splitPaneInLayout(
     tab.layout,
     tab.focusedPaneId,
     action.direction,
-    createSplitId(state.nextSplitNumber),
+    createSplitId(),
     nextPane,
   );
 
@@ -1344,9 +1321,7 @@ function splitPaneState(
       [nextSession.id]: nextSession,
     },
     activeTabId: action.tabId,
-    nextPaneNumber: state.nextPaneNumber + 1,
     nextSessionNumber: state.nextSessionNumber + 1,
-    nextSplitNumber: state.nextSplitNumber + 1,
     assistantStatus: createAssistantStatus(
       "completed",
       action.direction === "horizontal"

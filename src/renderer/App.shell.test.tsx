@@ -81,7 +81,9 @@ describe("App shell", () => {
     fireEvent.click(await screen.findByRole("button", { name: "실행하기" }));
 
     expect(sendInput).toHaveBeenCalledWith({
-      sessionId: "session-1",
+      sessionId: expect.stringMatching(
+        /^session-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      ),
       data: "\u0015claude\r",
     });
   });

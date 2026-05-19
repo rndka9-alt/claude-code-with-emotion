@@ -1,15 +1,19 @@
-export function createPaneId(paneNumber: number): string {
-  return `pane-${paneNumber}`;
+function createWorkspaceId(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID()}`;
 }
 
-export function createSessionId(sessionNumber: number): string {
-  return `session-${sessionNumber}`;
+export function createPaneId(): string {
+  return createWorkspaceId("pane");
 }
 
-export function createSplitId(splitNumber: number): string {
-  return `split-${splitNumber}`;
+export function createSessionId(): string {
+  return createWorkspaceId("session");
 }
 
-export function createTabId(tabNumber: number): string {
-  return `tab-${tabNumber}`;
+export function createSplitId(): string {
+  return createWorkspaceId("split");
+}
+
+export function createTabId(): string {
+  return createWorkspaceId("tab");
 }

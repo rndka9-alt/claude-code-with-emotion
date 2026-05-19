@@ -7,6 +7,25 @@ import {
   resizePaneSizes,
   workspaceReducer,
 } from "./index";
+import type { WorkspaceState, WorkspaceTab } from "./index";
+
+function getTabAt(state: WorkspaceState, index: number): WorkspaceTab {
+  const tab = state.tabs[index];
+
+  if (tab === undefined) {
+    throw new Error(`Expected workspace tab at index ${index}`);
+  }
+
+  return tab;
+}
+
+function expectWorkspaceId(id: string, prefix: string): void {
+  expect(id).toMatch(
+    new RegExp(
+      `^${prefix}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
+    ),
+  );
+}
 
 describe("workspaceReducer", () => {
   it("uses the app workspace cwd for new sessions", () => {
@@ -18,17 +37,16 @@ describe("workspaceReducer", () => {
     });
 
     const state = createInitialWorkspaceState(10_000);
-    const firstSessionId = state.tabs[0]?.primarySessionId;
+    const firstTab = getTabAt(state, 0);
+    const firstSessionId = firstTab.primarySessionId;
 
-    expect(firstSessionId).toBe("session-1");
-    expect(
-      firstSessionId !== undefined ? state.sessions[firstSessionId]?.cwd : null,
-    ).toBe("/tmp/workspace-under-test");
-    expect(
-      firstSessionId !== undefined
-        ? state.sessions[firstSessionId]?.command
-        : null,
-    ).toBe("");
+    expectWorkspaceId(state.activeTabId, "tab");
+    expectWorkspaceId(firstTab.focusedPaneId, "pane");
+    expectWorkspaceId(firstSessionId, "session");
+    expect(state.sessions[firstSessionId]?.cwd).toBe(
+      "/tmp/workspace-under-test",
+    );
+    expect(state.sessions[firstSessionId]?.command).toBe("");
   });
 
   it("starts with the shared disconnected assistant fallback", () => {
@@ -45,38 +63,50 @@ describe("workspaceReducer", () => {
 
   it("creates a new active tab with updated assistant status", () => {
     const state = createInitialWorkspaceState(10_000);
+    const initialSessionId = getTabAt(state, 0).primarySessionId;
     const nextState = workspaceReducer(state, {
       type: "createTab",
       nowMs: 12_000,
     });
+    const secondTab = getTabAt(nextState, 1);
+    const secondTabSessionIds = getTabSessionIds(secondTab);
 
     expect(nextState.tabs).toHaveLength(2);
-    expect(nextState.activeTabId).toBe("tab-2");
-    expect(getTabSessionIds(nextState.tabs[1]!)).toEqual(["session-2"]);
+    expect(nextState.activeTabId).toBe(secondTab.id);
+    expectWorkspaceId(secondTab.id, "tab");
+    expectWorkspaceId(secondTab.primarySessionId, "session");
+    expect(secondTab.primarySessionId).not.toBe(initialSessionId);
+    expect(secondTabSessionIds).toEqual([secondTab.primarySessionId]);
     expect(nextState.assistantStatus.visualState).toBe("completed");
     expect(nextState.assistantStatus.emotion).toBe("happy");
   });
 
   it("splits the focused pane horizontally and focuses the new pane", () => {
     const state = createInitialWorkspaceState(10_000);
+    const initialTab = getTabAt(state, 0);
     const nextState = workspaceReducer(state, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       direction: "horizontal",
       nowMs: 12_000,
     });
 
-    const tab = nextState.tabs[0];
+    const tab = getTabAt(nextState, 0);
+    const sessionIds = getTabSessionIds(tab);
 
-    expect(tab?.layout.kind).toBe("split");
-    expect(getTabSessionIds(tab!)).toEqual(["session-1", "session-2"]);
-    expect(tab?.focusedSessionId).toBe("session-2");
-    expect(tab?.layout.kind === "split" ? tab.layout.direction : null).toBe(
+    expect(tab.layout.kind).toBe("split");
+    expect(sessionIds).toEqual([
+      initialTab.primarySessionId,
+      tab.focusedSessionId,
+    ]);
+    expect(tab.focusedSessionId).not.toBe(initialTab.primarySessionId);
+    expectWorkspaceId(tab.focusedPaneId, "pane");
+    expectWorkspaceId(tab.focusedSessionId, "session");
+    expect(tab.layout.kind === "split" ? tab.layout.direction : null).toBe(
       "horizontal",
     );
-    expect(tab?.layout.kind === "split" ? tab.layout.sizes : null).toEqual([
-      0.5,
-      0.5,
+    expect(tab.layout.kind === "split" ? tab.layout.sizes : null).toEqual([
+      0.5, 0.5,
     ]);
   });
 
@@ -84,7 +114,7 @@ describe("workspaceReducer", () => {
     const state = createInitialWorkspaceState(10_000);
     const nextState = workspaceReducer(state, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: state.activeTabId,
       direction: "vertical",
       nowMs: 12_000,
     });
@@ -97,9 +127,11 @@ describe("workspaceReducer", () => {
   });
 
   it("focuses a different pane inside the active tab", () => {
-    const splitState = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initialState, 0);
+    const splitState = workspaceReducer(initialState, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       direction: "horizontal",
       nowMs: 20_500,
     });
@@ -113,18 +145,24 @@ describe("workspaceReducer", () => {
 
     const focusedState = workspaceReducer(splitState, {
       type: "focusPane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       paneId: firstPaneId ?? "missing-pane",
     });
 
-    expect(focusedState.tabs[0]?.focusedSessionId).toBe("session-1");
-    expect(getFocusedSession(focusedState)?.id).toBe("session-1");
+    expect(focusedState.tabs[0]?.focusedSessionId).toBe(
+      initialTab.primarySessionId,
+    );
+    expect(getFocusedSession(focusedState)?.id).toBe(
+      initialTab.primarySessionId,
+    );
   });
 
   it("closes only the requested pane and collapses the split", () => {
-    const splitState = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initialState, 0);
+    const splitState = workspaceReducer(initialState, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       direction: "horizontal",
       nowMs: 20_500,
     });
@@ -132,45 +170,53 @@ describe("workspaceReducer", () => {
 
     const nextState = workspaceReducer(splitState, {
       type: "closePane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       paneId: focusedPaneId ?? "missing-pane",
       nowMs: 21_000,
       reason: "manual",
     });
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(getTabSessionIds(nextState.tabs[0]!)).toEqual(["session-1"]);
+    expect(getTabSessionIds(getTabAt(nextState, 0))).toEqual([
+      initialTab.primarySessionId,
+    ]);
     expect(nextState.tabs[0]?.layout.kind).toBe("pane");
-    expect(nextState.tabs[0]?.focusedSessionId).toBe("session-1");
+    expect(nextState.tabs[0]?.focusedSessionId).toBe(
+      initialTab.primarySessionId,
+    );
     expect(nextState.assistantStatus.currentTask).toBe(
       'Closed "new session 2 · claude-code-with-emotion"',
     );
   });
 
   it("closes a tab when its last remaining pane is removed", () => {
-    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initialState, 0);
+    const state = workspaceReducer(initialState, {
       type: "createTab",
       nowMs: 20_500,
     });
     const nextState = workspaceReducer(state, {
       type: "closePane",
-      tabId: "tab-1",
-      paneId: "pane-1",
+      tabId: initialTab.id,
+      paneId: initialTab.focusedPaneId,
       nowMs: 21_000,
       reason: "manual",
     });
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.activeTabId).toBe("tab-2");
+    expect(nextState.activeTabId).toBe(getTabAt(state, 1).id);
     expect(nextState.assistantStatus.currentTask).toBe(
       'Closed "new session 1 · claude-code-with-emotion"',
     );
   });
 
   it("closes an entire split tab at once", () => {
-    const splitState = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initialState, 0);
+    const splitState = workspaceReducer(initialState, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       direction: "horizontal",
       nowMs: 20_500,
     });
@@ -181,27 +227,40 @@ describe("workspaceReducer", () => {
 
     const nextState = workspaceReducer(withSecondTab, {
       type: "closeTab",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       nowMs: 21_500,
     });
+    const remainingTab = getTabAt(withSecondTab, 1);
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.activeTabId).toBe("tab-2");
-    expect(Object.keys(nextState.sessions)).toEqual(["session-3"]);
+    expect(nextState.activeTabId).toBe(remainingTab.id);
+    expect(Object.keys(nextState.sessions)).toEqual([
+      remainingTab.primarySessionId,
+    ]);
   });
 
   it("creates a replacement session when the last session closes", () => {
     const state = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(state, 0);
     const nextState = workspaceReducer(state, {
       type: "closeSession",
-      sessionId: "session-1",
+      sessionId: initialTab.primarySessionId,
       nowMs: 26_000,
       reason: "exit",
     });
+    const replacementTab = getTabAt(nextState, 0);
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.activeTabId).toBe("tab-2");
-    expect(getTabSessionIds(nextState.tabs[0]!)).toEqual(["session-2"]);
+    expect(nextState.activeTabId).toBe(replacementTab.id);
+    expect(replacementTab.id).not.toBe(initialTab.id);
+    expect(replacementTab.primarySessionId).not.toBe(
+      initialTab.primarySessionId,
+    );
+    expectWorkspaceId(replacementTab.id, "tab");
+    expectWorkspaceId(replacementTab.primarySessionId, "session");
+    expect(getTabSessionIds(replacementTab)).toEqual([
+      replacementTab.primarySessionId,
+    ]);
     expect(nextState.assistantStatus.line).toBe(
       "마지막 세션이 종료대서 새 탭을 바로 준비햇어요...!",
     );
@@ -209,22 +268,20 @@ describe("workspaceReducer", () => {
 
   it("pauses Claude auto-launch after an immediate last-session exit", () => {
     const state = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(state, 0);
     const nextState = workspaceReducer(state, {
       type: "closeSession",
-      sessionId: "session-1",
+      sessionId: initialTab.primarySessionId,
       nowMs: 21_000,
       reason: "exit",
     });
 
-    const replacementSessionId = nextState.tabs[0]?.primarySessionId;
+    const replacementTab = getTabAt(nextState, 0);
+    const replacementSessionId = replacementTab.primarySessionId;
 
     expect(nextState.tabs).toHaveLength(1);
-    expect(nextState.tabs[0]?.id).toBe("tab-2");
-    expect(
-      replacementSessionId !== undefined
-        ? nextState.sessions[replacementSessionId]?.command
-        : null,
-    ).toBe("");
+    expect(replacementTab.id).not.toBe(initialTab.id);
+    expect(nextState.sessions[replacementSessionId]?.command).toBe("");
     expect(nextState.assistantStatus.visualState).toBe("error");
     expect(nextState.assistantStatus.line).toBe(
       "세션이 너무 빨리 종료대서 Claude 자동 재실행은 멈춰뒀어요...!",
@@ -233,19 +290,20 @@ describe("workspaceReducer", () => {
 
   it("moves focus through adjacent panes using layout geometry", () => {
     let state = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(state, 0);
     state = workspaceReducer(state, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       direction: "horizontal",
       nowMs: 20_500,
     });
     state = workspaceReducer(state, {
       type: "moveFocus",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       direction: "left",
     });
 
-    expect(state.tabs[0]?.focusedSessionId).toBe("session-1");
+    expect(state.tabs[0]?.focusedSessionId).toBe(initialTab.primarySessionId);
   });
 
   it("reorders tabs when a tab is dragged over another tab", () => {
@@ -260,28 +318,32 @@ describe("workspaceReducer", () => {
       type: "createTab",
       nowMs: 21_250,
     });
+    const firstTabId = getTabAt(state, 0).id;
+    const secondTabId = getTabAt(state, 1).id;
+    const thirdTabId = getTabAt(state, 2).id;
     const nextState = workspaceReducer(state, {
       type: "reorderTab",
-      tabId: "tab-3",
+      tabId: thirdTabId,
       destinationIndex: 0,
       nowMs: 21_500,
     });
 
     expect(nextState.tabs.map((tab) => tab.id)).toEqual([
-      "tab-3",
-      "tab-1",
-      "tab-2",
+      thirdTabId,
+      firstTabId,
+      secondTabId,
     ]);
-    expect(nextState.activeTabId).toBe("tab-3");
+    expect(nextState.activeTabId).toBe(thirdTabId);
     expect(nextState.assistantStatus.currentTask).toBe(
       'Moved "new session 3 · claude-code-with-emotion"',
     );
   });
 
   it("renames a tab manually with trimmed title", () => {
-    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const state = workspaceReducer(initialState, {
       type: "renameTab",
-      tabId: "tab-1",
+      tabId: initialState.activeTabId,
       title: "  docs  ",
       nowMs: 21_000,
     });
@@ -293,9 +355,11 @@ describe("workspaceReducer", () => {
   });
 
   it("syncs a primary session title into the tab title", () => {
-    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initialState, 0);
+    const state = workspaceReducer(initialState, {
       type: "syncSessionTitle",
-      sessionId: "session-1",
+      sessionId: initialTab.primarySessionId,
       title: "claude-code-with-emotion · main workspace",
       nowMs: 21_000,
     });
@@ -303,7 +367,7 @@ describe("workspaceReducer", () => {
     expect(state.tabs[0]?.title).toBe(
       "claude-code-with-emotion · main workspace",
     );
-    expect(state.sessions["session-1"]?.title).toBe(
+    expect(state.sessions[initialTab.primarySessionId]?.title).toBe(
       "claude-code-with-emotion · main workspace",
     );
     expect(state.assistantStatus.line).toBe(
@@ -312,15 +376,17 @@ describe("workspaceReducer", () => {
   });
 
   it("does not let a non-primary session overwrite the tab title", () => {
-    const splitState = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const splitState = workspaceReducer(initialState, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: initialState.activeTabId,
       direction: "horizontal",
       nowMs: 20_500,
     });
+    const secondarySessionId = getTabAt(splitState, 0).focusedSessionId;
     const nextState = workspaceReducer(splitState, {
       type: "syncSessionTitle",
-      sessionId: "session-2",
+      sessionId: secondarySessionId,
       title: "secondary pane",
       nowMs: 21_000,
     });
@@ -328,14 +394,17 @@ describe("workspaceReducer", () => {
     expect(nextState.tabs[0]?.title).toBe(
       "new session 1 · claude-code-with-emotion",
     );
-    expect(nextState.sessions["session-2"]?.title).toBe("secondary pane");
+    expect(nextState.sessions[secondarySessionId]?.title).toBe(
+      "secondary pane",
+    );
   });
 
   it("preserves a manually renamed title from primary session overwrites", () => {
     const initial = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initial, 0);
     const renamed = workspaceReducer(initial, {
       type: "renameTab",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       title: "my docs",
       nowMs: 21_000,
     });
@@ -345,7 +414,7 @@ describe("workspaceReducer", () => {
 
     const afterTerminal = workspaceReducer(renamed, {
       type: "syncSessionTitle",
-      sessionId: "session-1",
+      sessionId: initialTab.primarySessionId,
       title: "user@host:~/project",
       nowMs: 22_000,
     });
@@ -358,23 +427,24 @@ describe("workspaceReducer", () => {
 
   it("restores the cached terminal title when a manual tab title is cleared", () => {
     const initial = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initial, 0);
 
     const withTerminal = workspaceReducer(initial, {
       type: "syncSessionTitle",
-      sessionId: "session-1",
+      sessionId: initialTab.primarySessionId,
       title: "user@host:~/project",
       nowMs: 20_500,
     });
     const renamed = workspaceReducer(withTerminal, {
       type: "renameTab",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       title: "my docs",
       nowMs: 21_000,
     });
 
     const cleared = workspaceReducer(renamed, {
       type: "renameTab",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       title: "   ",
       nowMs: 22_000,
     });
@@ -395,17 +465,19 @@ describe("formatElapsedLabel", () => {
 
 describe("getVisibleSessions", () => {
   it("returns the active tab sessions for the workspace content area", () => {
-    const splitState = workspaceReducer(createInitialWorkspaceState(20_000), {
+    const initialState = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initialState, 0);
+    const splitState = workspaceReducer(initialState, {
       type: "splitPane",
-      tabId: "tab-1",
+      tabId: initialTab.id,
       direction: "horizontal",
       nowMs: 20_500,
     });
+    const tab = getTabAt(splitState, 0);
 
-    expect(getVisibleSessions(splitState).map((session) => session.id)).toEqual([
-      "session-1",
-      "session-2",
-    ]);
+    expect(getVisibleSessions(splitState).map((session) => session.id)).toEqual(
+      getTabSessionIds(tab),
+    );
   });
 });
 
