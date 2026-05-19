@@ -1,5 +1,9 @@
+import { createDefaultAssistantStatusSnapshot } from "../../shared/assistant-status";
 import type { WorkspaceState } from "../../shared/workspace-state";
-import { WORKSPACE_WINDOW_CHANNELS } from "../../shared/workspace-window-bridge";
+import {
+  type AttachWorkspaceStateRequest,
+  WORKSPACE_WINDOW_CHANNELS,
+} from "../../shared/workspace-window-bridge";
 import {
   routeAttachWorkspaceStateToWindowAtPoint,
   type AttachableWorkspaceWindow,
@@ -71,7 +75,15 @@ describe("routeAttachWorkspaceStateToWindowAtPoint", () => {
       x: 450,
       y: 0,
     });
-    const attachedRequest = {
+    const attachedRequest: AttachWorkspaceStateRequest = {
+      assistantSnapshotsBySessionId: {
+        "session-attached": {
+          ...createDefaultAssistantStatusSnapshot(20_000),
+          currentTask: "Testing assistant snapshot handoff",
+          source: "assistant-status-test",
+          state: "working",
+        },
+      },
       attachedWorkspaceState: createWorkspaceState("attached"),
     };
 

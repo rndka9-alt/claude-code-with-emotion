@@ -75,10 +75,6 @@ export function useWorkspaceState(
     }
 
     return workspaceWindowsBridge.onAttachWorkspaceState((request) => {
-      if (request.assistantSnapshotsBySessionId !== undefined) {
-        onAssistantSnapshotsHandoff?.(request.assistantSnapshotsBySessionId);
-      }
-
       dispatch({
         type: "replaceState",
         state: attachWorkspaceState(
@@ -87,6 +83,10 @@ export function useWorkspaceState(
           Date.now(),
         ),
       });
+
+      if (request.assistantSnapshotsBySessionId !== undefined) {
+        onAssistantSnapshotsHandoff?.(request.assistantSnapshotsBySessionId);
+      }
     });
   }, [onAssistantSnapshotsHandoff]);
 

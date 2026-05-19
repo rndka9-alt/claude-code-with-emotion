@@ -73,6 +73,10 @@ interface TerminalMirrorControllerRecord extends TerminalMirrorController {
   writeOutput: (data: string) => void;
 }
 
+interface WriteTerminalOutputOptions {
+  scrollToBottomAfterWrite?: boolean;
+}
+
 export function createTerminalSessionController(
   session: TerminalSession,
 ): TerminalSessionControllerRecord {
@@ -283,9 +287,16 @@ export function createTerminalSessionController(
     }
   };
 
-  const writeTerminalOutput = (data: string): void => {
+  const writeTerminalOutput = (
+    data: string,
+    options: WriteTerminalOutputOptions = {},
+  ): void => {
     appendReplayOutput(data);
     terminal.write(data, () => {
+      if (options.scrollToBottomAfterWrite === true) {
+        terminal.scrollToBottom();
+      }
+
       schedulePinnedViewportUpdate();
 
       for (const mirrorController of mirrorControllers) {
@@ -454,7 +465,9 @@ export function createTerminalSessionController(
         }
 
         if (response.outputSnapshot.length > 0) {
-          writeTerminalOutput(response.outputSnapshot);
+          writeTerminalOutput(response.outputSnapshot, {
+            scrollToBottomAfterWrite: true,
+          });
         }
 
         restoredOutputVersion = response.outputVersion;

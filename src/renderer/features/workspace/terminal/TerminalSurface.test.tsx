@@ -402,6 +402,7 @@ describe("TerminalSurface", () => {
         expect.any(Function),
       );
     });
+    expect(terminal?.scrollToBottom).toHaveBeenCalledTimes(1);
 
     const emitOutput = outputListeners[0];
 

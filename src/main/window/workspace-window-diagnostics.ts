@@ -6,19 +6,16 @@ export function attachWorkspaceWindowDiagnostics(
   workspaceWindow: BrowserWindow,
   runtimeLog: RuntimeLog,
 ): void {
-  workspaceWindow.webContents.on(
-    "console-message",
-    (_event, level, message, line, sourceId) => {
-      if (message.startsWith(RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX)) {
-        return;
-      }
+  workspaceWindow.webContents.on("console-message", (details) => {
+    if (details.message.startsWith(RUNTIME_DIAGNOSTIC_CONSOLE_PREFIX)) {
+      return;
+    }
 
-      runtimeLog.write(
-        "renderer-console",
-        `level=${level} source=${sourceId}:${line} message=${message}`,
-      );
-    },
-  );
+    runtimeLog.write(
+      "renderer-console",
+      `level=${details.level} source=${details.sourceId}:${details.lineNumber} message=${details.message}`,
+    );
+  });
   workspaceWindow.webContents.on(
     "did-fail-load",
     (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {

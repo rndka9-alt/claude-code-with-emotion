@@ -161,6 +161,12 @@ export function registerWorkspaceBridge({
   ): boolean {
     return routeAttachWorkspaceStateToWindowAtPoint({
       attachedRequest: {
+        ...(request.assistantSnapshotsBySessionId === undefined
+          ? {}
+          : {
+              assistantSnapshotsBySessionId:
+                request.assistantSnapshotsBySessionId,
+            }),
         attachedWorkspaceState: request.attachedWorkspaceState,
       },
       screenPoint: request.screenPoint,
