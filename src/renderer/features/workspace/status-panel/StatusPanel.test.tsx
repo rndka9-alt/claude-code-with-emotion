@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import { StatusPanel } from "./StatusPanel";
+import type { AssistantPresentation } from "./assistant-presentation";
 import type { StatusPanelVisual } from "./status-panel-visual";
 
 const assistantStatus: AssistantStatusSnapshot = {
@@ -24,8 +25,19 @@ const defaultProps = {
   onInstallVisualMcp: () => {},
   onLaunchClaude: () => {},
   onOpenSettings: () => {},
-  statusLine: "(자료를 찾는 중)",
 };
+
+function createPresentation(
+  snapshot: AssistantStatusSnapshot = assistantStatus,
+  visual: StatusPanelVisual | null = null,
+  line = "(자료를 찾는 중)",
+): AssistantPresentation {
+  return {
+    line,
+    snapshot,
+    visual,
+  };
+}
 
 describe("StatusPanel", () => {
   it("renders a mapped visual asset when one exists", () => {
@@ -48,9 +60,8 @@ describe("StatusPanel", () => {
 
     render(
       <StatusPanel
-        assistantStatus={assistantStatus}
         {...defaultProps}
-        statusVisual={statusVisual}
+        presentation={createPresentation(assistantStatus, statusVisual)}
       />,
     );
 
@@ -63,9 +74,8 @@ describe("StatusPanel", () => {
   it("falls back to the placeholder orb when no asset is mapped", () => {
     const { container } = render(
       <StatusPanel
-        assistantStatus={assistantStatus}
         {...defaultProps}
-        statusVisual={null}
+        presentation={createPresentation()}
       />,
     );
 
@@ -73,16 +83,20 @@ describe("StatusPanel", () => {
   });
 
   it("renders a custom line with the current activity label in parentheses", () => {
+    const snapshot = {
+      ...assistantStatus,
+      overlayLine: "문제를 좀 더 파볼게요!",
+      line: "문제를 좀 더 파볼게요!",
+    };
+
     render(
       <StatusPanel
-        assistantStatus={{
-          ...assistantStatus,
-          overlayLine: "문제를 좀 더 파볼게요!",
-          line: "문제를 좀 더 파볼게요!",
-        }}
         {...defaultProps}
-        statusLine={"문제를 좀 더 파볼게요!\n(자료를 찾는 중)"}
-        statusVisual={null}
+        presentation={createPresentation(
+          snapshot,
+          null,
+          "문제를 좀 더 파볼게요!\n(자료를 찾는 중)",
+        )}
       />,
     );
 
@@ -99,14 +113,15 @@ describe("StatusPanel", () => {
   });
 
   it("shows a launch button while disconnected", () => {
+    const snapshot: AssistantStatusSnapshot = {
+      ...assistantStatus,
+      state: "disconnected",
+    };
+
     render(
       <StatusPanel
-        assistantStatus={{
-          ...assistantStatus,
-          state: "disconnected",
-        }}
         {...defaultProps}
-        statusVisual={null}
+        presentation={createPresentation(snapshot)}
       />,
     );
 
@@ -120,15 +135,16 @@ describe("StatusPanel", () => {
   it("launches claude when the disconnected portrait is clicked", () => {
     const onLaunchClaude = vi.fn();
 
+    const snapshot: AssistantStatusSnapshot = {
+      ...assistantStatus,
+      state: "disconnected",
+    };
+
     render(
       <StatusPanel
-        assistantStatus={{
-          ...assistantStatus,
-          state: "disconnected",
-        }}
         {...defaultProps}
         onLaunchClaude={onLaunchClaude}
-        statusVisual={null}
+        presentation={createPresentation(snapshot)}
       />,
     );
 
@@ -142,10 +158,9 @@ describe("StatusPanel", () => {
 
     render(
       <StatusPanel
-        assistantStatus={assistantStatus}
         {...defaultProps}
         onOpenSettings={onOpenSettings}
-        statusVisual={null}
+        presentation={createPresentation()}
       />,
     );
 
@@ -157,10 +172,9 @@ describe("StatusPanel", () => {
   it("shows a visual MCP install prompt when setup is missing", () => {
     render(
       <StatusPanel
-        assistantStatus={assistantStatus}
         {...defaultProps}
         mcpSetupInstalled={false}
-        statusVisual={null}
+        presentation={createPresentation()}
       />,
     );
 
@@ -175,11 +189,10 @@ describe("StatusPanel", () => {
   it("shows a settings hint after the MCP prompt is dismissed", () => {
     render(
       <StatusPanel
-        assistantStatus={assistantStatus}
         {...defaultProps}
         isMcpSetupPromptDismissed={true}
         mcpSetupInstalled={false}
-        statusVisual={null}
+        presentation={createPresentation()}
       />,
     );
 

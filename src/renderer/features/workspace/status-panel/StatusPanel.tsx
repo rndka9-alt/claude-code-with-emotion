@@ -2,10 +2,9 @@ import type { CSSProperties, ReactElement } from "react";
 import { Play, Wrench } from "lucide-react";
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import { McpSetupPrompt } from "./_components";
-import type { StatusPanelVisual } from "./status-panel-visual";
+import type { AssistantPresentation } from "./assistant-presentation";
 
 interface StatusPanelProps {
-  assistantStatus: AssistantStatusSnapshot;
   isInstallingVisualMcp: boolean;
   isMcpSetupPromptDismissed: boolean;
   mcpSetupError: string | null;
@@ -14,8 +13,7 @@ interface StatusPanelProps {
   onInstallVisualMcp: () => void;
   onLaunchClaude: () => void;
   onOpenSettings: () => void;
-  statusLine: string;
-  statusVisual: StatusPanelVisual | null;
+  presentation: AssistantPresentation;
 }
 
 const avatarBackgroundVariableByState: Record<
@@ -49,7 +47,6 @@ type AvatarStyle = CSSProperties & {
 };
 
 export function StatusPanel({
-  assistantStatus,
   isInstallingVisualMcp,
   isMcpSetupPromptDismissed,
   mcpSetupError,
@@ -58,17 +55,18 @@ export function StatusPanel({
   onInstallVisualMcp,
   onLaunchClaude,
   onOpenSettings,
-  statusLine,
-  statusVisual,
+  presentation,
 }: StatusPanelProps): ReactElement {
+  const assistantStatus = presentation.snapshot;
   const isDisconnected = assistantStatus.state === "disconnected";
   const avatarStyle: AvatarStyle = {
     "--avatar-surface":
-      statusVisual === null
+      presentation.visual === null
         ? `var(${avatarBackgroundVariableByState[assistantStatus.state]})`
         : "var(--color-avatar-image)",
   };
-  const visibleLine = statusLine.length > 0 ? statusLine : assistantStatus.line;
+  const visibleLine =
+    presentation.line.length > 0 ? presentation.line : assistantStatus.line;
 
   // MCP 한마디(overlayLine)가 활성화된 경우 활동 라벨을 별도 span으로 분리해 투명도 적용
   const overlayMainText =
@@ -102,16 +100,16 @@ export function StatusPanel({
         className="group relative flex aspect-square w-32 shrink-0 flex-col items-center justify-center gap-2.5 overflow-hidden bg-[var(--avatar-surface)]"
         style={avatarStyle}
       >
-        {statusVisual === null ? (
+        {presentation.visual === null ? (
           <div
             aria-hidden="true"
             className={`status-panel__avatar-orb bg-avatar-orb shadow-avatar-orb h-20 w-20 transition-[transform,opacity,box-shadow] duration-150 ${orbClassNameByIntensity[assistantStatus.intensity]}`}
           />
         ) : (
           <img
-            alt={statusVisual.resolution.asset.label}
+            alt={presentation.visual.resolution.asset.label}
             className="block h-full w-full object-cover"
-            src={statusVisual.assetUrl}
+            src={presentation.visual.assetUrl}
           />
         )}
 

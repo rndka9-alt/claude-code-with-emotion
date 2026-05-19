@@ -26,7 +26,7 @@ function AppContent(): ReactElement {
     activeTabId,
     activeTab,
     availableThemes,
-    assistantSnapshot,
+    assistantPresentation,
     closePane,
     closeSettingsDialog,
     closeTab,
@@ -54,8 +54,6 @@ function AppContent(): ReactElement {
     setDefaultAsset,
     setEmotionDescription,
     setStateLine,
-    statusLine,
-    statusVisual,
     terminalFocusRequestKey,
     tabs,
     toggleEmotion,
@@ -139,7 +137,6 @@ function AppContent(): ReactElement {
 
           <div hidden={isStatusPanelCollapsed} id="assistant-status-panel">
             <StatusPanel
-              assistantStatus={assistantSnapshot}
               isInstallingVisualMcp={isInstallingVisualMcp}
               isMcpSetupPromptDismissed={isMcpSetupPromptDismissed}
               mcpSetupError={mcpSetupError}
@@ -148,8 +145,7 @@ function AppContent(): ReactElement {
               onInstallVisualMcp={installVisualMcp}
               onLaunchClaude={handleLaunchClaude}
               onOpenSettings={openSettingsDialog}
-              statusLine={statusLine}
-              statusVisual={statusVisual}
+              presentation={assistantPresentation}
             />
           </div>
         </div>

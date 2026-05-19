@@ -24,8 +24,7 @@ import {
   type WorkspaceState,
 } from "../model";
 import {
-  formatStatusPanelLine,
-  resolveStatusPanelVisual,
+  resolveAssistantPresentation,
 } from "../status-panel";
 import { useTabNotifications } from "../tabs";
 import { useAssistantStatusStream } from "./use-assistant-status-stream";
@@ -216,8 +215,7 @@ export interface WorkspaceScreenViewModel {
     description: string,
   ) => void;
   setStateLine: (statePreset: VisualStatePresetId, line: string) => void;
-  statusLine: string;
-  statusVisual: ReturnType<typeof resolveStatusPanelVisual>;
+  assistantPresentation: ReturnType<typeof resolveAssistantPresentation>;
   tabs: ReturnType<typeof useWorkspaceState>["state"]["tabs"];
   toggleEmotion: (
     assetId: string,
@@ -319,11 +317,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   useEffect(() => {
     catalogRef.current = visualAssetCatalog;
   }, [visualAssetCatalog]);
-  const statusVisual = resolveStatusPanelVisual(
-    assistantSnapshot,
-    visualAssetCatalog,
-  );
-  const statusLine = formatStatusPanelLine(
+  const assistantPresentation = resolveAssistantPresentation(
     assistantSnapshot,
     visualAssetCatalog,
   );
@@ -605,8 +599,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         setVisualAssetStateLine(visualAssetCatalog, statePreset, line),
       );
     },
-    statusLine,
-    statusVisual,
+    assistantPresentation,
     tabs: state.tabs,
     toggleEmotion: (assetId, emotion, isEnabled) => {
       const previousOwnerAssetId = isEnabled
