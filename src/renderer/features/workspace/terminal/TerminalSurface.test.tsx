@@ -908,6 +908,13 @@ describe("TerminalSurface", () => {
         throw new Error("Expected the pinned scroll container to exist.");
       }
 
+      expect(
+        scrollContainer.contains(
+          screen.getByRole("button", {
+            name: "Unpin terminal input overlay",
+          }),
+        ),
+      ).toBe(false);
       expect(scrollContainer.style.height).toBe("80px");
       await waitFor(() => {
         expect(scrollContainer.scrollTop).toBe(240);

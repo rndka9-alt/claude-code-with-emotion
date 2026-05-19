@@ -158,7 +158,7 @@ export function PinnedTerminalOverlay({
         onFocusPane();
       }}
     >
-      <div className="border-border-subtle bg-surface-terminal mx-3 mb-3 overflow-hidden rounded-xs border shadow-lg">
+      <div className="border-border-subtle bg-surface-terminal relative mx-3 mb-3 overflow-hidden rounded-xs border shadow-lg">
         <div
           className="scrollbar-hide pointer-events-auto relative overflow-auto"
           data-pinned-terminal-scroll-container="true"
@@ -167,18 +167,6 @@ export function PinnedTerminalOverlay({
             height: visibleRowCount * cellHeightPx,
           }}
         >
-          <button
-            aria-label="Unpin terminal input overlay"
-            className="bg-surface-panel/95 text-text-subtle hover:bg-surface-panel hover:text-text-highlight absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-xs border border-transparent transition-colors duration-150"
-            onClick={onClose}
-            type="button"
-          >
-            <PinOff
-              aria-hidden="true"
-              className="h-3.5 w-3.5"
-              strokeWidth={2}
-            />
-          </button>
           <div
             className="pinned-terminal-overlay__viewport min-h-0 min-w-0"
             data-pinned-terminal-viewport="true"
@@ -189,6 +177,18 @@ export function PinnedTerminalOverlay({
             }}
           />
         </div>
+        <button
+          aria-label="Unpin terminal input overlay"
+          className="bg-surface-panel/95 text-text-subtle hover:bg-surface-panel hover:text-text-highlight pointer-events-auto absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-xs border border-transparent transition-colors duration-150"
+          onClick={onClose}
+          type="button"
+        >
+          <PinOff
+            aria-hidden="true"
+            className="h-3.5 w-3.5"
+            strokeWidth={2}
+          />
+        </button>
       </div>
     </div>
   );
