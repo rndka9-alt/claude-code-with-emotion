@@ -2,6 +2,12 @@ import type {
   AssistantEmotionalState,
   AssistantSemanticState,
 } from "../../../../shared/assistant-status";
+import {
+  createPaneId,
+  createSessionId,
+  createSplitId,
+  createTabId,
+} from "./workspace-ids";
 
 export type SessionLifecycle = "bootstrapping" | "ready";
 export type PaneSplitDirection = "horizontal" | "vertical";
@@ -164,7 +170,7 @@ function createSession(
   nowMs: number,
 ): TerminalSession {
   return {
-    id: `session-${sessionNumber}`,
+    id: createSessionId(sessionNumber),
     title: createSessionTitle(sessionNumber),
     cwd: resolveDefaultSessionCwd(),
     command: "",
@@ -186,7 +192,7 @@ function createPaneNode(
 ): WorkspacePaneNode {
   return {
     kind: "pane",
-    id: `pane-${paneNumber}`,
+    id: createPaneId(paneNumber),
     sessionId,
   };
 }
@@ -197,7 +203,7 @@ function createWorkspaceTab(
   session: TerminalSession,
 ): WorkspaceTab {
   return {
-    id: `tab-${tabNumber}`,
+    id: createTabId(tabNumber),
     title: session.title,
     focusedPaneId: pane.id,
     focusedSessionId: session.id,
@@ -1307,7 +1313,7 @@ function splitPaneState(
     tab.layout,
     tab.focusedPaneId,
     action.direction,
-    `split-${state.nextSplitNumber}`,
+    createSplitId(state.nextSplitNumber),
     nextPane,
   );
 
