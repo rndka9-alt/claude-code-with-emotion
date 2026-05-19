@@ -57,4 +57,15 @@ describe("createApplicationMenuTemplate", () => {
 
     expect(openTerminalSearch).toHaveBeenCalledTimes(1);
   });
+
+  it("does not expose browser reload actions", () => {
+    const template = createApplicationMenuTemplate("Claude Code With Emotion", {
+      openTerminalSearch: vi.fn(),
+    });
+    const viewMenu = template.find((item) => item.label === "View");
+    const viewRoles = getSubmenuItems(viewMenu).map((item) => item.role);
+
+    expect(viewRoles).not.toContain("reload");
+    expect(viewRoles).not.toContain("forceReload");
+  });
 });

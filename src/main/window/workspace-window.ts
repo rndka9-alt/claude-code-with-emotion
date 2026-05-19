@@ -20,6 +20,7 @@ import {
 import { getRendererEntry } from "./renderer-entry";
 import { attachWorkspaceWindowBoundsPersistence } from "./workspace-window-bounds-persistence";
 import { attachWorkspaceWindowNavigationPolicy } from "./workspace-window-navigation";
+import { attachWorkspaceWindowReloadPrevention } from "./workspace-window-reload-prevention";
 import type { WindowBoundsStore } from "./window-bounds-store";
 
 export interface CreateWorkspaceWindowOptions {
@@ -71,6 +72,7 @@ export function createWorkspaceWindow(
   });
 
   attachWorkspaceWindowBoundsPersistence(workspaceWindow, boundsStore);
+  attachWorkspaceWindowReloadPrevention(workspaceWindow);
 
   const rendererEntry = getRendererEntry();
 
