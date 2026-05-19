@@ -135,7 +135,7 @@ export interface WorkspaceScreenViewModel {
   dismissNotification: (tabId: string) => void;
   currentThemeId: AppThemeId;
   createTab: () => void;
-  detachTab: (tabId: string) => Promise<boolean>;
+  detachTab: (tabId: string) => void;
   dismissMcpSetupPrompt: () => void;
   dropVisualAssets: (files: ReadonlyArray<File>) => void;
   handleLaunchClaude: () => void;
@@ -416,6 +416,27 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       });
   };
 
+  const requestDetachTab = (tabId: string): void => {
+    void detachTab(tabId)
+      .then((didDetach) => {
+        if (!didDetach) {
+          toast.showToast({
+            message: "마지막 탭은 아직 새 창으로 분리할 수 없어요.",
+            tone: "warning",
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        toast.showToast({
+          message:
+            error instanceof Error
+              ? `탭을 새 창으로 분리하지 못했어요: ${error.message}`
+              : "탭을 새 창으로 분리하지 못했어요.",
+          tone: "warning",
+        });
+      });
+  };
+
   return {
     activateTab,
     activeTabId: state.activeTabId,
@@ -428,7 +449,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     currentThemeId,
     dismissNotification,
     createTab,
-    detachTab,
+    detachTab: requestDetachTab,
     dismissMcpSetupPrompt: () => {
       setIsMcpSetupPromptDismissed(true);
       persistMcpSetupPromptDismissedPreference(true);

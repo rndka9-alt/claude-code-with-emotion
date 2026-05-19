@@ -20,3 +20,10 @@ export interface TabDragReorderHandlers {
   sortableTabIds: string[];
   stripRef: RefObject<HTMLDivElement | null>;
 }
+
+export type DetachTabHandler = (tabId: string) => void;
+
+export type ReorderTabHandler = (
+  tabId: string,
+  destinationIndex: number,
+) => void;

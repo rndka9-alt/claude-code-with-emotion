@@ -32,6 +32,7 @@ function AppContent(): ReactElement {
     closeTab,
     currentThemeId,
     createTab,
+    detachTab,
     dismissNotification,
     dismissMcpSetupPrompt,
     dropVisualAssets,
@@ -85,6 +86,7 @@ function AppContent(): ReactElement {
         onActivateTab={activateTab}
         onCloseTab={closeTab}
         onCreateTab={createTab}
+        onDetachTab={detachTab}
         onDismissNotification={dismissNotification}
         onRenameTab={(tabId, title) => {
           renameTab(tabId, title);

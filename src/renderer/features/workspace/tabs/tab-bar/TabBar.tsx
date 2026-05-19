@@ -16,6 +16,7 @@ interface TabBarProps {
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCreateTab: () => void;
+  onDetachTab: (tabId: string) => void;
   onDismissNotification: (tabId: string) => void;
   onRenameTab: (tabId: string, title: string) => void;
   onReorderTab: (tabId: string, destinationIndex: number) => void;
@@ -28,6 +29,7 @@ export function TabBar({
   onActivateTab,
   onCloseTab,
   onCreateTab,
+  onDetachTab,
   onDismissNotification,
   onRenameTab,
   onReorderTab,
@@ -54,7 +56,7 @@ export function TabBar({
     shouldSuppressClick,
     sortableTabIds,
     stripRef,
-  } = useTabDragReorder(tabs, onReorderTab);
+  } = useTabDragReorder(tabs, onReorderTab, onDetachTab);
 
   useEffect(() => {
     const strip = stripRef.current;

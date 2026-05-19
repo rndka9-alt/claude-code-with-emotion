@@ -14,13 +14,22 @@ import {
   createAutoScrollController,
   type AutoScrollController,
 } from "./internal/auto-scroll";
-import type { TabDragReorderHandlers } from "./internal/types";
+import {
+  shouldDetachTabOnDrop,
+  type PointerClientPosition,
+} from "./internal/detach-drop-zone";
+import type {
+  DetachTabHandler,
+  ReorderTabHandler,
+  TabDragReorderHandlers,
+} from "./internal/types";
 
 const DRAG_ACTIVATION_DISTANCE_PX = 6;
 
 export function useTabDragReorder(
   tabs: WorkspaceTab[],
-  onReorderTab: (tabId: string, destinationIndex: number) => void,
+  onReorderTab: ReorderTabHandler,
+  onDetachTab: DetachTabHandler,
 ): TabDragReorderHandlers {
   const [activeDragTabId, setActiveDragTabId] = useState<string | null>(null);
   const suppressClickTabIdRef = useRef<string | null>(null);
@@ -28,12 +37,15 @@ export function useTabDragReorder(
   const stripRef = useRef<HTMLDivElement | null>(null);
   const activeDragTabIdRef = useRef<string | null>(null);
   const edgeClientXRef = useRef<number | null>(null);
+  const pointerPositionRef = useRef<PointerClientPosition | null>(null);
   const lastOverTabIdRef = useRef<string | null>(null);
   const onReorderTabRef = useRef(onReorderTab);
+  const onDetachTabRef = useRef(onDetachTab);
   const autoScrollControllerRef = useRef<AutoScrollController | null>(null);
 
   tabsRef.current = tabs;
   onReorderTabRef.current = onReorderTab;
+  onDetachTabRef.current = onDetachTab;
   activeDragTabIdRef.current = activeDragTabId;
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -52,6 +64,11 @@ export function useTabDragReorder(
     autoScrollControllerRef.current = autoScrollController;
 
     function handleMouseMove(event: MouseEvent): void {
+      pointerPositionRef.current = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+
       if (activeDragTabIdRef.current === null) {
         return;
       }
@@ -66,6 +83,7 @@ export function useTabDragReorder(
       window.removeEventListener("mousemove", handleMouseMove);
       autoScrollController.stop();
       edgeClientXRef.current = null;
+      pointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
       lastOverTabIdRef.current = null;
       setActiveDragTabId(null);
@@ -85,6 +103,7 @@ export function useTabDragReorder(
       suppressClickTabIdRef.current = tabId;
       autoScrollControllerRef.current?.stop();
       edgeClientXRef.current = null;
+      pointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
       lastOverTabIdRef.current = null;
       setActiveDragTabId(null);
@@ -95,13 +114,27 @@ export function useTabDragReorder(
         event.over === null
           ? lastOverTabIdRef.current
           : resolveTabId(event.over.id);
+      const pointerPosition = resolveDragEndPointerPosition(
+        event,
+        pointerPositionRef.current,
+      );
+      const shouldDetachTab = shouldDetachActiveTab(
+        stripRef.current,
+        pointerPosition,
+      );
 
       suppressClickTabIdRef.current = activeTabId;
       autoScrollControllerRef.current?.stop();
       edgeClientXRef.current = null;
+      pointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
       lastOverTabIdRef.current = null;
       setActiveDragTabId(null);
+
+      if (shouldDetachTab) {
+        onDetachTabRef.current(activeTabId);
+        return;
+      }
 
       if (overTabId === null || activeTabId === overTabId) {
         return;
@@ -128,6 +161,9 @@ export function useTabDragReorder(
 
       suppressClickTabIdRef.current = null;
       lastOverTabIdRef.current = tabId;
+      pointerPositionRef.current = resolvePointerClientPosition(
+        event.activatorEvent,
+      );
       activeDragTabIdRef.current = tabId;
       setActiveDragTabId(tabId);
     },
@@ -143,6 +179,53 @@ export function useTabDragReorder(
     sortableTabIds: tabs.map((tab) => tab.id),
     stripRef,
   };
+}
+
+function resolveDragEndPointerPosition(
+  event: DragEndEvent,
+  fallbackPointerPosition: PointerClientPosition | null,
+): PointerClientPosition | null {
+  const activatorPosition = resolvePointerClientPosition(event.activatorEvent);
+
+  if (activatorPosition === null) {
+    return fallbackPointerPosition;
+  }
+
+  return {
+    clientX: activatorPosition.clientX + event.delta.x,
+    clientY: activatorPosition.clientY + event.delta.y,
+  };
+}
+
+function resolvePointerClientPosition(
+  event: Event,
+): PointerClientPosition | null {
+  if (event instanceof MouseEvent) {
+    return {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+  }
+
+  return null;
+}
+
+function shouldDetachActiveTab(
+  stripElement: HTMLDivElement | null,
+  pointerPosition: PointerClientPosition | null,
+): boolean {
+  if (stripElement === null) {
+    return false;
+  }
+
+  return shouldDetachTabOnDrop({
+    pointerPosition,
+    stripRect: stripElement.getBoundingClientRect(),
+    viewportSize: {
+      height: window.innerHeight,
+      width: window.innerWidth,
+    },
+  });
 }
 
 function resolveDestinationIndex(
