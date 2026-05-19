@@ -1,5 +1,6 @@
 import {
   createInitialWorkspaceState,
+  detachWorkspaceTab,
   formatElapsedLabel,
   getFocusedSession,
   getTabSessionIds,
@@ -7,7 +8,11 @@ import {
   resizePaneSizes,
   workspaceReducer,
 } from "./index";
-import type { WorkspaceState, WorkspaceTab } from "./index";
+import type {
+  DetachedWorkspaceTabResult,
+  WorkspaceState,
+  WorkspaceTab,
+} from "./index";
 
 function getTabAt(state: WorkspaceState, index: number): WorkspaceTab {
   const tab = state.tabs[index];
@@ -25,6 +30,16 @@ function expectWorkspaceId(id: string, prefix: string): void {
       `^${prefix}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
     ),
   );
+}
+
+function getDetachedWorkspaceTabResult(
+  result: DetachedWorkspaceTabResult | null,
+): DetachedWorkspaceTabResult {
+  if (result === null) {
+    throw new Error("Expected workspace tab detach result");
+  }
+
+  return result;
 }
 
 describe("workspaceReducer", () => {
@@ -460,6 +475,83 @@ describe("formatElapsedLabel", () => {
     expect(formatElapsedLabel(9_000)).toBe("9s");
     expect(formatElapsedLabel(125_000)).toBe("2m 5s");
     expect(formatElapsedLabel(4_200_000)).toBe("1h 10m");
+  });
+});
+
+describe("detachWorkspaceTab", () => {
+  it("moves the requested tab and its sessions into a detached workspace state", () => {
+    const initialState = createInitialWorkspaceState(20_000);
+    const initialTab = getTabAt(initialState, 0);
+    const splitState = workspaceReducer(initialState, {
+      type: "splitPane",
+      tabId: initialTab.id,
+      direction: "horizontal",
+      nowMs: 20_500,
+    });
+    const state = workspaceReducer(splitState, {
+      type: "createTab",
+      nowMs: 21_000,
+    });
+    const tabToDetach = getTabAt(state, 0);
+    const remainingTab = getTabAt(state, 1);
+    const detachedSessionIds = getTabSessionIds(tabToDetach);
+
+    const result = getDetachedWorkspaceTabResult(
+      detachWorkspaceTab(state, tabToDetach.id, 21_500),
+    );
+
+    expect(result.sourceState.tabs).toEqual([remainingTab]);
+    expect(result.sourceState.activeTabId).toBe(remainingTab.id);
+    expect(Object.keys(result.sourceState.sessions)).toEqual([
+      remainingTab.primarySessionId,
+    ]);
+    expect(result.sourceState.assistantStatus.currentTask).toBe(
+      `Detached "${tabToDetach.title}"`,
+    );
+
+    expect(result.detachedState.tabs).toEqual([tabToDetach]);
+    expect(result.detachedState.activeTabId).toBe(tabToDetach.id);
+    expect(Object.keys(result.detachedState.sessions)).toEqual(
+      detachedSessionIds,
+    );
+    expect(result.detachedState.nextSessionNumber).toBe(
+      state.nextSessionNumber,
+    );
+    expect(result.detachedState.assistantStatus.currentTask).toBe(
+      `Ready "${tabToDetach.title}" in a detached workspace`,
+    );
+  });
+
+  it("keeps the current active tab when an inactive tab is detached", () => {
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: "createTab",
+      nowMs: 21_000,
+    });
+    const inactiveTab = getTabAt(state, 0);
+    const activeTab = getTabAt(state, 1);
+
+    const result = getDetachedWorkspaceTabResult(
+      detachWorkspaceTab(state, inactiveTab.id, 21_500),
+    );
+
+    expect(state.activeTabId).toBe(activeTab.id);
+    expect(result.sourceState.activeTabId).toBe(activeTab.id);
+    expect(result.sourceState.tabs).toEqual([activeTab]);
+  });
+
+  it("returns null when the last tab would be detached", () => {
+    const state = createInitialWorkspaceState(20_000);
+
+    expect(detachWorkspaceTab(state, state.activeTabId, 21_000)).toBeNull();
+  });
+
+  it("returns null when the requested tab does not exist", () => {
+    const state = workspaceReducer(createInitialWorkspaceState(20_000), {
+      type: "createTab",
+      nowMs: 21_000,
+    });
+
+    expect(detachWorkspaceTab(state, "missing-tab", 21_500)).toBeNull();
   });
 });
 

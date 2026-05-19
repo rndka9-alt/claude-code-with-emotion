@@ -9,6 +9,7 @@ export {
   resizePaneSizes,
   workspaceReducer,
 } from "./workspace-state";
+export { detachWorkspaceTab } from "./workspace-tab-detach";
 export type {
   AssistantStatus,
   PaneFocusDirection,
@@ -22,3 +23,4 @@ export type {
   WorkspaceSplitNode,
   WorkspaceState,
 } from "./workspace-state";
+export type { DetachedWorkspaceTabResult } from "./workspace-tab-detach";
