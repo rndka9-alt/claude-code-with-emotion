@@ -169,6 +169,9 @@ describe("App tab actions", () => {
         workspaceCommands: {
           onOpenTerminalSearch: vi.fn(() => () => {}),
         },
+        workspaceWindows: {
+          openDetachedWorkspaceWindow: vi.fn().mockResolvedValue(undefined),
+        },
       },
     });
   });

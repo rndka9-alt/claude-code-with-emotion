@@ -1,7 +1,21 @@
+import { z } from "zod";
 import type {
   AssistantEmotionalState,
   AssistantSemanticState,
 } from "./assistant-status";
+
+const INITIAL_WORKSPACE_STATE_ARGUMENT_PREFIX = "--initial-workspace-state=";
+const assistantSemanticStateSchema = z.enum([
+  "disconnected",
+  "thinking",
+  "working",
+  "waiting",
+  "permission_wait",
+  "tool_failed",
+  "compacting",
+  "completed",
+  "error",
+]);
 
 export type SessionLifecycle = "bootstrapping" | "ready";
 export type PaneSplitDirection = "horizontal" | "vertical";
@@ -61,4 +75,174 @@ export interface WorkspaceState {
   activeTabId: string;
   nextSessionNumber: number;
   assistantStatus: AssistantStatus;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isSessionLifecycle(value: unknown): value is SessionLifecycle {
+  return value === "bootstrapping" || value === "ready";
+}
+
+function isPaneSplitDirection(value: unknown): value is PaneSplitDirection {
+  return value === "horizontal" || value === "vertical";
+}
+
+function isAssistantStatus(value: unknown): value is AssistantStatus {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isString(value.visualState) &&
+    assistantSemanticStateSchema.safeParse(value.visualState).success &&
+    (value.emotion === undefined || isString(value.emotion)) &&
+    isString(value.line) &&
+    isString(value.currentTask) &&
+    isFiniteNumber(value.statusSinceMs)
+  );
+}
+
+function isTerminalSession(value: unknown): value is TerminalSession {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isString(value.id) &&
+    isString(value.title) &&
+    isString(value.cwd) &&
+    isString(value.command) &&
+    isSessionLifecycle(value.lifecycle) &&
+    isFiniteNumber(value.createdAtMs)
+  );
+}
+
+function isWorkspaceLayoutNode(value: unknown): value is WorkspaceLayoutNode {
+  if (!isRecord(value) || !isString(value.id)) {
+    return false;
+  }
+
+  if (value.kind === "pane") {
+    return isString(value.sessionId);
+  }
+
+  if (value.kind !== "split") {
+    return false;
+  }
+
+  const children = value.children;
+  const sizes = value.sizes;
+
+  return (
+    isPaneSplitDirection(value.direction) &&
+    Array.isArray(children) &&
+    children.length === 2 &&
+    isWorkspaceLayoutNode(children[0]) &&
+    isWorkspaceLayoutNode(children[1]) &&
+    Array.isArray(sizes) &&
+    sizes.length === 2 &&
+    isFiniteNumber(sizes[0]) &&
+    isFiniteNumber(sizes[1])
+  );
+}
+
+function isWorkspaceTab(value: unknown): value is WorkspaceTab {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isString(value.id) &&
+    isString(value.title) &&
+    isString(value.focusedPaneId) &&
+    isString(value.focusedSessionId) &&
+    typeof value.isManuallyRenamed === "boolean" &&
+    isWorkspaceLayoutNode(value.layout) &&
+    isString(value.primarySessionId) &&
+    isString(value.primarySessionTitle)
+  );
+}
+
+function isTerminalSessionRecord(
+  value: unknown,
+): value is Record<string, TerminalSession> {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return Object.values(value).every((session) => isTerminalSession(session));
+}
+
+export function parseWorkspaceState(value: unknown): WorkspaceState {
+  if (!isRecord(value)) {
+    throw new Error("Workspace state payload must be an object.");
+  }
+
+  const tabs = value.tabs;
+  const sessions = value.sessions;
+  const activeTabId = value.activeTabId;
+  const nextSessionNumber = value.nextSessionNumber;
+  const assistantStatus = value.assistantStatus;
+
+  if (
+    !Array.isArray(tabs) ||
+    !tabs.every((tab) => isWorkspaceTab(tab)) ||
+    !isTerminalSessionRecord(sessions) ||
+    !isString(activeTabId) ||
+    !isFiniteNumber(nextSessionNumber) ||
+    !isAssistantStatus(assistantStatus)
+  ) {
+    throw new Error("Workspace state payload is invalid.");
+  }
+
+  return {
+    tabs,
+    sessions,
+    activeTabId,
+    nextSessionNumber,
+    assistantStatus,
+  };
+}
+
+export function createInitialWorkspaceStateArgument(
+  workspaceState: WorkspaceState,
+): string {
+  return `${INITIAL_WORKSPACE_STATE_ARGUMENT_PREFIX}${encodeURIComponent(
+    JSON.stringify(workspaceState),
+  )}`;
+}
+
+export function parseInitialWorkspaceStateFromArguments(
+  args: readonly string[],
+): WorkspaceState | undefined {
+  const argument = args.find((value) =>
+    value.startsWith(INITIAL_WORKSPACE_STATE_ARGUMENT_PREFIX),
+  );
+
+  if (argument === undefined) {
+    return undefined;
+  }
+
+  const encodedPayload = argument.slice(
+    INITIAL_WORKSPACE_STATE_ARGUMENT_PREFIX.length,
+  );
+
+  try {
+    return parseWorkspaceState(JSON.parse(decodeURIComponent(encodedPayload)));
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown parse failure";
+
+    throw new Error(`Invalid initial workspace state argument: ${message}`);
+  }
 }

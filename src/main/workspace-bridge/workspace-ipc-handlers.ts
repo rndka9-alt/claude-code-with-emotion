@@ -1,4 +1,10 @@
-import { dialog, ipcMain, shell, type BrowserWindow } from "electron";
+import {
+  dialog,
+  ipcMain,
+  shell,
+  type BrowserWindow,
+  type OpenDialogOptions,
+} from "electron";
 import { APP_THEME_CHANNELS } from "../../shared/app-theme-bridge";
 import {
   ASSISTANT_STATUS_CHANNELS,
@@ -16,6 +22,11 @@ import {
 import { VISUAL_ASSET_CHANNELS } from "../../shared/visual-assets-bridge";
 import type { VisualAssetCatalog } from "../../shared/visual-assets";
 import type { AppThemeSelection } from "../../shared/theme";
+import {
+  WORKSPACE_WINDOW_CHANNELS,
+  parseOpenDetachedWorkspaceWindowRequest,
+  type OpenDetachedWorkspaceWindowRequest,
+} from "../../shared/workspace-window-bridge";
 import type { RuntimeLog } from "../diagnostics";
 import type { TerminalSessionService } from "../terminal";
 import type { ThemeStore } from "../theme";
@@ -23,7 +34,10 @@ import type { VisualAssetStore } from "../visual-assets";
 import { isExternalBrowserUrl } from "../window";
 
 interface RegisterWorkspaceIpcHandlersOptions {
-  mainWindow: BrowserWindow;
+  getFocusedWindow: () => BrowserWindow | null;
+  openDetachedWorkspaceWindow: (
+    request: OpenDetachedWorkspaceWindowRequest,
+  ) => void;
   runtimeLog: RuntimeLog;
   terminalSessionService: TerminalSessionService;
   themeStore: ThemeStore;
@@ -31,7 +45,8 @@ interface RegisterWorkspaceIpcHandlersOptions {
 }
 
 export function registerWorkspaceIpcHandlers({
-  mainWindow,
+  getFocusedWindow,
+  openDetachedWorkspaceWindow,
   runtimeLog,
   terminalSessionService,
   themeStore,
@@ -93,7 +108,8 @@ export function registerWorkspaceIpcHandlers({
     },
   );
   ipcMain.handle(VISUAL_ASSET_CHANNELS.pickFiles, async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const focusedWindow = getFocusedWindow();
+    const dialogOptions: OpenDialogOptions = {
       buttonLabel: "Choose Images",
       filters: [
         {
@@ -102,7 +118,11 @@ export function registerWorkspaceIpcHandlers({
         },
       ],
       properties: ["openFile", "multiSelections"],
-    });
+    };
+    const result =
+      focusedWindow === null
+        ? await dialog.showOpenDialog(dialogOptions)
+        : await dialog.showOpenDialog(focusedWindow, dialogOptions);
 
     if (result.canceled) {
       runtimeLog.write("visual-assets", "picker canceled");
@@ -146,6 +166,11 @@ export function registerWorkspaceIpcHandlers({
       terminalSessionService.closeSession(request);
     },
   );
+  ipcMain.handle(WORKSPACE_WINDOW_CHANNELS.openDetached, (_event, request) => {
+    openDetachedWorkspaceWindow(
+      parseOpenDetachedWorkspaceWindowRequest(request),
+    );
+  });
 
   return () => {
     ipcMain.removeHandler(ASSISTANT_STATUS_CHANNELS.getSnapshot);
@@ -165,5 +190,6 @@ export function registerWorkspaceIpcHandlers({
     ipcMain.removeHandler(TERMINAL_CHANNELS.input);
     ipcMain.removeHandler(TERMINAL_CHANNELS.resize);
     ipcMain.removeHandler(TERMINAL_CHANNELS.close);
+    ipcMain.removeHandler(WORKSPACE_WINDOW_CHANNELS.openDetached);
   };
 }

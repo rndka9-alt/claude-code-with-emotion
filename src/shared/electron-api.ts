@@ -7,6 +7,7 @@ import type { TerminalBridge } from "./terminal-bridge";
 import type { VisualAssetBridge } from "./visual-assets-bridge";
 import type { WorkspaceCommandBridge } from "./workspace-command-bridge";
 import type { WorkspaceState } from "./workspace-state";
+import type { WorkspaceWindowBridge } from "./workspace-window-bridge";
 
 export interface DiagnosticsBridge {
   onRuntimeEvent: (
@@ -26,6 +27,7 @@ export interface ClaudeAppApi {
   readonly terminals: TerminalBridge;
   readonly visualAssets: VisualAssetBridge;
   readonly workspaceCommands: WorkspaceCommandBridge;
+  readonly workspaceWindows: WorkspaceWindowBridge;
 }
 
 declare global {

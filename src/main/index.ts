@@ -1,8 +1,4 @@
-import {
-  Menu,
-  app,
-  BrowserWindow,
-} from "electron";
+import { Menu, app, BrowserWindow } from "electron";
 import path from "node:path";
 import { createApplicationMenuTemplate } from "./application-menu";
 import { createRuntimeLog, resolveRuntimeLogPath } from "./diagnostics";
@@ -14,11 +10,15 @@ import {
   hasOpenWorkspaceWindows,
   WindowBoundsStore,
 } from "./window";
-import { registerWorkspaceBridge } from "./workspace-bridge";
+import {
+  registerWorkspaceBridge,
+  type WorkspaceBridge,
+} from "./workspace-bridge";
 import {
   DIAGNOSTICS_CHANNELS,
   type RuntimeDiagnosticPayload,
 } from "../shared/diagnostics";
+import type { OpenDetachedWorkspaceWindowRequest } from "../shared/workspace-window-bridge";
 import { WORKSPACE_COMMAND_CHANNELS } from "../shared/workspace-command-bridge";
 
 function installApplicationMenu(): void {
@@ -26,7 +26,9 @@ function installApplicationMenu(): void {
     openTerminalSearch: () => {
       const focusedWindow = BrowserWindow.getFocusedWindow();
 
-      focusedWindow?.webContents.send(WORKSPACE_COMMAND_CHANNELS.openTerminalSearch);
+      focusedWindow?.webContents.send(
+        WORKSPACE_COMMAND_CHANNELS.openTerminalSearch,
+      );
     },
   });
 
@@ -94,13 +96,39 @@ void app.whenReady().then(() => {
     },
   );
   installApplicationMenu();
-  const mainWindow = createWorkspaceWindow(
-    themeStore.getSelection(),
-    windowBoundsStore,
-  );
+  let workspaceBridge: WorkspaceBridge | null = null;
 
-  attachWorkspaceWindowDiagnostics(mainWindow, runtimeLog);
-  registerWorkspaceBridge({ mainWindow, runtimeLog, themeStore });
+  function createManagedWorkspaceWindow(
+    request?: OpenDetachedWorkspaceWindowRequest,
+  ): BrowserWindow {
+    const workspaceWindow = createWorkspaceWindow(
+      themeStore.getSelection(),
+      windowBoundsStore,
+      request === undefined
+        ? {}
+        : { initialWorkspaceState: request.initialWorkspaceState },
+    );
+
+    attachWorkspaceWindowDiagnostics(workspaceWindow, runtimeLog);
+
+    if (workspaceBridge === null) {
+      workspaceBridge = registerWorkspaceBridge({
+        createDetachedWindow: createManagedWorkspaceWindow,
+        initialWindow: workspaceWindow,
+        onDispose: () => {
+          workspaceBridge = null;
+        },
+        runtimeLog,
+        themeStore,
+      });
+    } else {
+      workspaceBridge.attachWindow(workspaceWindow);
+    }
+
+    return workspaceWindow;
+  }
+
+  createManagedWorkspaceWindow();
 
   app.on("activate", () => {
     const openCount = BrowserWindow.getAllWindows().length;
@@ -109,17 +137,7 @@ void app.whenReady().then(() => {
       `activate fired — hasOpenWorkspaceWindows=${openCount > 0} count=${openCount}`,
     );
     if (!hasOpenWorkspaceWindows()) {
-      const nextMainWindow = createWorkspaceWindow(
-        themeStore.getSelection(),
-        windowBoundsStore,
-      );
-
-      attachWorkspaceWindowDiagnostics(nextMainWindow, runtimeLog);
-      registerWorkspaceBridge({
-        mainWindow: nextMainWindow,
-        runtimeLog,
-        themeStore,
-      });
+      createManagedWorkspaceWindow();
       runtimeLog.write(
         "window-lifecycle",
         "activate: new window created + bridge re-registered",

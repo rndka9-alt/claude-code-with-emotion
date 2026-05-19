@@ -5,6 +5,10 @@ import {
   type AppThemeSelection,
 } from "../../shared/theme";
 import {
+  createInitialWorkspaceStateArgument,
+  type WorkspaceState,
+} from "../../shared/workspace-state";
+import {
   resolveInitialWindowBounds,
   WORKSPACE_WINDOW_SIZE,
 } from "./initial-window-bounds";
@@ -13,13 +17,22 @@ import { attachWorkspaceWindowBoundsPersistence } from "./workspace-window-bound
 import { attachWorkspaceWindowNavigationPolicy } from "./workspace-window-navigation";
 import type { WindowBoundsStore } from "./window-bounds-store";
 
+export interface CreateWorkspaceWindowOptions {
+  initialWorkspaceState?: WorkspaceState;
+}
+
 export function createWorkspaceWindow(
   themeSelection: AppThemeSelection,
   boundsStore: WindowBoundsStore,
+  options: CreateWorkspaceWindowOptions = {},
 ): BrowserWindow {
   const preloadPath = path.join(__dirname, "../../preload/index.js");
   const themeDefinition = getAppThemeDefinition(themeSelection.themeId);
   const initialBounds = resolveInitialWindowBounds(boundsStore.getBounds());
+  const additionalArguments =
+    options.initialWorkspaceState === undefined
+      ? []
+      : [createInitialWorkspaceStateArgument(options.initialWorkspaceState)];
   const workspaceWindow = new BrowserWindow({
     ...initialBounds,
     minWidth: WORKSPACE_WINDOW_SIZE.minWidth,
@@ -29,6 +42,7 @@ export function createWorkspaceWindow(
     title: "Claude Code With Emotion",
     webPreferences: {
       preload: preloadPath,
+      additionalArguments,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
