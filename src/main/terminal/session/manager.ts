@@ -2,10 +2,7 @@ import path from "node:path";
 import { spawn } from "node-pty";
 import type { IPty } from "node-pty";
 import { ENV_KEYS } from "../../../shared/env-keys";
-import {
-  getPlatformShellAdapter,
-  joinPathList,
-} from "../../platform";
+import { getPlatformShellAdapter, joinPathList } from "../../platform";
 import {
   getDefaultAssistantProvider,
   type AssistantProvider,
@@ -177,8 +174,7 @@ export class TerminalSessionManager {
     private readonly visualAssetCatalogFilePath: string,
     private readonly outputRootDir: string,
     private readonly userDataPath: string,
-    private readonly assistantProvider: AssistantProvider =
-      getDefaultAssistantProvider(),
+    private readonly assistantProvider: AssistantProvider = getDefaultAssistantProvider(),
   ) {}
 
   bootstrapSession(

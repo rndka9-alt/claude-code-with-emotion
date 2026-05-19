@@ -1,7 +1,4 @@
-import type {
-  PaneFocusDirection,
-  PaneSplitDirection,
-} from "../model";
+import type { PaneFocusDirection, PaneSplitDirection } from "../model";
 
 export const MULTILINE_TERMINAL_INPUT = "\x0a";
 

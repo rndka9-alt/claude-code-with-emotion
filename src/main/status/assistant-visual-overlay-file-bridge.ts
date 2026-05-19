@@ -1,8 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type {
-  AssistantVisualOverlayUpdate,
-} from "../../shared/assistant-status";
+import type { AssistantVisualOverlayUpdate } from "../../shared/assistant-status";
 import { isVisualEmotionPresetId } from "../../shared/visual-presets";
 import { AssistantStatusStore } from "./assistant-status-store";
 
@@ -24,7 +22,10 @@ function parseAssistantVisualOverlayUpdate(
   if (emotion !== undefined) {
     if (emotion === null) {
       update.emotion = null;
-    } else if (typeof emotion === "string" && isVisualEmotionPresetId(emotion)) {
+    } else if (
+      typeof emotion === "string" &&
+      isVisualEmotionPresetId(emotion)
+    ) {
       update.emotion = emotion === "neutral" ? null : emotion;
     } else {
       return null;

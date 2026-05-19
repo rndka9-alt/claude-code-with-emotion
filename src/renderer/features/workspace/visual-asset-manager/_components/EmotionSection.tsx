@@ -381,7 +381,7 @@ export function EmotionSection({
         }}
         onDrop={handleAssetDrop}
       >
-        <p className="m-0 text-sm text-text-secondary">
+        <p className="text-text-secondary m-0 text-sm">
           이미지를 여기로 여러 장 드래그해서 바로 가져올 수 있어요.
         </p>
         <p className={managerSectionCopyClassName}>
@@ -390,12 +390,11 @@ export function EmotionSection({
           섞이면 1:1만 결합 슬롯으로 가요. 그 외엔 개수 큰 쪽만 반영되고
           동점이면 감정이 이겨요. 예) <code>working.png</code>,{" "}
           <code>happy.png</code>, <code>working__happy.png</code>,{" "}
-          <code>happy__angry__sad.png</code>,{" "}
-          <code>default__fallback.png</code>
+          <code>happy__angry__sad.png</code>, <code>default__fallback.png</code>
         </p>
       </div>
       {catalog.assets.length === 0 ? (
-        <div className="mt-4 border border-dashed border-border-muted bg-surface-empty p-7 text-text-faint">
+        <div className="border-border-muted bg-surface-empty text-text-faint mt-4 border border-dashed p-7">
           아직 등록된 이미지가 읍어요...! 먼저 파일 몇 장 골라서 붙여보죠.
         </div>
       ) : (
@@ -416,7 +415,7 @@ export function EmotionSection({
             />
           </div>
           {filteredAssets.length === 0 ? (
-            <div className="border border-dashed border-border-muted bg-surface-empty p-7 text-text-faint">
+            <div className="border-border-muted bg-surface-empty text-text-faint border border-dashed p-7">
               검색어에 걸리는 에셋이 읍어요...!
             </div>
           ) : (
@@ -432,10 +431,10 @@ export function EmotionSection({
 
                 return (
                   <li
-                    className="grid gap-4 border border-border-soft bg-surface-chip p-4 min-[901px]:grid-cols-[140px_minmax(0,1fr)]"
+                    className="border-border-soft bg-surface-chip grid gap-4 border p-4 min-[901px]:grid-cols-[140px_minmax(0,1fr)]"
                     key={asset.id}
                   >
-                    <div className="aspect-square w-[140px] overflow-hidden bg-surface-preview">
+                    <div className="bg-surface-preview aspect-square w-[140px] overflow-hidden">
                       <img
                         alt={asset.label}
                         className="block h-full w-full object-cover"
@@ -452,7 +451,7 @@ export function EmotionSection({
                               {mappingBadges.map((badge) => {
                                 return (
                                   <span
-                                    className="inline-flex items-center border border-border-soft bg-surface-elevated px-2 py-0.5 text-xs text-text-secondary"
+                                    className="border-border-soft bg-surface-elevated text-text-secondary inline-flex items-center border px-2 py-0.5 text-xs"
                                     key={badge.key}
                                   >
                                     {badge.label}
@@ -502,9 +501,9 @@ export function EmotionSection({
                       </div>
 
                       <details className="group flex flex-col gap-[14px]">
-                        <summary className="flex cursor-pointer list-none items-center justify-between border border-border-soft bg-surface-elevated px-3 py-2 text-sm text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight [&::-webkit-details-marker]:hidden">
+                        <summary className="border-border-soft bg-surface-elevated text-text-secondary hover:bg-surface-hover hover:text-text-highlight flex cursor-pointer list-none items-center justify-between border px-3 py-2 text-sm transition-colors duration-150 [&::-webkit-details-marker]:hidden">
                           <span>매핑 설정</span>
-                          <span className="text-xs text-text-subtle transition-transform duration-150 group-open:rotate-180">
+                          <span className="text-text-subtle text-xs transition-transform duration-150 group-open:rotate-180">
                             ▾
                           </span>
                         </summary>
@@ -554,7 +553,7 @@ export function EmotionSection({
                                   {otherOwnerLabel !== null ? (
                                     <span
                                       aria-hidden="true"
-                                      className="inline-block h-1.5 w-1.5 rounded-full bg-text-warning"
+                                      className="bg-text-warning inline-block h-1.5 w-1.5 rounded-full"
                                     />
                                   ) : null}
                                 </label>
@@ -612,7 +611,7 @@ export function EmotionSection({
                                   {otherOwnerLabel !== null ? (
                                     <span
                                       aria-hidden="true"
-                                      className="inline-block h-1.5 w-1.5 rounded-full bg-text-warning"
+                                      className="bg-text-warning inline-block h-1.5 w-1.5 rounded-full"
                                     />
                                   ) : null}
                                 </label>
@@ -624,7 +623,7 @@ export function EmotionSection({
                         <details className="group/exact flex flex-col gap-2">
                           <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
                             <h4 className="m-0">Exact State + Emotion</h4>
-                            <span className="text-xs text-text-subtle transition-transform duration-150 group-open/exact:rotate-180">
+                            <span className="text-text-subtle text-xs transition-transform duration-150 group-open/exact:rotate-180">
                               ▾
                             </span>
                           </summary>
@@ -643,7 +642,7 @@ export function EmotionSection({
                                   className="grid items-start gap-2.5 min-[901px]:grid-cols-[92px_minmax(0,1fr)]"
                                   key={emotionPreset.id}
                                 >
-                                  <div className="pt-1.5 text-xs text-text-soft">
+                                  <div className="text-text-soft pt-1.5 text-xs">
                                     {emotionPreset.label}
                                   </div>
 
@@ -693,7 +692,7 @@ export function EmotionSection({
                                           {otherOwnerLabel !== null ? (
                                             <span
                                               aria-hidden="true"
-                                              className="inline-block h-1.5 w-1.5 rounded-full bg-text-warning"
+                                              className="bg-text-warning inline-block h-1.5 w-1.5 rounded-full"
                                             />
                                           ) : null}
                                         </label>

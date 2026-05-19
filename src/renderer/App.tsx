@@ -65,7 +65,8 @@ function AppContent(): ReactElement {
     syncSessionTitle,
     visualAssetCatalog,
   } = useWorkspaceScreenViewModel();
-  const panelId = activeTabId.length > 0 ? `panel-${activeTabId}` : "panel-stack";
+  const panelId =
+    activeTabId.length > 0 ? `panel-${activeTabId}` : "panel-stack";
   const statusPanelToggleLabel = isStatusPanelCollapsed
     ? "Expand assistant status panel"
     : "Collapse assistant status panel";
@@ -77,7 +78,7 @@ function AppContent(): ReactElement {
   ].join(" ");
 
   return (
-    <div className="flex h-full min-h-full flex-col overflow-hidden bg-app-bg">
+    <div className="bg-app-bg flex h-full min-h-full flex-col overflow-hidden">
       <TabBar
         activeTabId={activeTabId}
         notifiedTabIds={notifiedTabIds}
@@ -95,7 +96,7 @@ function AppContent(): ReactElement {
       <main className="flex min-h-0 flex-1 flex-col px-2 pt-1 pb-2">
         <section
           aria-label="Active terminal workspace"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border-subtle bg-surface-terminal pt-1"
+          className="border-border-subtle bg-surface-terminal flex min-h-0 flex-1 flex-col overflow-hidden border pt-1"
           id={panelId}
           role="tabpanel"
         >
@@ -117,7 +118,7 @@ function AppContent(): ReactElement {
           {isStatusPanelCollapsed ? null : (
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute top-3 right-0 left-0 border-t border-border-panel"
+              className="border-border-panel pointer-events-none absolute top-3 right-0 left-0 border-t"
             />
           )}
 

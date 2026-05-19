@@ -38,8 +38,12 @@ export function resolveInitialWindowBounds(savedBounds: WindowBounds | null): {
   // 외장 모니터가 사라진 경우 오프스크린으로 복원되는 것을 막기 위해 디스플레이 범위와 교차 검증한다.
   const displays = screen.getAllDisplays();
   const visible = displays.some((display) => {
-    const { x: displayX, y: displayY, width: displayWidth, height: displayHeight } =
-      display.workArea;
+    const {
+      x: displayX,
+      y: displayY,
+      width: displayWidth,
+      height: displayHeight,
+    } = display.workArea;
     const right = savedBounds.x + width;
     const bottom = savedBounds.y + height;
 

@@ -105,7 +105,7 @@ export function VisualAssetManagerDialog({
   return (
     <div
       aria-label="Settings overlay"
-      className="fixed inset-0 z-20 flex items-center justify-center bg-surface-overlay p-6"
+      className="bg-surface-overlay fixed inset-0 z-20 flex items-center justify-center p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -116,10 +116,10 @@ export function VisualAssetManagerDialog({
       <div
         aria-label="Settings"
         aria-modal="true"
-        className="flex max-h-[min(720px,100%)] w-[min(1080px,100%)] flex-col border border-border-muted bg-surface-dialog shadow-dialog"
+        className="border-border-muted bg-surface-dialog shadow-dialog flex max-h-[min(720px,100%)] w-[min(1080px,100%)] flex-col border"
         role="dialog"
       >
-        <header className="flex items-start justify-between gap-5 border-b border-border-soft px-5 py-[18px]">
+        <header className="border-border-soft flex items-start justify-between gap-5 border-b px-5 py-[18px]">
           <div>
             <h2 className="m-0">Settings</h2>
             <p className={managerSectionCopyClassName}>

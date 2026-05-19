@@ -26,16 +26,18 @@ describe("resolveWindowsDefaultShell", () => {
 
   it("honors custom shells set via COMSPEC", () => {
     expect(
-      resolveWindowsDefaultShell({ COMSPEC: "C:\\Program Files\\pwsh\\pwsh.exe" }),
+      resolveWindowsDefaultShell({
+        COMSPEC: "C:\\Program Files\\pwsh\\pwsh.exe",
+      }),
     ).toBe("C:\\Program Files\\pwsh\\pwsh.exe");
   });
 });
 
 describe("quoteForWindowsCmd", () => {
   it("wraps plain values in double quotes", () => {
-    expect(quoteForWindowsCmd("C:\\Users\\foo\\bin\\claude-session-hook.cmd")).toBe(
-      '"C:\\Users\\foo\\bin\\claude-session-hook.cmd"',
-    );
+    expect(
+      quoteForWindowsCmd("C:\\Users\\foo\\bin\\claude-session-hook.cmd"),
+    ).toBe('"C:\\Users\\foo\\bin\\claude-session-hook.cmd"');
   });
 
   it("preserves spaces inside the path", () => {

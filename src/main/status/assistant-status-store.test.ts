@@ -382,10 +382,7 @@ describe("AssistantStatusStore", () => {
   it("clears emotion immediately when neutral is set (no TTL)", () => {
     const store = new AssistantStatusStore(2_000);
 
-    store.applyUpdate(
-      { state: "working", line: "Base" },
-      "assistant-command",
-    );
+    store.applyUpdate({ state: "working", line: "Base" }, "assistant-command");
     store.applyVisualOverlay({ emotion: "happy" }, "visual-overlay");
 
     expect(store.getSnapshot().emotion).toBe("happy");

@@ -46,12 +46,13 @@ export class TerminalSessionService {
       options.userDataPath,
       "assistant-event-queue",
     );
-    this.sessionStatusBridgeRegistry =
-      new AssistantSessionStatusBridgeRegistry({
+    this.sessionStatusBridgeRegistry = new AssistantSessionStatusBridgeRegistry(
+      {
         eventQueueRootDir: this.eventQueueRootDir,
         runtimeLog: options.runtimeLog,
         sendAssistantStatusSnapshot: options.sendAssistantStatusSnapshot,
-      });
+      },
+    );
     this.terminalSessionManager = createTerminalSessionManager(
       (sessionId, event) => {
         this.options.sendTerminalOutput({
@@ -65,7 +66,9 @@ export class TerminalSessionService {
           "terminal",
           `exit session=${sessionId} code=${event.exitCode} signal=${event.signal}`,
         );
-        this.sessionStatusBridgeRegistry.applySessionExitOverlayClear(sessionId);
+        this.sessionStatusBridgeRegistry.applySessionExitOverlayClear(
+          sessionId,
+        );
         this.options.sendTerminalExit({
           sessionId,
           exitCode: event.exitCode,

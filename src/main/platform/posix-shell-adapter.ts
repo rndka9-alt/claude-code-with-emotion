@@ -32,10 +32,7 @@ export function quoteForPosixShell(value: string): string {
 // PATH/CLAUDE_WITH_EMOTION_ORIGINAL_PATH 는 유저 쉘 설정이 모두 반영된 뒤에 동적으로 계산해야 하므로
 // 정적 export 대상에서 제외한다. (이 두 개를 정적으로 덮어쓰면 유저가 .zshrc 에서 PATH 에 붙인
 // 경로 - 예: /opt/homebrew/bin, nvm/asdf shim - 이 전부 사라져 `claude` 의 `env node` shebang 이 깨짐)
-const DYNAMIC_PATH_ENV_KEYS = new Set([
-  "PATH",
-  ENV_KEYS.ORIGINAL_PATH,
-]);
+const DYNAMIC_PATH_ENV_KEYS = new Set(["PATH", ENV_KEYS.ORIGINAL_PATH]);
 
 function createShellExports(env: Record<string, string>): string {
   return Object.entries(env)

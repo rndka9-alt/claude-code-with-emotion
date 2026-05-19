@@ -65,18 +65,18 @@ function PaneTitleBar({
 
   return (
     <div
-      className={`absolute inset-x-0 top-0 z-10 flex ${PANE_TITLE_BAR_HEIGHT_CLASS} items-center border-b border-border-subtle bg-surface-panel px-2`}
+      className={`absolute inset-x-0 top-0 z-10 flex ${PANE_TITLE_BAR_HEIGHT_CLASS} border-border-subtle bg-surface-panel items-center border-b px-2`}
       data-pane-title-bar="true"
       onPointerDown={() => {
         onFocusPane(paneId);
       }}
     >
-      <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[0.78rem] text-text-subtle">
+      <span className="text-text-subtle min-w-0 flex-1 overflow-hidden text-[0.78rem] text-ellipsis whitespace-nowrap">
         {session.title}
       </span>
       <button
         aria-label={`Close pane ${session.title}`}
-        className="ml-2 inline-flex h-5 w-5 flex-none items-center justify-center text-text-subtle transition-colors duration-150 hover:text-text-highlight"
+        className="text-text-subtle hover:text-text-highlight ml-2 inline-flex h-5 w-5 flex-none items-center justify-center transition-colors duration-150"
         onClick={(event) => {
           event.stopPropagation();
           onClosePane(paneId, session.id);
@@ -174,12 +174,14 @@ export function TerminalLayout({
       const isActive = node.id === focusedPaneId;
       const shouldShowTitleBar = hasMultiplePanes && isActive;
       const activeSearchRequest =
-        isActive && searchRequest?.sessionId === session.id ? searchRequest : null;
+        isActive && searchRequest?.sessionId === session.id
+          ? searchRequest
+          : null;
 
       return (
         <article
           aria-label={session.title}
-          className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-border-ghost bg-surface-terminal"
+          className="border-border-ghost bg-surface-terminal relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border"
           data-active={isActive}
           key={node.id}
         >
@@ -254,8 +256,8 @@ export function TerminalLayout({
           aria-orientation={isHorizontal ? "vertical" : "horizontal"}
           className={
             isHorizontal
-              ? "w-[10px] flex-none cursor-col-resize bg-border-ghost"
-              : "h-[10px] flex-none cursor-row-resize bg-border-ghost"
+              ? "bg-border-ghost w-[10px] flex-none cursor-col-resize"
+              : "bg-border-ghost h-[10px] flex-none cursor-row-resize"
           }
           onPointerDown={(event) => {
             const container = event.currentTarget.parentElement;

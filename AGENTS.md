@@ -53,9 +53,9 @@ Tailwind v4는 `src/renderer/styles.css` `@theme` 블록에서 디자인 토큰�
 
 **토큰 추가·삭제·이름 변경 시 두 파일을 반드시 함께 수정해야 한다:**
 
-| 변경 대상 | 파일 |
-|---|---|
-| 실제 빌드에 반영되는 값 | `src/renderer/styles.css` `@theme` |
+| 변경 대상                              | 파일                                |
+| -------------------------------------- | ----------------------------------- |
+| 실제 빌드에 반영되는 값                | `src/renderer/styles.css` `@theme`  |
 | ESLint가 유효한 토큰으로 인식하는 목록 | `tailwind.config.js` `theme.extend` |
 
 한쪽만 수정하면 빌드와 린트 결과가 어긋난다.

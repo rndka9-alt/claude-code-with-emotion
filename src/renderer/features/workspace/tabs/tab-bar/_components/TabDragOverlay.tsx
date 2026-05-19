@@ -34,14 +34,14 @@ export function TabDragOverlay({
 
   return (
     <div
-      className="group relative flex max-w-60 min-w-40 flex-none items-stretch opacity-[0.92] shadow-tab-drag"
+      className="group shadow-tab-drag relative flex max-w-60 min-w-40 flex-none items-stretch opacity-[0.92]"
       role="presentation"
     >
       <div
-        className="relative flex w-full min-w-0 flex-1 select-none border border-b-0 border-[var(--tab-border)] bg-[var(--tab-background)] px-[14px] py-1.5 text-left text-[0.88rem] text-[var(--tab-foreground)]"
+        className="relative flex w-full min-w-0 flex-1 border border-b-0 border-[var(--tab-border)] bg-[var(--tab-background)] px-[14px] py-1.5 text-left text-[0.88rem] text-[var(--tab-foreground)] select-none"
         style={tabToneStyle}
       >
-        <span className="block overflow-hidden text-ellipsis whitespace-nowrap leading-[1.2]">
+        <span className="block overflow-hidden leading-[1.2] text-ellipsis whitespace-nowrap">
           {tab.title}
         </span>
       </div>
@@ -51,11 +51,11 @@ export function TabDragOverlay({
           className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] shadow-[-10px_0_10px_var(--tab-background)]"
           style={tabToneStyle}
         >
-          <span className="absolute h-[7px] w-[7px] rounded-full bg-tab-notification" />
+          <span className="bg-tab-notification absolute h-[7px] w-[7px] rounded-full" />
         </div>
       ) : (
         <div
-          className="absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] text-tab-close-foreground opacity-100 shadow-[-10px_0_10px_var(--tab-background)]"
+          className="text-tab-close-foreground absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] opacity-100 shadow-[-10px_0_10px_var(--tab-background)]"
           style={tabToneStyle}
         >
           <X

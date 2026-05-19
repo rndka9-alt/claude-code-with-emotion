@@ -131,11 +131,7 @@ export function createRuntimeLog(
     const now = new Date();
 
     rotateRuntimeLogIfNeeded(filePath, rotation);
-    appendFileSync(
-      filePath,
-      formatRuntimeLogLine(scope, message, now),
-      "utf8",
-    );
+    appendFileSync(filePath, formatRuntimeLogLine(scope, message, now), "utf8");
     emitRuntimeLogListener(listener, scope, message, now);
   };
 

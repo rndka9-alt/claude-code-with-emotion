@@ -1,7 +1,4 @@
-import {
-  EMOTION_PRESETS,
-  type VisualEmotionPresetId,
-} from "./visual-presets";
+import { EMOTION_PRESETS, type VisualEmotionPresetId } from "./visual-presets";
 
 // neutral 은 오버레이 해제 용도라 매핑 여부와 무관하게 항상 노출.
 const ALWAYS_INCLUDED_EMOTION_IDS: ReadonlySet<string> = new Set(["neutral"]);

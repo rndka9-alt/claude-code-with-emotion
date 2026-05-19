@@ -1,10 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  joinPathList,
-  resolveHomeDir,
-  splitPathList,
-} from "./platform-paths";
+import { joinPathList, resolveHomeDir, splitPathList } from "./platform-paths";
 
 describe("splitPathList", () => {
   it("splits on path.delimiter and ignores empty or undefined inputs", () => {
@@ -38,9 +34,9 @@ describe("resolveHomeDir", () => {
   });
 
   it("falls back to HOMEDRIVE+HOMEPATH when neither HOME nor USERPROFILE is set", () => {
-    expect(
-      resolveHomeDir({ HOMEDRIVE: "C:", HOMEPATH: "\\Users\\zzu" }),
-    ).toBe("C:\\Users\\zzu");
+    expect(resolveHomeDir({ HOMEDRIVE: "C:", HOMEPATH: "\\Users\\zzu" })).toBe(
+      "C:\\Users\\zzu",
+    );
   });
 
   it("returns undefined when no home-like variable is present", () => {

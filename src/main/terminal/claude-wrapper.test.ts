@@ -44,15 +44,22 @@ process.exit(0);
 function readStatusCalls(statusCallsFilePath: string): string[][] {
   const lines = fs.readFileSync(statusCallsFilePath, "utf8").trim().split("\n");
 
-  return lines.filter((line) => line.length > 0).map((line) => {
-    const parsed: unknown = JSON.parse(line);
+  return lines
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const parsed: unknown = JSON.parse(line);
 
-    if (!Array.isArray(parsed) || !parsed.every((entry) => typeof entry === "string")) {
-      throw new Error("Expected claude-status call log to contain string arrays");
-    }
+      if (
+        !Array.isArray(parsed) ||
+        !parsed.every((entry) => typeof entry === "string")
+      ) {
+        throw new Error(
+          "Expected claude-status call log to contain string arrays",
+        );
+      }
 
-    return parsed;
-  });
+      return parsed;
+    });
 }
 
 function readFlagValue(args: string[], flag: string): string | null {

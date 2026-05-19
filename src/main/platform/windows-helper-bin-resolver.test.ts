@@ -123,9 +123,9 @@ describe("findWindowsExecutableInPath", () => {
       const targetPath = path.join(tempRoot, "zzu-bin.CMD");
       fs.writeFileSync(targetPath, "");
       const pathValue = `${WIN_DELIM}${WIN_DELIM}${tempRoot}`;
-      expect(
-        findWindowsExecutableInPath("zzu-bin", pathValue, ".CMD"),
-      ).toBe(targetPath);
+      expect(findWindowsExecutableInPath("zzu-bin", pathValue, ".CMD")).toBe(
+        targetPath,
+      );
     } finally {
       fs.rmSync(tempRoot, { recursive: true, force: true });
     }
@@ -164,8 +164,6 @@ describe("createWindowsHelperBinResolver", () => {
     expect(resolver.getHelperBinFilename("claude-visual-mcp")).toBe(
       "claude-visual-mcp.cmd",
     );
-    expect(
-      resolver.findExecutableInPath("nope", "C:\\nonexistent"),
-    ).toBeNull();
+    expect(resolver.findExecutableInPath("nope", "C:\\nonexistent")).toBeNull();
   });
 });

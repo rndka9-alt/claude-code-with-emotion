@@ -118,7 +118,9 @@ function printAvailableVisualOptions() {
     process.env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE;
 
   if (typeof catalogFilePath !== "string" || catalogFilePath.length === 0) {
-    process.stdout.write('{"states":[],"emotions":[],"emotionDescriptions":{}}\n');
+    process.stdout.write(
+      '{"states":[],"emotions":[],"emotionDescriptions":{}}\n',
+    );
     return;
   }
 
@@ -130,7 +132,9 @@ function printAvailableVisualOptions() {
       `${JSON.stringify(collectAvailableVisualOptions(parsed))}\n`,
     );
   } catch {
-    process.stdout.write('{"states":[],"emotions":[],"emotionDescriptions":{}}\n');
+    process.stdout.write(
+      '{"states":[],"emotions":[],"emotionDescriptions":{}}\n',
+    );
   }
 }
 

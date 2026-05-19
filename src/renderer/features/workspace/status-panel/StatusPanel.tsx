@@ -75,8 +75,7 @@ export function StatusPanel({
     typeof assistantStatus.overlayLine === "string"
       ? assistantStatus.overlayLine.trim()
       : null;
-  const hasOverlayLine =
-    overlayMainText !== null && overlayMainText.length > 0;
+  const hasOverlayLine = overlayMainText !== null && overlayMainText.length > 0;
   const overlayActivitySuffix =
     hasOverlayLine &&
     typeof assistantStatus.activityLabel === "string" &&
@@ -87,11 +86,11 @@ export function StatusPanel({
   return (
     <aside
       aria-label="Assistant status panel"
-      className="relative flex flex-none items-center border border-border-panel bg-surface-panel max-[900px]:min-h-28"
+      className="border-border-panel bg-surface-panel relative flex flex-none items-center border max-[900px]:min-h-28"
     >
       <button
         aria-label="Open settings"
-        className="absolute top-3 right-3 inline-flex h-7 w-7 items-center justify-center border border-border-overlay bg-surface-frost text-text-overlay transition-[background-color,color,border-color] duration-150 hover:border-border-strong hover:bg-surface-frost-strong hover:text-text-inverse"
+        className="border-border-overlay bg-surface-frost text-text-overlay hover:border-border-strong hover:bg-surface-frost-strong hover:text-text-inverse absolute top-3 right-3 inline-flex h-7 w-7 items-center justify-center border transition-[background-color,color,border-color] duration-150"
         onClick={onOpenSettings}
         title="Open settings"
         type="button"
@@ -106,7 +105,7 @@ export function StatusPanel({
         {statusVisual === null ? (
           <div
             aria-hidden="true"
-            className={`status-panel__avatar-orb h-20 w-20 bg-avatar-orb shadow-avatar-orb transition-[transform,opacity,box-shadow] duration-150 ${orbClassNameByIntensity[assistantStatus.intensity]}`}
+            className={`status-panel__avatar-orb bg-avatar-orb shadow-avatar-orb h-20 w-20 transition-[transform,opacity,box-shadow] duration-150 ${orbClassNameByIntensity[assistantStatus.intensity]}`}
           />
         ) : (
           <img
@@ -119,14 +118,14 @@ export function StatusPanel({
         {isDisconnected && (
           <button
             aria-label="실행하기"
-            className="absolute inset-0 cursor-pointer transition-[background-color,transform] duration-150 hover:bg-surface-launch-hover/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong focus-visible:ring-offset-2 focus-visible:ring-offset-surface-panel"
+            className="hover:bg-surface-launch-hover/20 focus-visible:ring-border-strong focus-visible:ring-offset-surface-panel absolute inset-0 cursor-pointer transition-[background-color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             onClick={onLaunchClaude}
             title="실행하기"
             type="button"
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute bottom-2 left-1/2 top-0 inline-flex h-[26px] w-[26px] -translate-x-1/2 items-center justify-center border border-border-launch bg-surface-launch text-text-tooltip transition-colors duration-150 group-hover:bg-surface-launch"
+              className="border-border-launch bg-surface-launch text-text-tooltip group-hover:bg-surface-launch pointer-events-none absolute top-0 bottom-2 left-1/2 inline-flex h-[26px] w-[26px] -translate-x-1/2 items-center justify-center border transition-colors duration-150"
             >
               <Play
                 aria-hidden="true"
@@ -139,7 +138,7 @@ export function StatusPanel({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 px-5 py-4">
-        <p className="m-0 whitespace-pre-line text-[1.08rem] text-text-highlight">
+        <p className="text-text-highlight m-0 text-[1.08rem] whitespace-pre-line">
           {overlayMainText !== null ? (
             <>
               {overlayMainText}

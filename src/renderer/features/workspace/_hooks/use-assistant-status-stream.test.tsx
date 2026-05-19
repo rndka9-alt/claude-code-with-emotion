@@ -46,7 +46,10 @@ describe("useAssistantStatusStream", () => {
   });
 
   it("keeps background session snapshots warm for instant focus switches", async () => {
-    const listeners = new Map<string, (snapshot: AssistantStatusSnapshot) => void>();
+    const listeners = new Map<
+      string,
+      (snapshot: AssistantStatusSnapshot) => void
+    >();
     const baseSnapshots: Record<string, AssistantStatusSnapshot> = {
       "session-1": createSnapshot(10, { currentTask: "Focus one" }),
       "session-2": createSnapshot(20, { currentTask: "Focus two" }),
@@ -104,7 +107,10 @@ describe("useAssistantStatusStream", () => {
   });
 
   it("applies trailing throttle to live snapshot updates", async () => {
-    const listeners = new Map<string, (snapshot: AssistantStatusSnapshot) => void>();
+    const listeners = new Map<
+      string,
+      (snapshot: AssistantStatusSnapshot) => void
+    >();
 
     Object.defineProperty(window, "claudeApp", {
       configurable: true,

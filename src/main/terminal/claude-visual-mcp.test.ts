@@ -14,9 +14,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function readLatestOverlayEvent(
-  queueDir: string,
-): Record<string, unknown> {
+function readLatestOverlayEvent(queueDir: string): Record<string, unknown> {
   const files = fs
     .readdirSync(queueDir)
     .filter((f) => f.endsWith(".json"))
@@ -71,9 +69,7 @@ function readSetVisualOverlayEmotionEnum(response: JsonRpcMessage): string[] {
     !isObjectRecord(emotionProperty) ||
     !Array.isArray(emotionProperty.enum)
   ) {
-    throw new Error(
-      "Expected emotion enum on set_visual_overlay input schema",
-    );
+    throw new Error("Expected emotion enum on set_visual_overlay input schema");
   }
 
   return emotionProperty.enum.filter((value): value is string => {
@@ -624,10 +620,11 @@ describe("claude-visual-mcp", () => {
     expect(files.length).toBeGreaterThanOrEqual(2);
 
     const overlayEvents = files
-      .map((f) =>
-        JSON.parse(
-          fs.readFileSync(path.join(eventQueueDir, f), "utf8"),
-        ) as Record<string, unknown>,
+      .map(
+        (f) =>
+          JSON.parse(
+            fs.readFileSync(path.join(eventQueueDir, f), "utf8"),
+          ) as Record<string, unknown>,
       )
       .filter((e) => e.type === "overlay");
 

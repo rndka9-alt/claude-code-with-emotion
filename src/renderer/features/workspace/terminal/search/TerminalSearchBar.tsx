@@ -1,5 +1,10 @@
 import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent, type ReactElement } from "react";
+import {
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type ReactElement,
+} from "react";
 
 interface TerminalSearchBarProps {
   focusRequestKey: number;
@@ -12,14 +17,20 @@ interface TerminalSearchBarProps {
   resultIndex: number | null;
 }
 
-function formatSearchStatus(query: string, resultCount: number | null, resultIndex: number | null): string {
+function formatSearchStatus(
+  query: string,
+  resultCount: number | null,
+  resultIndex: number | null,
+): string {
   if (query.length === 0) {
     return "";
   }
 
   const totalCount = resultCount ?? 0;
   const currentIndex =
-    resultIndex !== null && resultIndex >= 0 && totalCount > 0 ? resultIndex + 1 : 0;
+    resultIndex !== null && resultIndex >= 0 && totalCount > 0
+      ? resultIndex + 1
+      : 0;
 
   return `${currentIndex}/${totalCount}`;
 }
@@ -50,11 +61,14 @@ export function TerminalSearchBar({
   const searchStatus = formatSearchStatus(query, resultCount, resultIndex);
 
   return (
-    <div className="flex min-w-[24rem] max-w-[min(32rem,calc(100vw-3rem))] items-center gap-2 rounded-md border border-border-strong bg-surface-elevated px-2 py-1 shadow-[0_10px_24px_rgba(0,0,0,0.24)]">
-      <Search aria-hidden="true" className="h-3.5 w-3.5 flex-none text-text-accent" />
+    <div className="border-border-strong bg-surface-elevated flex max-w-[min(32rem,calc(100vw-3rem))] min-w-[24rem] items-center gap-2 rounded-md border px-2 py-1 shadow-[0_10px_24px_rgba(0,0,0,0.24)]">
+      <Search
+        aria-hidden="true"
+        className="text-text-accent h-3.5 w-3.5 flex-none"
+      />
       <input
         aria-label="Search terminal output"
-        className="min-w-[11rem] flex-1 border-0 bg-transparent text-[0.8rem] text-text-highlight outline-none placeholder:text-text-subtle"
+        className="text-text-highlight placeholder:text-text-subtle min-w-[11rem] flex-1 border-0 bg-transparent text-[0.8rem] outline-none"
         onChange={(event) => {
           onChangeQuery(event.target.value);
         }}
@@ -86,10 +100,12 @@ export function TerminalSearchBar({
         type="text"
         value={query}
       />
-      <span className="flex-none text-[0.72rem] text-text-subtle">{searchStatus}</span>
+      <span className="text-text-subtle flex-none text-[0.72rem]">
+        {searchStatus}
+      </span>
       <button
         aria-label="Previous match"
-        className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-sm text-text-subtle transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight"
+        className="text-text-subtle hover:bg-surface-hover hover:text-text-highlight inline-flex h-6 w-6 flex-none items-center justify-center rounded-sm transition-colors duration-150"
         onClick={onFindPrevious}
         type="button"
       >
@@ -97,7 +113,7 @@ export function TerminalSearchBar({
       </button>
       <button
         aria-label="Next match"
-        className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-sm text-text-subtle transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight"
+        className="text-text-subtle hover:bg-surface-hover hover:text-text-highlight inline-flex h-6 w-6 flex-none items-center justify-center rounded-sm transition-colors duration-150"
         onClick={onFindNext}
         type="button"
       >
@@ -105,7 +121,7 @@ export function TerminalSearchBar({
       </button>
       <button
         aria-label="Close search"
-        className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-sm text-text-subtle transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight"
+        className="text-text-subtle hover:bg-surface-hover hover:text-text-highlight inline-flex h-6 w-6 flex-none items-center justify-center rounded-sm transition-colors duration-150"
         onClick={onClose}
         type="button"
       >

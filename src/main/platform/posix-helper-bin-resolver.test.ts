@@ -30,7 +30,9 @@ describe("findPosixExecutableInPath", () => {
   });
 
   it("returns null when no segment contains the binary", () => {
-    expect(findPosixExecutableInPath("nope", "/nonexistent-a:/nonexistent-b")).toBeNull();
+    expect(
+      findPosixExecutableInPath("nope", "/nonexistent-a:/nonexistent-b"),
+    ).toBeNull();
   });
 
   it("returns null when PATH is undefined or empty", () => {

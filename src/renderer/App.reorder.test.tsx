@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { App } from "./App";
 
 function requireParentElement(element: HTMLElement): HTMLElement {
@@ -381,6 +387,5 @@ describe("App tab reordering", () => {
     }
 
     expect(scrollLeft).toBeGreaterThan(0);
-
   });
 });

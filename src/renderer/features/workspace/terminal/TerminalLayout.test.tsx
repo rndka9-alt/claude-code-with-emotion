@@ -11,7 +11,9 @@ vi.mock("./TerminalSurface", () => {
       paneId: string;
       session: TerminalSession;
     }) => {
-      return <div data-testid={`terminal-surface-${paneId}`}>{session.title}</div>;
+      return (
+        <div data-testid={`terminal-surface-${paneId}`}>{session.title}</div>
+      );
     },
   };
 });
@@ -69,9 +71,9 @@ describe("TerminalLayout", () => {
     );
 
     expect(screen.getAllByTestId(/terminal-surface-/)).toHaveLength(2);
-    expect(container.querySelectorAll('[data-pane-title-bar="true"]')).toHaveLength(
-      1,
-    );
+    expect(
+      container.querySelectorAll('[data-pane-title-bar="true"]'),
+    ).toHaveLength(1);
   });
 
   it("does not reserve extra space for a single pane layout", () => {
@@ -93,9 +95,9 @@ describe("TerminalLayout", () => {
     );
 
     expect(screen.getAllByTestId(/terminal-surface-/)).toHaveLength(1);
-    expect(container.querySelectorAll('[data-pane-title-bar="true"]')).toHaveLength(
-      0,
-    );
+    expect(
+      container.querySelectorAll('[data-pane-title-bar="true"]'),
+    ).toHaveLength(0);
   });
 
   it("opens the search bar in a single pane layout with Cmd+F", () => {
@@ -148,8 +150,8 @@ describe("TerminalLayout", () => {
     expect(
       screen.getByRole("textbox", { name: "Search terminal output" }),
     ).toBeInTheDocument();
-    expect(container.querySelectorAll('[data-pane-title-bar="true"]')).toHaveLength(
-      1,
-    );
+    expect(
+      container.querySelectorAll('[data-pane-title-bar="true"]'),
+    ).toHaveLength(1);
   });
 });

@@ -2,9 +2,7 @@ import path from "node:path";
 
 // PATH 등 경로 리스트 환경변수는 OS 마다 구분자가 다르다(macOS/Linux `:`, Windows `;`).
 // 하드코딩된 `:` 을 `path.delimiter` 로 일원화해 플랫폼 중립 층을 만든다.
-export function splitPathList(
-  value: string | null | undefined,
-): string[] {
+export function splitPathList(value: string | null | undefined): string[] {
   if (typeof value !== "string" || value.length === 0) {
     return [];
   }

@@ -203,10 +203,7 @@ function callVisualOverlayTool(argumentsObject) {
     argumentsObject,
     "emotion",
   );
-  const hasLine = Object.prototype.hasOwnProperty.call(
-    argumentsObject,
-    "line",
-  );
+  const hasLine = Object.prototype.hasOwnProperty.call(argumentsObject, "line");
 
   if (!hasEmotion && !hasLine) {
     return {

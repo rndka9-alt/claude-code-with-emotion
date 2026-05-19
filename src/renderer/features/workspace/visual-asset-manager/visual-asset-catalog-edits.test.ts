@@ -561,9 +561,9 @@ describe("visual asset catalog edits", () => {
     expect(findVisualAssetEmotionOwner(catalog, "bored")).toEqual(null);
     expect(findVisualAssetStateOwner(catalog, "working")).toEqual("asset-a");
     expect(findVisualAssetStateOwner(catalog, "thinking")).toEqual(null);
-    expect(
-      findVisualAssetStateEmotionOwner(catalog, "working", "sad"),
-    ).toEqual("asset-a");
+    expect(findVisualAssetStateEmotionOwner(catalog, "working", "sad")).toEqual(
+      "asset-a",
+    );
     expect(
       findVisualAssetStateEmotionOwner(catalog, "working", "happy"),
     ).toEqual(null);

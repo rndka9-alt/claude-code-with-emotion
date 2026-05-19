@@ -241,10 +241,7 @@ export function mergePickedVisualAssets(
       });
     }
 
-    if (
-      filenameAssignment !== null &&
-      filenameAssignment.pair !== null
-    ) {
+    if (filenameAssignment !== null && filenameAssignment.pair !== null) {
       const { emotion, state } = filenameAssignment.pair;
 
       nextMappings = removeMatchingStateEmotionMappings(

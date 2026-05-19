@@ -38,9 +38,7 @@ export interface TerminalMirrorController {
   dispose: () => void;
   focus: () => void;
   requestFit: (reason: string) => void;
-  syncPinnedViewport: (
-    metrics: TerminalPinnedViewportMetrics | null,
-  ) => void;
+  syncPinnedViewport: (metrics: TerminalPinnedViewportMetrics | null) => void;
   updateTheme: () => void;
 }
 
@@ -63,8 +61,7 @@ export interface TerminalSessionController {
   dispose: () => void;
 }
 
-export interface TerminalSessionControllerRecord
-  extends TerminalSessionController {
+export interface TerminalSessionControllerRecord extends TerminalSessionController {
   applySearch: (request: TerminalSearchRequest) => void;
   clearSearch: () => void;
   updateSearchResultsHandler: (
@@ -473,10 +470,7 @@ export function createTerminalSessionController(
       });
   }
 
-  function scheduleFitTask(
-    callback: () => void,
-    delayMs: number,
-  ): void {
+  function scheduleFitTask(callback: () => void, delayMs: number): void {
     let task: ScheduledTask;
 
     task = scheduleTask(() => {

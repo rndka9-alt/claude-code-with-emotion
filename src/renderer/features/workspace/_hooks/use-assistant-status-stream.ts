@@ -75,9 +75,7 @@ export function useAssistantStatusStream(
     setSnapshotsBySessionId((current) => {
       const existingSnapshot = current[focusedSessionId];
 
-      if (
-        !shouldPromoteFallbackSnapshot(existingSnapshot, fallbackSnapshot)
-      ) {
+      if (!shouldPromoteFallbackSnapshot(existingSnapshot, fallbackSnapshot)) {
         return current;
       }
 

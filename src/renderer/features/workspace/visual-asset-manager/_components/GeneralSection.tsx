@@ -37,23 +37,23 @@ export function GeneralSection({
       </div>
 
       {mcpSetupInstalled ? (
-        <div className="border border-border-soft bg-surface-elevated px-4 py-3 text-sm text-text-secondary">
+        <div className="border-border-soft bg-surface-elevated text-text-secondary border px-4 py-3 text-sm">
           Visual MCP가 이미 설치대어 잇어요. 이쪽은 평화롭네요...!
         </div>
       ) : (
-        <div className="flex flex-col items-start gap-3 border border-border-soft bg-surface-elevated px-4 py-4">
+        <div className="border-border-soft bg-surface-elevated flex flex-col items-start gap-3 border px-4 py-4">
           <div className="flex items-start gap-2.5">
             <Wrench
               aria-hidden="true"
-              className="mt-0.5 h-4 w-4 shrink-0 text-text-accent"
+              className="text-text-accent mt-0.5 h-4 w-4 shrink-0"
             />
-            <p className="m-0 text-sm leading-6 text-text-secondary">
+            <p className="text-text-secondary m-0 text-sm leading-6">
               아직 설치 안 된 상태예요. 여기서 바로 설치하면 상태창 비주얼
               연결이 살아나요.
             </p>
           </div>
           <button
-            className="inline-flex h-[34px] items-center justify-center border border-border-launch bg-surface-launch px-3 text-sm font-semibold tracking-[0.01em] text-text-tooltip transition-colors duration-150 hover:bg-surface-launch-hover disabled:cursor-not-allowed disabled:opacity-60"
+            className="border-border-launch bg-surface-launch text-text-tooltip hover:bg-surface-launch-hover inline-flex h-[34px] items-center justify-center border px-3 text-sm font-semibold tracking-[0.01em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isInstallingVisualMcp}
             onClick={onInstallVisualMcp}
             type="button"
@@ -68,8 +68,8 @@ export function GeneralSection({
         </div>
       )}
 
-      <div className="mt-3 border-t border-border-soft pt-4">
-        <p className="m-0 font-mono text-[11px] tracking-wide text-text-subtle select-all">
+      <div className="border-border-soft mt-3 border-t pt-4">
+        <p className="text-text-subtle m-0 font-mono text-[11px] tracking-wide select-all">
           build {formatBuildFingerprint()}
         </p>
       </div>

@@ -4,10 +4,7 @@ import type {
   AssistantStatusSnapshotEvent,
 } from "../../../shared/assistant-status";
 import type { RuntimeLog } from "../../diagnostics";
-import {
-  AssistantEventQueueBridge,
-  AssistantStatusStore,
-} from "../../status";
+import { AssistantEventQueueBridge, AssistantStatusStore } from "../../status";
 import {
   clearStaleSessionArtifactDir,
   removeSessionArtifact,
@@ -24,7 +21,10 @@ export class AssistantSessionStatusBridgeRegistry {
     string,
     AssistantEventQueueBridge
   >();
-  private readonly sessionStatusStores = new Map<string, AssistantStatusStore>();
+  private readonly sessionStatusStores = new Map<
+    string,
+    AssistantStatusStore
+  >();
   private readonly sessionStatusUnsubscribes = new Map<string, () => void>();
 
   constructor(

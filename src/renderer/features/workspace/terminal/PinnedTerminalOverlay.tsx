@@ -70,11 +70,7 @@ export function PinnedTerminalOverlay({
     }
 
     mirrorControllerRef.current?.requestFit("pinned-overlay-resize");
-  }, [
-    isOpen,
-    viewportMetrics?.cellHeightPx,
-    viewportMetrics?.terminalRows,
-  ]);
+  }, [isOpen, viewportMetrics?.cellHeightPx, viewportMetrics?.terminalRows]);
 
   if (!isOpen || viewportMetrics === null) {
     return <></>;

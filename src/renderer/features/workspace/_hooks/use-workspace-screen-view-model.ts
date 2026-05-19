@@ -14,12 +14,11 @@ import {
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
 import { useToast } from "../../toast/ToastProvider";
+import { getAllSessionIds, getActiveTab, getFocusedSession } from "../model";
 import {
-  getAllSessionIds,
-  getActiveTab,
-  getFocusedSession,
-} from "../model";
-import { formatStatusPanelLine, resolveStatusPanelVisual } from "../status-panel";
+  formatStatusPanelLine,
+  resolveStatusPanelVisual,
+} from "../status-panel";
 import { useTabNotifications } from "../tabs";
 import { useAssistantStatusStream } from "./use-assistant-status-stream";
 import { useAppTheme } from "./use-app-theme";
@@ -52,13 +51,8 @@ function findStateLabel(stateId: VisualStatePresetId): string {
   );
 }
 
-function findAssetLabel(
-  catalog: VisualAssetCatalog,
-  assetId: string,
-): string {
-  return (
-    catalog.assets.find((asset) => asset.id === assetId)?.label ?? assetId
-  );
+function findAssetLabel(catalog: VisualAssetCatalog, assetId: string): string {
+  return catalog.assets.find((asset) => asset.id === assetId)?.label ?? assetId;
 }
 
 const MCP_SETUP_PROMPT_DISMISSED_STORAGE_KEY =
@@ -154,7 +148,9 @@ export interface WorkspaceScreenViewModel {
   installVisualMcp: () => void;
   openSettingsDialog: () => void;
   pickVisualAssets: () => void;
-  activeTab: ReturnType<typeof useWorkspaceState>["state"]["tabs"][number] | null;
+  activeTab:
+    | ReturnType<typeof useWorkspaceState>["state"]["tabs"][number]
+    | null;
   closePane: (paneId: string, sessionId: string) => void;
   focusPane: (paneId: string) => void;
   sessions: ReturnType<typeof useWorkspaceState>["state"]["sessions"];
@@ -226,23 +222,27 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   const [mcpSetupStatus, setMcpSetupStatus] =
     useState<VisualMcpSetupStatus | null>(null);
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
-  const [pendingAssistantSnapshotsBySessionId, setPendingAssistantSnapshotsBySessionId] =
-    useState<Record<string, AssistantStatusSnapshot>>({});
+  const [
+    pendingAssistantSnapshotsBySessionId,
+    setPendingAssistantSnapshotsBySessionId,
+  ] = useState<Record<string, AssistantStatusSnapshot>>({});
   const activeTab = getActiveTab(state);
   const activeSession = getFocusedSession(state);
   const fallbackAssistantSnapshot: AssistantStatusSnapshot =
     activeSession !== null
       ? (pendingAssistantSnapshotsBySessionId[activeSession.id] ??
-        createDefaultAssistantStatusSnapshot(state.assistantStatus.statusSinceMs))
-      : createDefaultAssistantStatusSnapshot(state.assistantStatus.statusSinceMs);
-  const {
-    activeSnapshot: assistantSnapshot,
-    snapshotsBySessionId,
-  } = useAssistantStatusStream(
-    getAllSessionIds(state),
-    activeSession?.id ?? null,
-    fallbackAssistantSnapshot,
-  );
+        createDefaultAssistantStatusSnapshot(
+          state.assistantStatus.statusSinceMs,
+        ))
+      : createDefaultAssistantStatusSnapshot(
+          state.assistantStatus.statusSinceMs,
+        );
+  const { activeSnapshot: assistantSnapshot, snapshotsBySessionId } =
+    useAssistantStatusStream(
+      getAllSessionIds(state),
+      activeSession?.id ?? null,
+      fallbackAssistantSnapshot,
+    );
   const {
     catalog: visualAssetCatalog,
     importFiles: importVisualAssetFiles,
@@ -527,10 +527,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         ),
       );
 
-      if (
-        previousOwnerAssetId !== null &&
-        previousOwnerAssetId !== assetId
-      ) {
+      if (previousOwnerAssetId !== null && previousOwnerAssetId !== assetId) {
         const previousOwnerLabel = findAssetLabel(
           visualAssetCatalog,
           previousOwnerAssetId,
@@ -571,10 +568,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         ),
       );
 
-      if (
-        previousOwnerAssetId !== null &&
-        previousOwnerAssetId !== assetId
-      ) {
+      if (previousOwnerAssetId !== null && previousOwnerAssetId !== assetId) {
         const previousOwnerLabel = findAssetLabel(
           visualAssetCatalog,
           previousOwnerAssetId,
@@ -620,10 +614,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         ),
       );
 
-      if (
-        previousOwnerAssetId !== null &&
-        previousOwnerAssetId !== assetId
-      ) {
+      if (previousOwnerAssetId !== null && previousOwnerAssetId !== assetId) {
         const previousOwnerLabel = findAssetLabel(
           visualAssetCatalog,
           previousOwnerAssetId,

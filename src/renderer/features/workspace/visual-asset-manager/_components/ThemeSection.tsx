@@ -27,11 +27,11 @@ export function ThemeSection({
         </p>
       </div>
 
-      <label className="flex max-w-[340px] flex-col gap-2 text-sm text-text-secondary">
+      <label className="text-text-secondary flex max-w-[340px] flex-col gap-2 text-sm">
         <span>테마 선택</span>
         <select
           aria-label="App theme"
-          className="min-w-0 border border-border-soft bg-surface-elevated px-3 py-2.5 text-sm text-text-primary outline-none transition-colors duration-150 focus:border-border-strong"
+          className="border-border-soft bg-surface-elevated text-text-primary focus:border-border-strong min-w-0 border px-3 py-2.5 text-sm transition-colors duration-150 outline-none"
           onChange={(event) => {
             const nextThemeId = event.currentTarget.value;
 
@@ -51,7 +51,7 @@ export function ThemeSection({
         </select>
       </label>
 
-      <div className="border border-border-soft bg-surface-elevated px-4 py-3 text-sm leading-6 text-text-secondary">
+      <div className="border-border-soft bg-surface-elevated text-text-secondary border px-4 py-3 text-sm leading-6">
         {APP_THEME_PRESETS[currentThemeId].description}
       </div>
     </section>

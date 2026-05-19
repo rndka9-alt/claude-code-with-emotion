@@ -61,10 +61,7 @@ export function createAutoScrollController(
     const visibleWidth = getStripVisibleWidth(stripElement);
     const maxScrollLeft = Math.max(stripElement.scrollWidth - visibleWidth, 0);
     const nextScrollLeft = Math.min(
-      Math.max(
-        stripElement.scrollLeft + velocity * (elapsedMs / 1_000),
-        0,
-      ),
+      Math.max(stripElement.scrollLeft + velocity * (elapsedMs / 1_000), 0),
       maxScrollLeft,
     );
 

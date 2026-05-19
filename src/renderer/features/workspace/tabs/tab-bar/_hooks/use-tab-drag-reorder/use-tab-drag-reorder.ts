@@ -92,7 +92,9 @@ export function useTabDragReorder(
     handleDragEnd: (event: DragEndEvent) => {
       const activeTabId = resolveTabId(event.active.id);
       const overTabId =
-        event.over === null ? lastOverTabIdRef.current : resolveTabId(event.over.id);
+        event.over === null
+          ? lastOverTabIdRef.current
+          : resolveTabId(event.over.id);
 
       suppressClickTabIdRef.current = activeTabId;
       autoScrollControllerRef.current?.stop();

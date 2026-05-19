@@ -192,13 +192,9 @@ rmSync(stagingDir, { recursive: true, force: true });
 
 // bin/ 스크립트들은 Claude CLI hook·MCP 설정을 통해 외부 프로세스에서 execve 로 직접 실행되므로
 // asar 밖 실제 파일 경로에 놓아야 한다. Contents/Resources/bin/ 에 그대로 배치.
-cpSync(
-  path.join(projectRoot, "bin"),
-  path.join(resourcesPath, "bin"),
-  {
-    recursive: true,
-    force: true,
-  },
-);
+cpSync(path.join(projectRoot, "bin"), path.join(resourcesPath, "bin"), {
+  recursive: true,
+  force: true,
+});
 
 console.log(`Packaged unsigned macOS app at ${bundlePath}`);

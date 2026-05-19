@@ -14,7 +14,7 @@ function readPromptFile(fileName, fallback) {
 function createVisualToolUsagePrompt() {
   const emotionUsage = readPromptFile(
     "visual-emotion-usage.md",
-    "Call set_visual_overlay with an emotion field when the visible emotional tone should change; use emotion: \"neutral\" to clear it.",
+    'Call set_visual_overlay with an emotion field when the visible emotional tone should change; use emotion: "neutral" to clear it.',
   );
   const lineUsage = readPromptFile(
     "visual-line-usage.md",

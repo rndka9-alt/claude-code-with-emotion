@@ -554,7 +554,9 @@ function createUpdate(eventName, payload, hookState) {
       state: "completed",
       line: "이야기 정리 끝내고 돌아왓어요...!",
       task:
-        matcher !== null ? `Compact completed: ${matcher}` : "Compact completed",
+        matcher !== null
+          ? `Compact completed: ${matcher}`
+          : "Compact completed",
       intensity: "medium",
     };
   }
@@ -625,11 +627,7 @@ function spawnHelperBin(baseName, args, spawnOptions) {
   if (typeof helperBinDir === "string" && helperBinDir.length > 0) {
     const cjsPath = join(helperBinDir, baseName);
     return {
-      result: spawnSync(
-        process.execPath,
-        [cjsPath, ...args],
-        spawnOptions,
-      ),
+      result: spawnSync(process.execPath, [cjsPath, ...args], spawnOptions),
       command: `${process.execPath} ${cjsPath}`,
     };
   }

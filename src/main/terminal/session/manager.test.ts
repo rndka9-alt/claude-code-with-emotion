@@ -1,7 +1,4 @@
-import {
-  createRuntimeEnv,
-  TerminalSessionManager,
-} from "./manager";
+import { createRuntimeEnv, TerminalSessionManager } from "./manager";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -189,10 +186,7 @@ describe("TerminalSessionManager", () => {
 
       expect(outputEvents).toContain("session-1:1:pong");
       expect(
-        manager.bootstrapSession(
-          createBootstrapRequest(),
-          "/tmp/event-queue",
-        ),
+        manager.bootstrapSession(createBootstrapRequest(), "/tmp/event-queue"),
       ).toEqual({
         outputSnapshot: "pong",
         outputVersion: 1,
@@ -368,10 +362,7 @@ describe("TerminalSessionManager", () => {
       "/tmp/user-data",
     );
     try {
-      manager.bootstrapSession(
-        createBootstrapRequest(),
-        "/tmp/event-queue",
-      );
+      manager.bootstrapSession(createBootstrapRequest(), "/tmp/event-queue");
       manager.closeSession({ sessionId: "session-1" });
 
       expect(createdRuntimes[0]?.killed).toBe(true);

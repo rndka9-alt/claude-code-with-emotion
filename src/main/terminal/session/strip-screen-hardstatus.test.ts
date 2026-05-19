@@ -38,8 +38,8 @@ describe("stripScreenHardstatus", () => {
   });
 
   it("시퀀스 내용에 특수문자가 포함되어도 그대로 변환한다", () => {
-    expect(
-      stripScreenHardstatus("\x1bk~/workspace/project\x1b\\"),
-    ).toBe("\x1b]0;~/workspace/project\x07");
+    expect(stripScreenHardstatus("\x1bk~/workspace/project\x1b\\")).toBe(
+      "\x1b]0;~/workspace/project\x07",
+    );
   });
 });

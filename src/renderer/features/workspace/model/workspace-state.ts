@@ -241,7 +241,9 @@ function getTabIndexBySessionId(
   state: WorkspaceState,
   sessionId: string,
 ): number {
-  return state.tabs.findIndex((tab) => getTabSessionIds(tab).includes(sessionId));
+  return state.tabs.findIndex((tab) =>
+    getTabSessionIds(tab).includes(sessionId),
+  );
 }
 
 function findPaneById(
@@ -517,7 +519,11 @@ function resizeSplitInLayout(
     };
   }
 
-  const firstChild = resizeSplitInLayout(layout.children[0], splitId, deltaRatio);
+  const firstChild = resizeSplitInLayout(
+    layout.children[0],
+    splitId,
+    deltaRatio,
+  );
 
   if (firstChild !== layout.children[0]) {
     return {
@@ -632,14 +638,12 @@ function resolveAdjacentPaneId(
     return null;
   }
 
-  let bestCandidate:
-    | {
-        centerDistance: number;
-        paneId: string;
-        primaryGap: number;
-        secondaryGap: number;
-      }
-    | null = null;
+  let bestCandidate: {
+    centerDistance: number;
+    paneId: string;
+    primaryGap: number;
+    secondaryGap: number;
+  } | null = null;
 
   for (const [paneId, rect] of rects.entries()) {
     if (paneId === focusedPaneId) {
@@ -662,7 +666,9 @@ function resolveAdjacentPaneId(
         rect.top,
         rect.bottom,
       );
-      centerDistance = Math.abs(getRectCenterY(currentRect) - getRectCenterY(rect));
+      centerDistance = Math.abs(
+        getRectCenterY(currentRect) - getRectCenterY(rect),
+      );
     }
 
     if (direction === "right") {
@@ -677,7 +683,9 @@ function resolveAdjacentPaneId(
         rect.top,
         rect.bottom,
       );
-      centerDistance = Math.abs(getRectCenterY(currentRect) - getRectCenterY(rect));
+      centerDistance = Math.abs(
+        getRectCenterY(currentRect) - getRectCenterY(rect),
+      );
     }
 
     if (direction === "up") {
@@ -692,7 +700,9 @@ function resolveAdjacentPaneId(
         rect.left,
         rect.right,
       );
-      centerDistance = Math.abs(getRectCenterX(currentRect) - getRectCenterX(rect));
+      centerDistance = Math.abs(
+        getRectCenterX(currentRect) - getRectCenterX(rect),
+      );
     }
 
     if (direction === "down") {
@@ -707,7 +717,9 @@ function resolveAdjacentPaneId(
         rect.left,
         rect.right,
       );
-      centerDistance = Math.abs(getRectCenterX(currentRect) - getRectCenterX(rect));
+      centerDistance = Math.abs(
+        getRectCenterX(currentRect) - getRectCenterX(rect),
+      );
     }
 
     if (
@@ -783,7 +795,7 @@ function closeSessionState(
       state.activeTabId !== tab.id
         ? state.activeTabId
         : (remainingTabs[Math.max(0, tabIndex - 1)]?.id ??
-            remainingTabs[0]?.id);
+          remainingTabs[0]?.id);
 
     if (typeof nextActiveTabId !== "string") {
       return state;
@@ -868,7 +880,9 @@ export function getActiveTab(state: WorkspaceState): WorkspaceTab | null {
   return getTabById(state, state.activeTabId) ?? state.tabs[0] ?? null;
 }
 
-export function getFocusedSession(state: WorkspaceState): TerminalSession | null {
+export function getFocusedSession(
+  state: WorkspaceState,
+): TerminalSession | null {
   const activeTab = getActiveTab(state);
 
   if (activeTab === null) {
@@ -1342,12 +1356,7 @@ function closePaneState(
     return state;
   }
 
-  return closeSessionState(
-    state,
-    pane.sessionId,
-    action.nowMs,
-    action.reason,
-  );
+  return closeSessionState(state, pane.sessionId, action.nowMs, action.reason);
 }
 
 function closeTabState(
@@ -1400,8 +1409,7 @@ function closeTabState(
   const nextActiveTabId =
     state.activeTabId !== tab.id
       ? state.activeTabId
-      : (remainingTabs[Math.max(0, tabIndex - 1)]?.id ??
-          remainingTabs[0]?.id);
+      : (remainingTabs[Math.max(0, tabIndex - 1)]?.id ?? remainingTabs[0]?.id);
 
   if (typeof nextActiveTabId !== "string") {
     return state;

@@ -50,7 +50,10 @@ function mergePathLists(primary: string, secondary: string): string {
   const seen = new Set<string>();
   const merged: string[] = [];
 
-  for (const segment of [...splitPathList(primary), ...splitPathList(secondary)]) {
+  for (const segment of [
+    ...splitPathList(primary),
+    ...splitPathList(secondary),
+  ]) {
     if (segment.length === 0 || seen.has(segment)) {
       continue;
     }

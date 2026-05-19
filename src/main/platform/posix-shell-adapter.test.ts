@@ -68,7 +68,9 @@ describe("createPosixLaunchConfig", () => {
       expect(zshrc).toContain(
         `export ${ENV_KEYS.ORIGINAL_PATH}="\${__cwe_stripped}"`,
       );
-      expect(zshrc).toContain('export PATH="${__cwe_helper}:${__cwe_stripped}"');
+      expect(zshrc).toContain(
+        'export PATH="${__cwe_helper}:${__cwe_stripped}"',
+      );
       expect(zshrc).toContain(
         `export ${ENV_KEYS.EVENT_QUEUE_DIR}='/tmp/event-queue'`,
       );

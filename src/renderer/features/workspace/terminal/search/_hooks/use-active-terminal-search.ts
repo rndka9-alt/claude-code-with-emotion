@@ -37,9 +37,7 @@ function createEmptyResults(): Pick<
   };
 }
 
-export function useActiveTerminalSearch(
-  focusedSessionId: string | null,
-): {
+export function useActiveTerminalSearch(focusedSessionId: string | null): {
   closeSearch: () => void;
   focusRequestKey: number;
   isVisible: boolean;
@@ -61,9 +59,8 @@ export function useActiveTerminalSearch(
     useState<TerminalSearchDirection>("next");
   const [searchSequence, setSearchSequence] = useState(0);
   const [focusRequestKey, setFocusRequestKey] = useState(0);
-  const [{ hasMatch, resultCount, resultIndex }, setResults] = useState(
-    createEmptyResults,
-  );
+  const [{ hasMatch, resultCount, resultIndex }, setResults] =
+    useState(createEmptyResults);
 
   const openSearch = useCallback(() => {
     if (focusedSessionId === null) {

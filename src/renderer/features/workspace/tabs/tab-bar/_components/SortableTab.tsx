@@ -92,7 +92,7 @@ export function SortableTab({
       <button
         aria-controls={`panel-${tab.id}`}
         aria-selected={isActive}
-        className="relative flex w-full min-w-0 flex-1 cursor-grab select-none border border-b-0 border-[var(--tab-border)] bg-[var(--tab-background)] px-[14px] py-1.5 text-left text-[0.88rem] text-[var(--tab-foreground)]"
+        className="relative flex w-full min-w-0 flex-1 cursor-grab border border-b-0 border-[var(--tab-border)] bg-[var(--tab-background)] px-[14px] py-1.5 text-left text-[0.88rem] text-[var(--tab-foreground)] select-none"
         id={`tab-${tab.id}`}
         style={tabToneStyle}
         title={tab.title}
@@ -145,7 +145,7 @@ export function SortableTab({
             value={draftTitle}
           />
         ) : (
-          <span className="block overflow-hidden text-ellipsis whitespace-nowrap leading-[1.2]">
+          <span className="block overflow-hidden leading-[1.2] text-ellipsis whitespace-nowrap">
             {tab.title}
           </span>
         )}
@@ -154,7 +154,7 @@ export function SortableTab({
       {hasNotification ? (
         <button
           aria-label={`Dismiss notification for ${tab.title}`}
-          className="tab-close-button absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] shadow-[-10px_0_10px_var(--tab-background)] transition-[background-color,color,box-shadow] duration-150 hover:bg-surface-hover hover:text-text-highlight hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
+          className="tab-close-button hover:bg-surface-hover hover:text-text-highlight absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] shadow-[-10px_0_10px_var(--tab-background)] transition-[background-color,color,box-shadow] duration-150 hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
           onClick={(event) => {
             event.stopPropagation();
             onDismissNotification(tab.id);
@@ -162,17 +162,17 @@ export function SortableTab({
           style={tabToneStyle}
           type="button"
         >
-          <span className="absolute h-[7px] w-[7px] rounded-full bg-tab-notification transition-opacity duration-150 group-hover:opacity-0" />
+          <span className="bg-tab-notification absolute h-[7px] w-[7px] rounded-full transition-opacity duration-150 group-hover:opacity-0" />
           <X
             aria-hidden="true"
-            className="h-[11px] w-[11px] text-tab-close-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+            className="text-tab-close-foreground h-[11px] w-[11px] opacity-0 transition-opacity duration-150 group-hover:opacity-100"
             strokeWidth={2.25}
           />
         </button>
       ) : (
         <button
           aria-label={`Close ${tab.title}`}
-          className="tab-close-button absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] text-tab-close-foreground opacity-0 shadow-[-10px_0_10px_var(--tab-background)] transition-[opacity,background-color,color,box-shadow] duration-150 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-surface-hover hover:text-text-highlight hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
+          className="tab-close-button text-tab-close-foreground hover:bg-surface-hover hover:text-text-highlight pointer-events-none absolute top-1/2 right-1 flex h-[18px] w-[18px] -translate-y-1/2 items-center justify-center bg-[var(--tab-background)] opacity-0 shadow-[-10px_0_10px_var(--tab-background)] transition-[opacity,background-color,color,box-shadow] duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 hover:shadow-[-10px_0_10px_var(--color-surface-hover)]"
           onClick={(event) => {
             event.stopPropagation();
             onCloseTab(tab.id);

@@ -19,9 +19,7 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function readLatestStatusEvent(
-  queueDir: string,
-): Record<string, unknown> {
+function readLatestStatusEvent(queueDir: string): Record<string, unknown> {
   const files = fs
     .readdirSync(queueDir)
     .filter((f) => f.endsWith(".json"))
@@ -41,9 +39,7 @@ function readLatestStatusEvent(
   throw new Error("No status event found in queue directory");
 }
 
-function readLatestOverlayEvent(
-  queueDir: string,
-): Record<string, unknown> {
+function readLatestOverlayEvent(queueDir: string): Record<string, unknown> {
   const files = fs
     .readdirSync(queueDir)
     .filter((f) => f.endsWith(".json"))
@@ -65,9 +61,7 @@ function readLatestOverlayEvent(
 
 function hasOverlayEvent(queueDir: string): boolean {
   try {
-    const files = fs
-      .readdirSync(queueDir)
-      .filter((f) => f.endsWith(".json"));
+    const files = fs.readdirSync(queueDir).filter((f) => f.endsWith(".json"));
 
     for (const file of files) {
       const event: unknown = JSON.parse(
@@ -98,8 +92,7 @@ function invokeHook(
     "trace.log",
   );
   const hookStateFilePath =
-    options?.hookStateFilePath ??
-    path.join(eventQueueDir, "hook-state.json");
+    options?.hookStateFilePath ?? path.join(eventQueueDir, "hook-state.json");
   const helperBinDir = path.resolve(process.cwd(), "bin");
   const result = spawnSync("node", ["./bin/claude-session-hook", eventName], {
     cwd: process.cwd(),
@@ -293,7 +286,9 @@ describe("claude-session-hook", () => {
 
     const status = readLatestStatusEvent(result.eventQueueDir);
     expect(status.state).toBe("waiting");
-    expect(status.line).toBe("Claude 연결 완료! 다음 입력을 기다리고 잇어요...!");
+    expect(status.line).toBe(
+      "Claude 연결 완료! 다음 입력을 기다리고 잇어요...!",
+    );
   });
 
   it("does not write an overlay event for events without emotion", () => {

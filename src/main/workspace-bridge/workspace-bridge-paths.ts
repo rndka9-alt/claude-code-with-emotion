@@ -41,6 +41,9 @@ export function resolveWorkspaceBridgePaths({
     userDataPath,
     visualAssetCatalogFilePath: path.join(userDataPath, "visual-assets.json"),
     visualAssetLibraryDirPath: path.join(userDataPath, "visual-assets"),
-    visualMcpStateFilePath: path.join(userDataPath, "assistant-visual-mcp.json"),
+    visualMcpStateFilePath: path.join(
+      userDataPath,
+      "assistant-visual-mcp.json",
+    ),
   };
 }

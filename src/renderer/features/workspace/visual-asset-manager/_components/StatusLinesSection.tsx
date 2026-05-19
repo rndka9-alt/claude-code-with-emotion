@@ -164,7 +164,7 @@ export function StatusLinesSection({
         />
       </div>
       {filteredPresets.length === 0 ? (
-        <div className="border border-dashed border-border-muted bg-surface-empty p-7 text-text-faint">
+        <div className="border-border-muted bg-surface-empty text-text-faint border border-dashed p-7">
           검색어에 걸리는 상태가 읍어요...!
         </div>
       ) : null}
@@ -177,7 +177,7 @@ export function StatusLinesSection({
             <div className="flex flex-col gap-1.5" key={preset.id}>
               <div className="flex items-center gap-1.5">
                 <label
-                  className="text-xs font-semibold text-text-secondary"
+                  className="text-text-secondary text-xs font-semibold"
                   htmlFor={inputId}
                 >
                   {preset.label}
@@ -185,7 +185,7 @@ export function StatusLinesSection({
                 <span className="group relative inline-flex items-center">
                   <button
                     aria-label={`${preset.label} 상태 설명 보기`}
-                    className="inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent text-text-accent"
+                    className="text-text-accent inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent"
                     type="button"
                   >
                     <CircleHelp
@@ -194,7 +194,7 @@ export function StatusLinesSection({
                     />
                   </button>
                   <span
-                    className="pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-[220px] -translate-y-1 border border-tab-border bg-surface-tooltip px-3 py-2.5 text-xs leading-[1.45] text-text-tooltip opacity-0 shadow-tooltip transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                    className="border-tab-border bg-surface-tooltip text-text-tooltip shadow-tooltip pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-[220px] -translate-y-1 border px-3 py-2.5 text-xs leading-[1.45] opacity-0 transition-[opacity,transform] duration-150 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100"
                     role="tooltip"
                   >
                     {getSituationMessageDescription(preset.id)}
@@ -204,7 +204,7 @@ export function StatusLinesSection({
                   <span className="group relative inline-flex items-center">
                     <button
                       aria-label={`${preset.label} 매핑 이미지 미리보기`}
-                      className="inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent text-text-accent"
+                      className="text-text-accent inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent"
                       type="button"
                     >
                       <ImageIcon
@@ -213,7 +213,7 @@ export function StatusLinesSection({
                       />
                     </button>
                     <span
-                      className="pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-32 -translate-y-1 border border-tab-border bg-surface-tooltip opacity-0 shadow-tooltip transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+                      className="border-tab-border bg-surface-tooltip shadow-tooltip pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-32 -translate-y-1 border opacity-0 transition-[opacity,transform] duration-150 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100"
                       role="tooltip"
                     >
                       <img

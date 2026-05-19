@@ -4,9 +4,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { ENV_KEYS } from "../../shared/env-keys";
 
-function readLatestQueueEvent(
-  queueDir: string,
-): Record<string, unknown> {
+function readLatestQueueEvent(queueDir: string): Record<string, unknown> {
   const files = fs
     .readdirSync(queueDir)
     .filter((f) => f.endsWith(".json"))

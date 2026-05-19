@@ -133,9 +133,7 @@ function ToastViewport({
       role="status"
     >
       {items.map((item) => {
-        return (
-          <ToastCard key={item.id} item={item} onDismiss={onDismiss} />
-        );
+        return <ToastCard key={item.id} item={item} onDismiss={onDismiss} />;
       })}
     </div>,
     document.body,
@@ -170,7 +168,7 @@ function ToastCard({ item, onDismiss }: ToastCardProps): ReactElement {
 
   return (
     <div
-      className={`pointer-events-auto flex min-w-[260px] max-w-[360px] items-start gap-3 border border-border-soft border-l-4 bg-surface-frost-strong px-3 py-2.5 text-sm text-text-secondary shadow-tooltip ${toneClassName(
+      className={`border-border-soft bg-surface-frost-strong text-text-secondary shadow-tooltip pointer-events-auto flex max-w-[360px] min-w-[260px] items-start gap-3 border border-l-4 px-3 py-2.5 text-sm ${toneClassName(
         item.tone,
       )}`}
       data-testid="toast-card"
@@ -179,7 +177,7 @@ function ToastCard({ item, onDismiss }: ToastCardProps): ReactElement {
 
       {item.action !== null ? (
         <button
-          className="shrink-0 border border-border-muted bg-surface-elevated px-2 py-1 text-xs text-text-highlight transition-colors duration-150 hover:bg-surface-hover"
+          className="border-border-muted bg-surface-elevated text-text-highlight hover:bg-surface-hover shrink-0 border px-2 py-1 text-xs transition-colors duration-150"
           onClick={() => {
             if (item.action !== null) {
               item.action.onAction();
@@ -194,7 +192,7 @@ function ToastCard({ item, onDismiss }: ToastCardProps): ReactElement {
 
       <button
         aria-label="알림 닫기"
-        className="shrink-0 inline-flex h-[22px] w-[22px] items-center justify-center bg-transparent text-text-subtle transition-colors duration-150 hover:text-text-highlight"
+        className="text-text-subtle hover:text-text-highlight inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center bg-transparent transition-colors duration-150"
         onClick={() => {
           onDismiss(item.id);
         }}

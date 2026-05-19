@@ -149,9 +149,7 @@ export class AssistantEventQueueBridge {
       return;
     }
 
-    const jsonFiles = entries
-      .filter((name) => name.endsWith(".json"))
-      .sort();
+    const jsonFiles = entries.filter((name) => name.endsWith(".json")).sort();
 
     if (jsonFiles.length === 0) {
       return;
@@ -204,9 +202,7 @@ export class AssistantEventQueueBridge {
           );
           this.statusStore.applyUpdate(result.data, "assistant-command");
         } else {
-          this.logEvent?.(
-            `invalid status payload file=${fileName}`,
-          );
+          this.logEvent?.(`invalid status payload file=${fileName}`);
         }
       } else if (eventType === "overlay") {
         const update = parseAssistantVisualOverlayEvent(parsed);
@@ -220,9 +216,7 @@ export class AssistantEventQueueBridge {
             "assistant-visual-overlay",
           );
         } else {
-          this.logEvent?.(
-            `invalid overlay payload file=${fileName}`,
-          );
+          this.logEvent?.(`invalid overlay payload file=${fileName}`);
         }
       } else {
         this.logEvent?.(

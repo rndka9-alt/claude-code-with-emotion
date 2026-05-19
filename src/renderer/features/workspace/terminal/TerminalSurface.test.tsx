@@ -208,7 +208,9 @@ describe("TerminalSurface", () => {
   beforeEach(() => {
     searchAddonInstances.length = 0;
     terminalInstances.length = 0;
-    openExternal = vi.fn<(url: string) => Promise<void>>().mockResolvedValue(undefined);
+    openExternal = vi
+      .fn<(url: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
 
     Object.defineProperty(window, "claudeApp", {
       configurable: true,

@@ -5,7 +5,10 @@ import {
   readThemeVariable,
   terminalThemeFallbacks,
 } from "../terminal-theme";
-import type { TerminalSearchRequest, TerminalSearchResults } from "./search-types";
+import type {
+  TerminalSearchRequest,
+  TerminalSearchResults,
+} from "./search-types";
 
 interface TerminalSearchMatch {
   column: number;

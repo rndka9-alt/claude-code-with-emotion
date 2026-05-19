@@ -1,10 +1,9 @@
 import { type ReactElement, useEffect } from "react";
+import { closestCenter, DndContext, DragOverlay } from "@dnd-kit/core";
 import {
-  closestCenter,
-  DndContext,
-  DragOverlay,
-} from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+  SortableContext,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import type { WorkspaceTab } from "../../model";
 import { SortableTab, TabDragOverlay } from "./_components";
