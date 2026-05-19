@@ -7,20 +7,12 @@ import {
   shell,
   type IpcMainEvent,
 } from "electron";
-import fs from "node:fs";
 import path from "node:path";
 import { createApplicationMenuTemplate } from "./application-menu";
 import { createRuntimeLog, resolveRuntimeLogPath, type RuntimeLog } from "./diagnostics";
 import {
-  AssistantEventQueueBridge,
-  AssistantStatusStore,
-} from "./status";
-import {
-  createTerminalSessionManager,
   ensureNodePtySpawnHelpersExecutable,
-  getVisualMcpSetupStatus,
-  installVisualMcpUserSetup,
-  removeVisualMcpUserSetup,
+  TerminalSessionService,
 } from "./terminal";
 import { ThemeStore } from "./theme";
 import { VisualAssetStore } from "./visual-assets";
@@ -34,8 +26,6 @@ import {
 import { APP_THEME_CHANNELS } from "../shared/app-theme-bridge";
 import {
   ASSISTANT_STATUS_CHANNELS,
-  createDefaultAssistantStatusSnapshot,
-  type AssistantStatusSnapshot,
   type AssistantStatusSnapshotEvent,
   type AssistantStatusSnapshotRequest,
 } from "../shared/assistant-status";
@@ -99,181 +89,32 @@ function registerTerminalBridge(
     app.getPath("userData"),
     "terminal-output",
   );
-  const sessionStatusStores = new Map<string, AssistantStatusStore>();
-  const sessionEventQueueBridges = new Map<
-    string,
-    AssistantEventQueueBridge
-  >();
-  const sessionStatusUnsubscribes = new Map<string, () => void>();
-  const eventQueueRootDir = path.join(
-    app.getPath("userData"),
-    "assistant-event-queue",
-  );
-  const resolveEventQueueDir = (sessionId: string): string =>
-    path.join(eventQueueRootDir, `${process.pid}-${sessionId}`);
-  // 파일명이 {pid}-{sessionId}.json 형태이므로, 해당 PID 가 아직 살아 잇으면
-  // 다른 인스턴스가 소유한 파일이라 건드리면 안 된다. 죽은 PID 의 파일만 좀비로 간주해 정리한다.
-  const isProcessAlive = (pid: number): boolean => {
-    try {
-      process.kill(pid, 0);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-  const clearStaleSessionArtifactDir = (dir: string, label: string): void => {
-    if (!fs.existsSync(dir)) {
-      return;
-    }
-
-    let entries: string[] = [];
-
-    try {
-      entries = fs.readdirSync(dir);
-    } catch (error) {
-      runtimeLog.write(
-        label,
-        `failed to scan stale artifact dir path=${dir} error=${error instanceof Error ? error.message : String(error)}`,
-      );
-      return;
-    }
-
-    for (const entry of entries) {
-      const ownerPid = Number.parseInt(entry, 10);
-
-      if (!Number.isNaN(ownerPid) && isProcessAlive(ownerPid)) {
-        runtimeLog.write(
-          label,
-          `skipping live-process artifact path=${entry} pid=${ownerPid}`,
-        );
-        continue;
-      }
-
-      const entryPath = path.join(dir, entry);
-
-      try {
-        fs.rmSync(entryPath, { force: true, recursive: true });
-      } catch (error) {
-        runtimeLog.write(
-          label,
-          `failed to remove stale artifact path=${entryPath} error=${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
-  };
-
-  clearStaleSessionArtifactDir(eventQueueRootDir, "assistant-event-queue");
-  const writeVisualMcpState = (eventQueueDir: string): void => {
-    const nextState = {
-      traceFilePath: assistantStatusTraceFilePath,
-      visualAssetCatalogFilePath,
-      eventQueueDir,
-    };
-
-    fs.mkdirSync(path.dirname(visualMcpStateFilePath), {
-      recursive: true,
-    });
-    fs.writeFileSync(
-      visualMcpStateFilePath,
-      JSON.stringify(nextState, null, 2),
-      "utf8",
-    );
-  };
-  const ensureSessionStatusBridges = (sessionId: string): void => {
-    if (sessionStatusStores.has(sessionId)) {
-      return;
-    }
-
-    const statusStore = new AssistantStatusStore(Date.now(), (message) => {
-      runtimeLog.write(
-        "assistant-status-store",
-        `session=${sessionId} ${message}`,
-      );
-    });
-    const eventQueueDir = resolveEventQueueDir(sessionId);
-    const eventQueueBridge = new AssistantEventQueueBridge(
-      eventQueueDir,
-      statusStore,
-      (message) => {
-        runtimeLog.write(
-          "assistant-event-queue",
-          `session=${sessionId} ${message}`,
-        );
-      },
-    );
-    const unsubscribe = statusStore.subscribe(
-      (snapshot: AssistantStatusSnapshot) => {
-        const payload: AssistantStatusSnapshotEvent = { sessionId, snapshot };
-        mainWindow.webContents.send(
-          ASSISTANT_STATUS_CHANNELS.snapshot,
-          payload,
-        );
-      },
-    );
-
-    sessionStatusStores.set(sessionId, statusStore);
-    sessionEventQueueBridges.set(sessionId, eventQueueBridge);
-    sessionStatusUnsubscribes.set(sessionId, unsubscribe);
-    eventQueueBridge.start();
-  };
-  const removeSessionArtifact = (
-    artifactPath: string,
-    label: string,
-  ): void => {
-    try {
-      fs.rmSync(artifactPath, { force: true, recursive: true });
-    } catch (error) {
-      runtimeLog.write(
-        label,
-        `failed to remove session artifact path=${artifactPath} error=${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  };
-  const disposeSessionStatusBridges = (sessionId: string): void => {
-    sessionEventQueueBridges.get(sessionId)?.stop();
-    sessionStatusUnsubscribes.get(sessionId)?.();
-    sessionStatusStores.get(sessionId)?.dispose();
-    sessionEventQueueBridges.delete(sessionId);
-    sessionStatusUnsubscribes.delete(sessionId);
-    sessionStatusStores.delete(sessionId);
-    removeSessionArtifact(
-      resolveEventQueueDir(sessionId),
-      "assistant-event-queue",
-    );
-    removeSessionArtifact(
-      `${resolveEventQueueDir(sessionId)}.hook-state.json`,
-      "assistant-event-queue",
-    );
-  };
-  const terminalSessionManager = createTerminalSessionManager(
-    (sessionId, event) => {
-      mainWindow.webContents.send(TERMINAL_CHANNELS.output, {
-        sessionId,
-        data: event.data,
-        outputVersion: event.outputVersion,
-      });
-    },
-    (sessionId, event) => {
-      runtimeLog.write(
-        "terminal",
-        `exit session=${sessionId} code=${event.exitCode} signal=${event.signal}`,
-      );
-      // 터미널 종료 시 MCP가 설정한 오버레이 한마디를 즉시 클리어
-      sessionStatusStores
-        .get(sessionId)
-        ?.applyVisualOverlay({ line: null }, "session-exit");
-      mainWindow.webContents.send(TERMINAL_CHANNELS.exit, {
-        sessionId,
-        exitCode: event.exitCode,
-        signal: event.signal,
-      });
-    },
+  const terminalSessionService = new TerminalSessionService({
     assistantStatusHelperBinDir,
     assistantStatusTraceFilePath,
-    visualAssetCatalogFilePath,
+    runtimeLog,
+    sendAssistantStatusSnapshot: (payload: AssistantStatusSnapshotEvent) => {
+      mainWindow.webContents.send(ASSISTANT_STATUS_CHANNELS.snapshot, payload);
+    },
+    sendTerminalOutput: (payload) => {
+      mainWindow.webContents.send(TERMINAL_CHANNELS.output, {
+        sessionId: payload.sessionId,
+        data: payload.data,
+        outputVersion: payload.outputVersion,
+      });
+    },
+    sendTerminalExit: (payload) => {
+      mainWindow.webContents.send(TERMINAL_CHANNELS.exit, {
+        sessionId: payload.sessionId,
+        exitCode: payload.exitCode,
+        signal: payload.signal,
+      });
+    },
     terminalOutputRootDir,
-    app.getPath("userData"),
-  );
+    userDataPath: app.getPath("userData"),
+    visualAssetCatalogFilePath,
+    visualMcpStateFilePath,
+  });
   const visualAssetStore = new VisualAssetStore(
     visualAssetCatalogFilePath,
     visualAssetLibraryDirPath,
@@ -306,24 +147,17 @@ function registerTerminalBridge(
   ipcMain.handle(
     ASSISTANT_STATUS_CHANNELS.getSnapshot,
     async (_event, request: AssistantStatusSnapshotRequest) => {
-      ensureSessionStatusBridges(request.sessionId);
-      return (
-        sessionStatusStores.get(request.sessionId)?.getSnapshot() ??
-        createDefaultAssistantStatusSnapshot(Date.now())
-      );
+      return terminalSessionService.getAssistantStatusSnapshot(request);
     },
   );
   ipcMain.handle(MCP_SETUP_CHANNELS.getStatus, () => {
-    return getVisualMcpSetupStatus(visualMcpStateFilePath);
+    return terminalSessionService.getVisualMcpSetupStatus();
   });
   ipcMain.handle(MCP_SETUP_CHANNELS.install, () => {
-    return installVisualMcpUserSetup(
-      assistantStatusHelperBinDir,
-      visualMcpStateFilePath,
-    );
+    return terminalSessionService.installVisualMcpUserSetup();
   });
   ipcMain.handle(MCP_SETUP_CHANNELS.remove, () => {
-    return removeVisualMcpUserSetup(visualMcpStateFilePath);
+    return terminalSessionService.removeVisualMcpUserSetup();
   });
   ipcMain.handle(VISUAL_ASSET_CHANNELS.getCatalog, () => {
     return visualAssetStore.getCatalog();
@@ -399,52 +233,28 @@ function registerTerminalBridge(
   ipcMain.handle(
     TERMINAL_CHANNELS.bootstrap,
     async (_event, request: TerminalBootstrapRequest) => {
-      runtimeLog.write(
-        "terminal",
-        `bootstrap session=${request.sessionId} cwd=${request.cwd} command=${request.command} cols=${request.cols} rows=${request.rows}`,
-      );
-      ensureSessionStatusBridges(request.sessionId);
-      const sessionEventQueueDir = resolveEventQueueDir(request.sessionId);
-      writeVisualMcpState(sessionEventQueueDir);
-
-      try {
-        return terminalSessionManager.bootstrapSession(
-          request,
-          sessionEventQueueDir,
-        );
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown terminal error";
-
-        runtimeLog.write(
-          "terminal-error",
-          `bootstrap failed for ${request.sessionId}: ${message}`,
-        );
-        throw error;
-      }
+      return terminalSessionService.bootstrapSession(request);
     },
   );
 
   ipcMain.handle(
     TERMINAL_CHANNELS.input,
     (_event, request: TerminalInputRequest) => {
-      terminalSessionManager.sendInput(request);
+      terminalSessionService.sendInput(request);
     },
   );
 
   ipcMain.handle(
     TERMINAL_CHANNELS.resize,
     (_event, request: TerminalResizeRequest) => {
-      terminalSessionManager.resizeSession(request);
+      terminalSessionService.resizeSession(request);
     },
   );
 
   ipcMain.handle(
     TERMINAL_CHANNELS.close,
     (_event, request: TerminalCloseRequest) => {
-      runtimeLog.write("terminal", `close session=${request.sessionId}`);
-      terminalSessionManager.closeSession(request);
-      disposeSessionStatusBridges(request.sessionId);
+      terminalSessionService.closeSession(request);
     },
   );
 
@@ -472,11 +282,8 @@ function registerTerminalBridge(
     );
     unsubscribeTheme();
     unsubscribeVisualAssets();
-    for (const sessionId of [...sessionStatusStores.keys()]) {
-      disposeSessionStatusBridges(sessionId);
-    }
     visualAssetStore.dispose();
-    terminalSessionManager.dispose();
+    terminalSessionService.dispose();
     ipcMain.removeListener(
       DIAGNOSTICS_CHANNELS.rendererEvent,
       rendererDiagnosticListener,
