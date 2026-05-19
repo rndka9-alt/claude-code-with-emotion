@@ -273,7 +273,11 @@ export function createTerminalSessionController(
       replayNewlineCount > DEFAULT_TERMINAL_HISTORY_LINES &&
       replayOutputSegments.length > 1
     ) {
-      const removed = replayOutputSegments.shift()!;
+      const removed = replayOutputSegments.shift();
+
+      if (removed === undefined) {
+        throw new Error("Expected replay output segment to exist.");
+      }
 
       replayNewlineCount -= countNewlines(removed);
     }
