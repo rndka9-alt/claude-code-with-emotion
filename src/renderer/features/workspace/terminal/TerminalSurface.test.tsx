@@ -64,7 +64,7 @@ const {
     rows: number;
     scrollToBottom: ReturnType<typeof vi.fn>;
     scrollLines: ReturnType<typeof vi.fn>;
-    select: ReturnType<typeof vi.fn>;
+    select: Mock<(column: number, row: number, length: number) => void>;
     write: ReturnType<typeof vi.fn>;
   }> = [];
 
@@ -931,7 +931,6 @@ describe("TerminalSurface", () => {
 
       expect(overlayViewport.style.width).toBe("640px");
 
-      const mainFocusCount = terminal.focus.mock.calls.length;
       const mirrorTerminal = terminalInstances[1];
 
       if (mirrorTerminal === undefined) {
@@ -939,9 +938,29 @@ describe("TerminalSurface", () => {
       }
 
       const mirrorFocusCount = mirrorTerminal.focus.mock.calls.length;
+      const originalTerminalFocusCount = terminal.focus.mock.calls.length;
+      const mouseDownEvent = new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+      });
 
       act(() => {
-        fireEvent.mouseDown(host);
+        host.dispatchEvent(mouseDownEvent);
+      });
+
+      expect(mouseDownEvent.defaultPrevented).toBe(false);
+      expect(terminal.focus).toHaveBeenCalledTimes(
+        originalTerminalFocusCount + 1,
+      );
+      expect(mirrorTerminal.focus).toHaveBeenCalledTimes(mirrorFocusCount);
+
+      act(() => {
+        window.dispatchEvent(
+          new MouseEvent("mouseup", {
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
       });
 
       await waitFor(() => {
@@ -949,7 +968,53 @@ describe("TerminalSurface", () => {
           mirrorFocusCount + 1,
         );
       });
-      expect(terminal.focus).toHaveBeenCalledTimes(mainFocusCount);
+
+      const terminalFocusCallOrder = terminal.focus.mock.invocationCallOrder;
+      const mirrorFocusCallOrder =
+        mirrorTerminal.focus.mock.invocationCallOrder;
+      const lastTerminalFocusCallOrder =
+        terminalFocusCallOrder[terminalFocusCallOrder.length - 1];
+      const lastMirrorFocusCallOrder =
+        mirrorFocusCallOrder[mirrorFocusCallOrder.length - 1];
+
+      if (
+        lastTerminalFocusCallOrder === undefined ||
+        lastMirrorFocusCallOrder === undefined
+      ) {
+        throw new Error("Expected both terminal surfaces to receive focus.");
+      }
+
+      expect(lastTerminalFocusCallOrder).toBeLessThan(
+        lastMirrorFocusCallOrder,
+      );
+
+      const selectedMirrorFocusCount = mirrorTerminal.focus.mock.calls.length;
+      const selectionMouseDownEvent = new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      act(() => {
+        host.dispatchEvent(selectionMouseDownEvent);
+        terminal.select(0, 0, 6);
+        window.dispatchEvent(
+          new MouseEvent("mouseup", {
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      });
+
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 0);
+        });
+      });
+
+      expect(selectionMouseDownEvent.defaultPrevented).toBe(false);
+      expect(mirrorTerminal.focus).toHaveBeenCalledTimes(
+        selectedMirrorFocusCount,
+      );
     } finally {
       if (originalClientWidth !== undefined) {
         Object.defineProperty(

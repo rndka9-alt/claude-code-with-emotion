@@ -49,6 +49,8 @@ export function TerminalSurface({
 }: TerminalSurfaceProps): ReactElement {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lastAppliedSearchSequenceRef = useRef<number | null>(null);
+  const pendingPinnedFocusRestoreRef = useRef(false);
+  const pinnedFocusRestoreTaskRef = useRef<number | null>(null);
   const pinSuggestionHideTaskRef = useRef<number | null>(null);
   const [isPinned, setIsPinned] = useState(false);
   const [isPinSuggestionVisible, setIsPinSuggestionVisible] = useState(false);
@@ -77,10 +79,81 @@ export function TerminalSurface({
     }, 2000);
   };
 
+  const clearPinnedFocusRestoreTask = (): void => {
+    const taskId = pinnedFocusRestoreTaskRef.current;
+
+    if (taskId === null) {
+      return;
+    }
+
+    window.clearTimeout(taskId);
+    pinnedFocusRestoreTaskRef.current = null;
+  };
+
   const redirectFocusToPinnedOverlay = (): void => {
     onFocusPane(paneId);
     setPinnedFocusRedirectRequestKey((requestKey) => requestKey + 1);
   };
+
+  const requestPinnedOverlayFocusRestore = (): void => {
+    pendingPinnedFocusRestoreRef.current = true;
+  };
+
+  const restorePendingPinnedOverlayFocus = (): void => {
+    if (!pendingPinnedFocusRestoreRef.current) {
+      return;
+    }
+
+    pendingPinnedFocusRestoreRef.current = false;
+
+    if (!isPinned) {
+      return;
+    }
+
+    clearPinnedFocusRestoreTask();
+    pinnedFocusRestoreTaskRef.current = window.setTimeout(() => {
+      pinnedFocusRestoreTaskRef.current = null;
+
+      if (!isPinned) {
+        return;
+      }
+
+      if (getTerminalSessionController(session).hasSelection()) {
+        return;
+      }
+
+      redirectFocusToPinnedOverlay();
+    }, 0);
+  };
+
+  useEffect(() => {
+    window.addEventListener("mouseup", restorePendingPinnedOverlayFocus, true);
+    window.addEventListener("touchend", restorePendingPinnedOverlayFocus, true);
+    window.addEventListener(
+      "touchcancel",
+      restorePendingPinnedOverlayFocus,
+      true,
+    );
+
+    return () => {
+      clearPinnedFocusRestoreTask();
+      window.removeEventListener(
+        "mouseup",
+        restorePendingPinnedOverlayFocus,
+        true,
+      );
+      window.removeEventListener(
+        "touchend",
+        restorePendingPinnedOverlayFocus,
+        true,
+      );
+      window.removeEventListener(
+        "touchcancel",
+        restorePendingPinnedOverlayFocus,
+        true,
+      );
+    };
+  }, [isPinned, onFocusPane, paneId, session]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -189,39 +262,38 @@ export function TerminalSurface({
   useEffect(() => {
     return () => {
       clearPinSuggestionHideTask();
+      clearPinnedFocusRestoreTask();
     };
   }, []);
 
   useEffect(() => {
     setIsPinned(false);
     setIsPinSuggestionVisible(false);
+    pendingPinnedFocusRestoreRef.current = false;
     clearPinSuggestionHideTask();
+    clearPinnedFocusRestoreTask();
   }, [session.id]);
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <div
         className="terminal-surface__viewport bg-surface-terminal m-0 flex h-full min-h-0 min-w-0 flex-1 items-stretch overflow-hidden border-0"
-        onMouseDownCapture={(event) => {
+        onMouseDownCapture={() => {
           if (!isPinned) {
             return;
           }
 
-          event.preventDefault();
-          event.stopPropagation();
-          redirectFocusToPinnedOverlay();
+          requestPinnedOverlayFocusRestore();
         }}
         onPointerDownCapture={() => {
           onFocusPane(paneId);
         }}
-        onTouchStartCapture={(event) => {
+        onTouchStartCapture={() => {
           if (!isPinned) {
             return;
           }
 
-          event.preventDefault();
-          event.stopPropagation();
-          redirectFocusToPinnedOverlay();
+          requestPinnedOverlayFocusRestore();
         }}
         ref={hostRef}
       />

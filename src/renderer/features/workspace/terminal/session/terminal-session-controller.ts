@@ -50,6 +50,7 @@ export interface TerminalSessionController {
   createMirrorController: () => TerminalMirrorController;
   detach: () => void;
   focus: () => void;
+  hasSelection: () => boolean;
   requestFit: (reason: string) => void;
   subscribePinnedViewport: (
     listener: (snapshot: TerminalPinnedViewportSnapshot) => void,
@@ -748,6 +749,9 @@ export function createTerminalSessionController(
     },
     focus() {
       focusTerminal();
+    },
+    hasSelection() {
+      return terminal.getSelectionPosition() !== undefined;
     },
     requestFit,
     subscribePinnedViewport(listener) {
