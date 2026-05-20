@@ -1,5 +1,9 @@
 import { useEffect, type Dispatch } from "react";
-import type { WorkspaceAction, WorkspaceState } from "../model";
+import {
+  getTabSessionIds,
+  type WorkspaceAction,
+  type WorkspaceState,
+} from "../model";
 import {
   getPaneNavigationDirection,
   getSplitPaneDirection,
@@ -7,6 +11,17 @@ import {
   shouldCreateTabShortcut,
   shouldUseCloseSessionShortcut,
 } from "../terminal";
+
+function wouldCloseLastSession(
+  state: WorkspaceState,
+  closingSessionId: string,
+): boolean {
+  const remainingSessionIds = state.tabs.flatMap((tab) =>
+    getTabSessionIds(tab).filter((sessionId) => sessionId !== closingSessionId),
+  );
+
+  return remainingSessionIds.length === 0;
+}
 
 export function useWorkspaceKeyboardShortcuts(
   state: WorkspaceState,
@@ -91,6 +106,21 @@ export function useWorkspaceKeyboardShortcuts(
 
       event.preventDefault();
       const terminalsBridge = window.claudeApp?.terminals;
+      const workspaceWindowsBridge = window.claudeApp?.workspaceWindows;
+
+      if (
+        workspaceWindowsBridge !== undefined &&
+        wouldCloseLastSession(state, activeTab.focusedSessionId)
+      ) {
+        if (terminalsBridge !== undefined) {
+          void terminalsBridge.closeSession({
+            sessionId: activeTab.focusedSessionId,
+          });
+        }
+
+        void workspaceWindowsBridge.closeCurrentWorkspaceWindow();
+        return;
+      }
 
       if (terminalsBridge !== undefined) {
         void terminalsBridge.closeSession({

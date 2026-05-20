@@ -244,6 +244,57 @@ describe("App tab actions", () => {
     ).toHaveAttribute("aria-selected", "true");
   });
 
+  it("closes the current window when cmd+w closes the last session", () => {
+    const claudeApp = window.claudeApp;
+
+    if (claudeApp === undefined) {
+      throw new Error("Expected claudeApp test bridge to be installed");
+    }
+
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: "w",
+      metaKey: true,
+    });
+
+    expect(claudeApp.terminals.closeSession).toHaveBeenCalledTimes(1);
+    expect(
+      claudeApp.workspaceWindows.closeCurrentWorkspaceWindow,
+    ).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
+  });
+
+  it("keeps the current window open when cmd+w leaves another session", () => {
+    const claudeApp = window.claudeApp;
+
+    if (claudeApp === undefined) {
+      throw new Error("Expected claudeApp test bridge to be installed");
+    }
+
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+    fireEvent.keyDown(window, {
+      key: "w",
+      metaKey: true,
+    });
+
+    expect(claudeApp.terminals.closeSession).toHaveBeenCalledTimes(1);
+    expect(
+      claudeApp.workspaceWindows.closeCurrentWorkspaceWindow,
+    ).not.toHaveBeenCalled();
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
+    expect(
+      screen.getByRole("tab", {
+        name: "new session 1 · claude-code-with-emotion",
+      }),
+    ).toHaveAttribute("aria-selected", "true");
+  });
+
   it("splits the active pane horizontally when cmd+d is pressed", () => {
     render(<App />);
 
