@@ -1,4 +1,4 @@
-const TAB_DETACH_DISTANCE_PX = 32;
+const TAB_DETACH_SAFE_DISTANCE_PX = 96;
 
 export interface PointerClientPosition {
   clientX: number;
@@ -7,37 +7,27 @@ export interface PointerClientPosition {
   screenY: number;
 }
 
-interface ViewportSize {
-  height: number;
-  width: number;
-}
-
 interface TabDetachDropZoneInput {
   pointerPosition: PointerClientPosition | null;
   stripRect: DOMRectReadOnly;
-  viewportSize: ViewportSize;
 }
 
 export function shouldDetachTabOnDrop({
   pointerPosition,
   stripRect,
-  viewportSize,
 }: TabDetachDropZoneInput): boolean {
   if (pointerPosition === null) {
     return false;
   }
 
   if (
-    pointerPosition.clientX < 0 ||
-    pointerPosition.clientX > viewportSize.width ||
-    pointerPosition.clientY < 0 ||
-    pointerPosition.clientY > viewportSize.height
+    pointerPosition.clientX >= stripRect.left - TAB_DETACH_SAFE_DISTANCE_PX &&
+    pointerPosition.clientX <= stripRect.right + TAB_DETACH_SAFE_DISTANCE_PX &&
+    pointerPosition.clientY >= stripRect.top - TAB_DETACH_SAFE_DISTANCE_PX &&
+    pointerPosition.clientY <= stripRect.bottom + TAB_DETACH_SAFE_DISTANCE_PX
   ) {
-    return true;
+    return false;
   }
 
-  return (
-    pointerPosition.clientY < stripRect.top - TAB_DETACH_DISTANCE_PX ||
-    pointerPosition.clientY > stripRect.bottom + TAB_DETACH_DISTANCE_PX
-  );
+  return true;
 }

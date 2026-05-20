@@ -232,24 +232,24 @@ describe("App tab reordering", () => {
         fireEvent.mouseMove(document, {
           buttons: 1,
           clientX: 80,
-          clientY: 90,
+          clientY: 150,
           screenX: 480,
-          screenY: 190,
+          screenY: 250,
         });
       });
       act(() => {
         fireEvent.mouseUp(document, {
           clientX: 80,
-          clientY: 90,
+          clientY: 150,
           screenX: 480,
-          screenY: 190,
+          screenY: 250,
         });
       });
 
       expect(showTabDragPreview).toHaveBeenCalledWith({
         screenPoint: {
           x: 480,
-          y: 190,
+          y: 250,
         },
         title: "new session 1 · claude-code-with-emotion",
       });
@@ -260,7 +260,7 @@ describe("App tab reordering", () => {
       expect(openDetachedWorkspaceWindow).toHaveBeenCalledWith({
         initialScreenPoint: {
           x: 480,
-          y: 190,
+          y: 250,
         },
         initialWorkspaceState: expect.objectContaining({
           tabs: [

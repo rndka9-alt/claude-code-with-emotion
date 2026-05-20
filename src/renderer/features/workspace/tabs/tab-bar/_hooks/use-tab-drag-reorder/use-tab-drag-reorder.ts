@@ -340,10 +340,6 @@ function shouldDetachActiveTab(
   return shouldDetachTabOnDrop({
     pointerPosition,
     stripRect: stripElement.getBoundingClientRect(),
-    viewportSize: {
-      height: window.innerHeight,
-      width: window.innerWidth,
-    },
   });
 }
 
