@@ -3,8 +3,8 @@ import { X } from "lucide-react";
 import {
   BASE_VISUAL_ASSET_PROVIDER_ID,
   getVisualAssetProviderOverride,
-  getVisualAssetProviderStateMetadata,
   VISUAL_ASSET_PROVIDER_OPTIONS,
+  VISUAL_PROVIDER_STATE_METADATA,
   type VisualAssetCatalog,
   type VisualAssetProviderId,
 } from "../../../../shared/visual-assets";
@@ -130,8 +130,7 @@ export function VisualAssetManagerDialog({
     catalog,
     activeProviderId,
   );
-  const activeStateMetadata =
-    getVisualAssetProviderStateMetadata(activeProviderId);
+  const activeStateMetadata = VISUAL_PROVIDER_STATE_METADATA[activeProviderId];
   const activeStateIds = new Set(
     activeStateMetadata.map((metadata) => metadata.state),
   );

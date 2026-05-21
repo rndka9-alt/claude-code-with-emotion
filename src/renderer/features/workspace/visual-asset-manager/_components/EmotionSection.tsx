@@ -8,7 +8,7 @@ import {
 import { Search, Trash2 } from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../../shared/visual-assets";
 import {
-  getVisualAssetProviderMappings,
+  getVisualAssetProviderOverride,
   isVisualAssetDefaultForProvider,
   type VisualAssetProviderId,
 } from "../../../../../shared/visual-assets";
@@ -70,13 +70,15 @@ function assetHasStateMapping(
   state: VisualStatePresetId,
   providerId: VisualAssetProviderId,
 ): boolean {
-  return getVisualAssetProviderMappings(catalog, providerId).some((mapping) => {
-    return (
-      mapping.assetId === assetId &&
-      mapping.state === state &&
-      mapping.emotion === undefined
-    );
-  });
+  return getVisualAssetProviderOverride(catalog, providerId).mappings.some(
+    (mapping) => {
+      return (
+        mapping.assetId === assetId &&
+        mapping.state === state &&
+        mapping.emotion === undefined
+      );
+    },
+  );
 }
 
 function assetHasEmotionMapping(
@@ -85,13 +87,15 @@ function assetHasEmotionMapping(
   emotion: VisualEmotionPresetId,
   providerId: VisualAssetProviderId,
 ): boolean {
-  return getVisualAssetProviderMappings(catalog, providerId).some((mapping) => {
-    return (
-      mapping.assetId === assetId &&
-      mapping.state === undefined &&
-      mapping.emotion === emotion
-    );
-  });
+  return getVisualAssetProviderOverride(catalog, providerId).mappings.some(
+    (mapping) => {
+      return (
+        mapping.assetId === assetId &&
+        mapping.state === undefined &&
+        mapping.emotion === emotion
+      );
+    },
+  );
 }
 
 function assetHasStateEmotionMapping(
@@ -101,13 +105,15 @@ function assetHasStateEmotionMapping(
   emotion: VisualEmotionPresetId,
   providerId: VisualAssetProviderId,
 ): boolean {
-  return getVisualAssetProviderMappings(catalog, providerId).some((mapping) => {
-    return (
-      mapping.assetId === assetId &&
-      mapping.state === state &&
-      mapping.emotion === emotion
-    );
-  });
+  return getVisualAssetProviderOverride(catalog, providerId).mappings.some(
+    (mapping) => {
+      return (
+        mapping.assetId === assetId &&
+        mapping.state === state &&
+        mapping.emotion === emotion
+      );
+    },
+  );
 }
 
 // 현재 chip 기준에서 "다른 에셋" 이 슬롯을 점유 중이면 그 label 을 반환.
@@ -118,7 +124,8 @@ function findOtherOwnerLabelForState(
   state: VisualStatePresetId,
   providerId: VisualAssetProviderId,
 ): string | null {
-  for (const mapping of getVisualAssetProviderMappings(catalog, providerId)) {
+  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
+    .mappings) {
     if (mapping.state !== state || mapping.emotion !== undefined) {
       continue;
     }
@@ -145,7 +152,8 @@ function findOtherOwnerLabelForEmotion(
   emotion: VisualEmotionPresetId,
   providerId: VisualAssetProviderId,
 ): string | null {
-  for (const mapping of getVisualAssetProviderMappings(catalog, providerId)) {
+  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
+    .mappings) {
     if (mapping.emotion !== emotion || mapping.state !== undefined) {
       continue;
     }
@@ -173,7 +181,8 @@ function findOtherOwnerLabelForStateEmotion(
   emotion: VisualEmotionPresetId,
   providerId: VisualAssetProviderId,
 ): string | null {
-  for (const mapping of getVisualAssetProviderMappings(catalog, providerId)) {
+  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
+    .mappings) {
     if (mapping.state !== state || mapping.emotion !== emotion) {
       continue;
     }
@@ -226,7 +235,8 @@ function assetMatchesSearchQuery(
     return true;
   }
 
-  for (const mapping of getVisualAssetProviderMappings(catalog, providerId)) {
+  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
+    .mappings) {
     if (mapping.assetId !== assetId) {
       continue;
     }

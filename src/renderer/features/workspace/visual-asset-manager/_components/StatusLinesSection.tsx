@@ -7,7 +7,7 @@ import {
 } from "react";
 import { CircleHelp, Image as ImageIcon, Search } from "lucide-react";
 import {
-  getVisualAssetProviderStateLines,
+  getVisualAssetProviderOverride,
   resolveVisualAsset,
   type VisualAssetCatalog,
   type VisualAssetProviderId,
@@ -50,7 +50,8 @@ function createStateLineDrafts(
     tool_failed: "",
   };
 
-  for (const mapping of getVisualAssetProviderStateLines(catalog, providerId)) {
+  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
+    .stateLines) {
     drafts[mapping.state] = mapping.line;
   }
 

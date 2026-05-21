@@ -12,8 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import {
-  getVisualAssetProviderEmotionDescriptions,
-  getVisualAssetProviderMappings,
+  getVisualAssetProviderOverride,
   resolveVisualAsset,
   resolveVisualEmotionDescription,
   type VisualAssetCatalog,
@@ -73,10 +72,8 @@ function createEmotionDescriptionDrafts(
     surprised: "",
   };
 
-  for (const mapping of getVisualAssetProviderEmotionDescriptions(
-    catalog,
-    providerId,
-  )) {
+  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
+    .emotionDescriptions) {
     drafts[mapping.emotion] = mapping.description;
   }
 
@@ -89,7 +86,8 @@ function collectMappedEmotions(
 ): ReadonlySet<VisualEmotionPresetId> {
   const mapped = new Set<VisualEmotionPresetId>();
 
-  for (const mapping of getVisualAssetProviderMappings(catalog, providerId)) {
+  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
+    .mappings) {
     if (mapping.emotion !== undefined) {
       mapped.add(mapping.emotion);
     }
