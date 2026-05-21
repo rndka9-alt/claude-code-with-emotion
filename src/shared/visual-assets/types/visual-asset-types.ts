@@ -64,7 +64,6 @@ export interface VisualAssetCatalog {
 
 export interface VisualAssetResolutionRequest {
   emotion: VisualEmotionPresetId | null;
-  providerId?: VisualAssetProviderId;
   state: VisualStatePresetId;
 }
 

@@ -1,5 +1,8 @@
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
-import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+import {
+  createVisualAssetCatalogForProvider,
+  type VisualAssetCatalog,
+} from "../../../../shared/visual-assets";
 import { formatStatusPanelLine } from "./status-panel-line";
 
 const baseSnapshot: AssistantStatusSnapshot = {
@@ -86,14 +89,18 @@ describe("formatStatusPanelLine", () => {
       emotionDescriptions: [],
     };
 
+    const effectiveCatalog = createVisualAssetCatalogForProvider(
+      catalog,
+      "codex",
+    );
+
     expect(
       formatStatusPanelLine(
         {
           ...baseSnapshot,
           assistantProviderId: "codex",
         },
-        catalog,
-        "codex",
+        effectiveCatalog,
       ),
     ).toBe("Codex가 생각 정리 중이에요...!\n(자료를 찾는 중)");
   });

@@ -1,4 +1,5 @@
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
+import { createVisualAssetCatalogForProvider } from "../../../../shared/visual-assets";
 import { resolveStatusPanelVisual } from "./status-panel-visual";
 
 const baseSnapshot: AssistantStatusSnapshot = {
@@ -91,12 +92,8 @@ describe("resolveStatusPanelVisual", () => {
     expect(visual).toBeNull();
   });
 
-  it("uses a Codex provider default before falling back to Claude mappings", () => {
-    const visual = resolveStatusPanelVisual(
-      {
-        ...baseSnapshot,
-        assistantProviderId: "codex",
-      },
+  it("uses a Claude mapping before a Codex default after provider catalog creation", () => {
+    const catalog = createVisualAssetCatalogForProvider(
       {
         version: 1,
         assets: [
@@ -131,9 +128,17 @@ describe("resolveStatusPanelVisual", () => {
         stateLines: [],
         emotionDescriptions: [],
       },
+      "codex",
+    );
+    const visual = resolveStatusPanelVisual(
+      {
+        ...baseSnapshot,
+        assistantProviderId: "codex",
+      },
+      catalog,
     );
 
-    expect(visual?.resolution.asset.id).toBe("asset-codex-default");
-    expect(visual?.resolution.match).toBe("default");
+    expect(visual?.resolution.asset.id).toBe("asset-claude-working");
+    expect(visual?.resolution.match).toBe("state");
   });
 });

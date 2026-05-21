@@ -1,13 +1,10 @@
 import type {
+  VisualAssetCatalog,
   VisualAssetMapping,
   VisualAssetRecord,
   VisualAssetResolution,
   VisualAssetResolutionRequest,
-  VisualAssetCatalog,
 } from "../types/visual-asset-types";
-import { getVisualAssetProviderOverride } from "./get-visual-asset-provider-override";
-import { normalizeVisualAssetProviderId } from "./normalize-visual-asset-provider-id";
-import { providerShouldUseBaseWhenMissing } from "./provider-should-use-base-when-missing";
 
 function findAssetRecord(
   assets: ReadonlyArray<VisualAssetRecord>,
@@ -112,23 +109,6 @@ export function resolveVisualAsset(
   // emotion 이 명시적으로 설정댓을 때(MCP 툴 호출 등) 그 emotion 자산이 state
   // 자산에 가려지지 않도록 state 전용보다 먼저 본다. emotion 이 null 이면
   // emotion 전용 단계는 건너뛰고 state 전용이 주인공 역할을 한다.
-  const providerId = normalizeVisualAssetProviderId(request.providerId);
-  const providerOverride = getVisualAssetProviderOverride(catalog, providerId);
-  const providerResolution = resolveVisualAssetFromMappings(
-    catalog.assets,
-    providerOverride.mappings,
-    providerOverride.defaultAssetId,
-    request,
-  );
-
-  if (providerResolution !== null) {
-    return providerResolution;
-  }
-
-  if (!providerShouldUseBaseWhenMissing(catalog, providerId)) {
-    return null;
-  }
-
   return resolveVisualAssetFromMappings(
     catalog.assets,
     catalog.mappings,

@@ -1,6 +1,7 @@
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import {
   createEmptyVisualAssetCatalog,
+  createVisualAssetCatalogForProvider,
   normalizeVisualAssetProviderId,
   type VisualAssetCatalog,
   type VisualAssetProviderId,
@@ -24,9 +25,14 @@ export function resolveAssistantPresentation(
     assistantStatus.assistantProviderId,
   ),
 ): AssistantPresentation {
+  const effectiveCatalog = createVisualAssetCatalogForProvider(
+    catalog,
+    providerId,
+  );
+
   return {
-    line: formatStatusPanelLine(assistantStatus, catalog, providerId),
+    line: formatStatusPanelLine(assistantStatus, effectiveCatalog),
     snapshot: assistantStatus,
-    visual: resolveStatusPanelVisual(assistantStatus, catalog, providerId),
+    visual: resolveStatusPanelVisual(assistantStatus, effectiveCatalog),
   };
 }

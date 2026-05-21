@@ -26,6 +26,9 @@ export {
   createEmptyVisualAssetCatalog,
 } from "./utils/create-empty-visual-asset-catalog";
 export {
+  createVisualAssetCatalogForProvider,
+} from "./utils/create-visual-asset-catalog-for-provider";
+export {
   getVisualAssetProviderOverride,
 } from "./utils/get-visual-asset-provider-override";
 export {

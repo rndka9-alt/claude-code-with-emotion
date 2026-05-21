@@ -1,28 +1,17 @@
 import { EMOTION_PRESETS, STATE_PRESETS } from "../../visual-presets";
-import { BASE_VISUAL_ASSET_PROVIDER_ID } from "../constants/provider-metadata";
 import type {
   AvailableVisualOptions,
   VisualAssetCatalog,
-  VisualAssetProviderId,
   VisualEmotionDescriptionOverrides,
 } from "../types/visual-asset-types";
-import { getVisualAssetProviderOverride } from "./get-visual-asset-provider-override";
-import { providerShouldUseBaseWhenMissing } from "./provider-should-use-base-when-missing";
 
 export function collectAvailableVisualOptions(
   catalog: VisualAssetCatalog,
-  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): AvailableVisualOptions {
   const mappedStates = new Set<string>();
   const mappedEmotions = new Set<string>();
-  const providerOverride = getVisualAssetProviderOverride(catalog, providerId);
-  const mappings =
-    providerId === BASE_VISUAL_ASSET_PROVIDER_ID ||
-    !providerShouldUseBaseWhenMissing(catalog, providerId)
-      ? providerOverride.mappings
-      : [...catalog.mappings, ...providerOverride.mappings];
 
-  for (const mapping of mappings) {
+  for (const mapping of catalog.mappings) {
     if (mapping.state !== undefined) {
       mappedStates.add(mapping.state);
     }
@@ -33,16 +22,8 @@ export function collectAvailableVisualOptions(
   }
 
   const emotionDescriptions: VisualEmotionDescriptionOverrides = {};
-  const descriptions =
-    providerId === BASE_VISUAL_ASSET_PROVIDER_ID ||
-    !providerShouldUseBaseWhenMissing(catalog, providerId)
-      ? providerOverride.emotionDescriptions
-      : [
-          ...catalog.emotionDescriptions,
-          ...providerOverride.emotionDescriptions,
-        ];
 
-  for (const mapping of descriptions) {
+  for (const mapping of catalog.emotionDescriptions) {
     emotionDescriptions[mapping.emotion] = mapping.description;
   }
 

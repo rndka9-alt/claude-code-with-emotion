@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import {
+  createVisualAssetCatalogForProvider,
   getVisualAssetProviderOverride,
   resolveVisualAsset,
   resolveVisualEmotionDescription,
@@ -108,6 +109,9 @@ export function EmotionDescriptionsSection({
     Record<VisualEmotionPresetId, string>
   >(() => createEmotionDescriptionDrafts(catalog, providerId));
   const [searchQuery, setSearchQuery] = useState("");
+  const effectiveCatalog = useMemo(() => {
+    return createVisualAssetCatalogForProvider(catalog, providerId);
+  }, [catalog, providerId]);
 
   useEffect(() => {
     setDescriptionDrafts(createEmotionDescriptionDrafts(catalog, providerId));
@@ -122,9 +126,8 @@ export function EmotionDescriptionsSection({
     const urls = new Map<VisualEmotionPresetId, string>();
 
     for (const emotion of mappedEmotions) {
-      const resolution = resolveVisualAsset(catalog, {
+      const resolution = resolveVisualAsset(effectiveCatalog, {
         emotion,
-        providerId,
         state: "waiting",
       });
 
@@ -136,7 +139,7 @@ export function EmotionDescriptionsSection({
     }
 
     return urls;
-  }, [catalog, mappedEmotions, providerId]);
+  }, [effectiveCatalog, mappedEmotions]);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
@@ -195,7 +198,7 @@ export function EmotionDescriptionsSection({
           const isUnmapped = !isNeutral && !mappedEmotions.has(preset.id);
           const assetUrl = emotionAssetUrls.get(preset.id) ?? null;
           const effectiveDescription =
-            resolveVisualEmotionDescription(catalog, preset.id, providerId) ??
+            resolveVisualEmotionDescription(effectiveCatalog, preset.id) ??
             preset.description;
 
           return (

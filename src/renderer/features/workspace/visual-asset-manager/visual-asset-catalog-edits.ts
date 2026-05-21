@@ -1,5 +1,6 @@
 import {
   BASE_VISUAL_ASSET_PROVIDER_ID,
+  getVisualAssetProviderOverride,
   type VisualAssetCatalog,
   type VisualAssetMapping,
   type VisualAssetProviderId,
@@ -197,37 +198,6 @@ function removeMatchingStateEmotionMappings(
   });
 }
 
-function createEmptyProviderOverride(): VisualAssetProviderOverride {
-  return {
-    defaultAssetId: undefined,
-    emotionDescriptions: [],
-    mappings: [],
-    stateLines: [],
-    useBaseProviderWhenMissing: true,
-  };
-}
-
-function getProviderOverride(
-  catalog: VisualAssetCatalog,
-  providerId: VisualAssetProviderId,
-): VisualAssetProviderOverride {
-  if (providerId === BASE_VISUAL_ASSET_PROVIDER_ID) {
-    return {
-      defaultAssetId: catalog.assets.find((asset) => asset.isDefault === true)
-        ?.id,
-      emotionDescriptions: catalog.emotionDescriptions,
-      mappings: catalog.mappings,
-      stateLines: catalog.stateLines,
-      useBaseProviderWhenMissing: false,
-    };
-  }
-
-  return {
-    ...createEmptyProviderOverride(),
-    ...catalog.providerOverrides?.[providerId],
-  };
-}
-
 function updateProviderOverride(
   catalog: VisualAssetCatalog,
   providerId: VisualAssetProviderId,
@@ -236,7 +206,9 @@ function updateProviderOverride(
   ) => VisualAssetProviderOverride,
 ): VisualAssetCatalog {
   if (providerId === BASE_VISUAL_ASSET_PROVIDER_ID) {
-    const nextOverride = update(getProviderOverride(catalog, providerId));
+    const nextOverride = update(
+      getVisualAssetProviderOverride(catalog, providerId),
+    );
 
     return {
       ...catalog,
@@ -267,7 +239,7 @@ function updateProviderOverride(
     ...catalog,
     providerOverrides: {
       ...catalog.providerOverrides,
-      [providerId]: update(getProviderOverride(catalog, providerId)),
+      [providerId]: update(getVisualAssetProviderOverride(catalog, providerId)),
     },
   };
 }
@@ -295,7 +267,10 @@ export function mergePickedVisualAssets(
 ): VisualAssetCatalog {
   const knownPaths = new Set(catalog.assets.map((asset) => asset.path));
   let nextAssets: VisualAssetRecord[] = [...catalog.assets];
-  let nextProviderOverride = getProviderOverride(catalog, providerId);
+  let nextProviderOverride = getVisualAssetProviderOverride(
+    catalog,
+    providerId,
+  );
   let nextMappings: VisualAssetMapping[] = [
     ...nextProviderOverride.mappings,
   ];
@@ -519,7 +494,10 @@ function findSlotOwnerAssetId(
   providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): string | null {
   const knownAssetIds = new Set(catalog.assets.map((asset) => asset.id));
-  const mappings = getProviderOverride(catalog, providerId).mappings;
+  const mappings = getVisualAssetProviderOverride(
+    catalog,
+    providerId,
+  ).mappings;
 
   for (const mapping of mappings) {
     if (!matcher(mapping)) {

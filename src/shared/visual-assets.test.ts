@@ -1,5 +1,6 @@
 import {
   collectAvailableVisualOptions,
+  createVisualAssetCatalogForProvider,
   resolveVisualAsset,
   resolveVisualStateLine,
   type VisualAssetCatalog,
@@ -148,6 +149,70 @@ describe("visual asset resolver", () => {
 
   it("resolves a custom state line when one exists", () => {
     expect(resolveVisualStateLine(createCatalog(), "working")).toBe(
+      "작업 몰빵 중...!",
+    );
+  });
+
+  it("creates a provider catalog with provider values and base fallback values resolved once", () => {
+    const catalog: VisualAssetCatalog = {
+      ...createCatalog(),
+      providerOverrides: {
+        codex: {
+          defaultAssetId: "asset-happy",
+          emotionDescriptions: [
+            {
+              emotion: "sad",
+              description: "Codex sad",
+            },
+          ],
+          mappings: [
+            {
+              assetId: "asset-happy",
+              state: "thinking",
+            },
+          ],
+          stateLines: [
+            {
+              state: "thinking",
+              line: "Codex thinking",
+            },
+          ],
+          useBaseProviderWhenMissing: true,
+        },
+      },
+    };
+
+    const providerCatalog = createVisualAssetCatalogForProvider(
+      catalog,
+      "codex",
+    );
+
+    expect(providerCatalog.providerOverrides).toBeUndefined();
+    expect(providerCatalog.assets.find((asset) => asset.id === "asset-happy"))
+      .toMatchObject({ isDefault: true });
+    expect(providerCatalog.mappings).toEqual([
+      {
+        assetId: "asset-happy",
+        state: "thinking",
+      },
+      {
+        assetId: "asset-working",
+        state: "working",
+      },
+      {
+        assetId: "asset-happy",
+        emotion: "happy",
+      },
+      {
+        assetId: "asset-working-happy",
+        state: "working",
+        emotion: "happy",
+      },
+    ]);
+    expect(resolveVisualStateLine(providerCatalog, "thinking")).toBe(
+      "Codex thinking",
+    );
+    expect(resolveVisualStateLine(providerCatalog, "working")).toBe(
       "작업 몰빵 중...!",
     );
   });

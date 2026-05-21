@@ -7,6 +7,7 @@ import {
 } from "react";
 import { CircleHelp, Image as ImageIcon, Search } from "lucide-react";
 import {
+  createVisualAssetCatalogForProvider,
   getVisualAssetProviderOverride,
   resolveVisualAsset,
   type VisualAssetCatalog,
@@ -82,6 +83,9 @@ export function StatusLinesSection({
     Record<VisualStatePresetId, string>
   >(() => createStateLineDrafts(catalog, providerId));
   const [searchQuery, setSearchQuery] = useState("");
+  const effectiveCatalog = useMemo(() => {
+    return createVisualAssetCatalogForProvider(catalog, providerId);
+  }, [catalog, providerId]);
 
   useEffect(() => {
     setStateLineDrafts(createStateLineDrafts(catalog, providerId));
@@ -91,9 +95,8 @@ export function StatusLinesSection({
     const urls = new Map<VisualStatePresetId, string>();
 
     for (const metadata of stateMetadata) {
-      const resolution = resolveVisualAsset(catalog, {
+      const resolution = resolveVisualAsset(effectiveCatalog, {
         emotion: null,
-        providerId,
         state: metadata.state,
       });
 
@@ -103,7 +106,7 @@ export function StatusLinesSection({
     }
 
     return urls;
-  }, [catalog, providerId, stateMetadata]);
+  }, [effectiveCatalog, stateMetadata]);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
