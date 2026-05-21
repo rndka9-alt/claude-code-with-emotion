@@ -9,6 +9,7 @@ export {
   setVisualAssetDefault,
   setVisualAssetEmotionDescription,
   setVisualAssetEmotionMapping,
+  setVisualAssetProviderFallback,
   setVisualAssetStateEmotionMapping,
   setVisualAssetStateLine,
   setVisualAssetStateMapping,

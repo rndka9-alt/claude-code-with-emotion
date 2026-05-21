@@ -137,6 +137,7 @@ function createUserScopedVisualMcpJson(
     args: [],
     env: {
       PATH: getEffectivePath(),
+      [ENV_KEYS.ASSISTANT_PROVIDER_ID]: "claude",
       [ENV_KEYS.VISUAL_MCP_STATE_FILE]: stateFilePath,
     },
   });

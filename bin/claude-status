@@ -50,13 +50,35 @@ function parseArgs(argv) {
       result.activityLabel = value;
     } else if (key === "--intensity") {
       result.intensity = value;
+    } else if (key === "--provider") {
+      result.assistantProviderId = value;
     }
   }
 
   return result;
 }
 
-function collectAvailableVisualOptions(catalog) {
+function readProviderOverride(catalog, providerId) {
+  if (
+    providerId !== "codex" ||
+    !catalog ||
+    typeof catalog !== "object" ||
+    !catalog.providerOverrides ||
+    typeof catalog.providerOverrides !== "object"
+  ) {
+    return null;
+  }
+
+  const override = catalog.providerOverrides.codex;
+
+  if (!override || typeof override !== "object") {
+    return null;
+  }
+
+  return override;
+}
+
+function collectAvailableVisualOptions(catalog, providerId = "claude") {
   const states = [];
   const emotions = [];
   const emotionDescriptions = {};
@@ -67,8 +89,22 @@ function collectAvailableVisualOptions(catalog) {
     return { states, emotions, emotionDescriptions };
   }
 
-  if (Array.isArray(catalog.mappings)) {
-    for (const mapping of catalog.mappings) {
+  const providerOverride = readProviderOverride(catalog, providerId);
+  const providerUsesBase =
+    providerId !== "codex" ||
+    providerOverride === null ||
+    providerOverride.useBaseProviderWhenMissing !== false;
+  const mappingGroups = [
+    ...(providerUsesBase && Array.isArray(catalog.mappings)
+      ? [catalog.mappings]
+      : []),
+    ...(providerOverride !== null && Array.isArray(providerOverride.mappings)
+      ? [providerOverride.mappings]
+      : []),
+  ];
+
+  for (const mappings of mappingGroups) {
+    for (const mapping of mappings) {
       if (
         typeof mapping === "object" &&
         mapping !== null &&
@@ -92,8 +128,18 @@ function collectAvailableVisualOptions(catalog) {
     }
   }
 
-  if (Array.isArray(catalog.emotionDescriptions)) {
-    for (const mapping of catalog.emotionDescriptions) {
+  const descriptionGroups = [
+    ...(providerUsesBase && Array.isArray(catalog.emotionDescriptions)
+      ? [catalog.emotionDescriptions]
+      : []),
+    ...(providerOverride !== null &&
+    Array.isArray(providerOverride.emotionDescriptions)
+      ? [providerOverride.emotionDescriptions]
+      : []),
+  ];
+
+  for (const descriptions of descriptionGroups) {
+    for (const mapping of descriptions) {
       if (
         typeof mapping === "object" &&
         mapping !== null &&
@@ -127,9 +173,13 @@ function printAvailableVisualOptions() {
   try {
     const text = fs.readFileSync(catalogFilePath, "utf8");
     const parsed = JSON.parse(text);
+    const providerId =
+      process.env.CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID === "codex"
+        ? "codex"
+        : "claude";
 
     process.stdout.write(
-      `${JSON.stringify(collectAvailableVisualOptions(parsed))}\n`,
+      `${JSON.stringify(collectAvailableVisualOptions(parsed, providerId))}\n`,
     );
   } catch {
     process.stdout.write(

@@ -55,6 +55,7 @@ function AppContent(): ReactElement {
     setThemeId,
     setDefaultAsset,
     setEmotionDescription,
+    setProviderFallback,
     setStateLine,
     terminalFocusRequestKey,
     tabs,
@@ -171,6 +172,7 @@ function AppContent(): ReactElement {
           onSelectTheme={setThemeId}
           onSetDefaultAsset={setDefaultAsset}
           onSetEmotionDescription={setEmotionDescription}
+          onSetProviderFallback={setProviderFallback}
           onSetStateLine={setStateLine}
           onToggleEmotion={toggleEmotion}
           onToggleState={toggleState}

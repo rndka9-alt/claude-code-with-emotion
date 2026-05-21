@@ -53,6 +53,7 @@ describe("VisualAssetManagerDialog", () => {
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
         onSetEmotionDescription={() => {}}
+        onSetProviderFallback={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}
@@ -130,6 +131,7 @@ describe("VisualAssetManagerDialog", () => {
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
         onSetEmotionDescription={() => {}}
+        onSetProviderFallback={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}
@@ -140,7 +142,7 @@ describe("VisualAssetManagerDialog", () => {
     fireEvent.click(screen.getByRole("tab", { name: "상태창" }));
     fireEvent.click(screen.getByRole("button", { name: "Image drop zone" }));
 
-    expect(onPickFiles).toHaveBeenCalledTimes(1);
+    expect(onPickFiles).toHaveBeenCalledWith("claude");
   });
 
   it("imports dropped image files from the asset drop zone", () => {
@@ -171,6 +173,7 @@ describe("VisualAssetManagerDialog", () => {
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
         onSetEmotionDescription={() => {}}
+        onSetProviderFallback={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}
@@ -185,7 +188,82 @@ describe("VisualAssetManagerDialog", () => {
       },
     });
 
-    expect(onDropFiles).toHaveBeenCalledWith([droppedFile]);
+    expect(onDropFiles).toHaveBeenCalledWith([droppedFile], "claude");
+  });
+
+  it("switches status panel editing to Codex provider scope", () => {
+    const onSetProviderFallback = vi.fn();
+    const onSetStateLine = vi.fn();
+
+    render(
+      <VisualAssetManagerDialog
+        availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
+        catalog={{
+          version: 1,
+          assets: [],
+          mappings: [],
+          stateLines: [],
+          emotionDescriptions: [],
+        }}
+        currentThemeId="current-dark"
+        installingVisualMcpTargetId={null}
+        mcpSetupErrorsByTargetId={{}}
+        mcpSetupStatus={createMcpSetupStatus()}
+        onClose={() => {}}
+        onDropFiles={() => {}}
+        onInstallVisualMcp={() => {}}
+        onPickFiles={() => {}}
+        onRemoveAsset={() => {}}
+        onSelectTheme={() => {}}
+        onSetDefaultAsset={() => {}}
+        onSetEmotionDescription={() => {}}
+        onSetProviderFallback={onSetProviderFallback}
+        onSetStateLine={onSetStateLine}
+        onToggleEmotion={() => {}}
+        onToggleState={() => {}}
+        onToggleStateEmotion={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "상태창" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "상태창 provider" }), {
+      target: { value: "codex" },
+    });
+
+    expect(
+      screen.getByRole("checkbox", { name: "없으면 Claude Code 사용" }),
+    ).toBeChecked();
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "없으면 Claude Code 사용" }),
+    );
+
+    expect(onSetProviderFallback).toHaveBeenCalledWith("codex", false);
+
+    fireEvent.click(screen.getByRole("tab", { name: "상태 텍스트" }));
+
+    expect(
+      screen.getByRole("tooltip", { name: /SessionStart, Stop/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("툴이 한번 삐끗햇어요. 원인 다시 볼게요."),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByPlaceholderText("다음 입력이나 신호를 기다리는 중이에요."),
+      {
+        target: { value: "Codex 대기 중" },
+      },
+    );
+    fireEvent.blur(
+      screen.getByDisplayValue("Codex 대기 중"),
+    );
+
+    expect(onSetStateLine).toHaveBeenCalledWith(
+      "waiting",
+      "Codex 대기 중",
+      "codex",
+    );
   });
 
   it("installs the selected Visual MCP target from general settings", () => {
@@ -213,6 +291,7 @@ describe("VisualAssetManagerDialog", () => {
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
         onSetEmotionDescription={() => {}}
+        onSetProviderFallback={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}
@@ -261,6 +340,7 @@ describe("VisualAssetManagerDialog", () => {
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
         onSetEmotionDescription={() => {}}
+        onSetProviderFallback={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}
@@ -321,6 +401,7 @@ describe("VisualAssetManagerDialog", () => {
         onSelectTheme={() => {}}
         onSetDefaultAsset={() => {}}
         onSetEmotionDescription={() => {}}
+        onSetProviderFallback={() => {}}
         onSetStateLine={() => {}}
         onToggleEmotion={() => {}}
         onToggleState={() => {}}

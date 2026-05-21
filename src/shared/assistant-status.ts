@@ -49,6 +49,7 @@ export const assistantEmotionalStateSchema = z.enum([
 const assistantStatusIntensitySchema = z.enum(["low", "medium", "high"]);
 const assistantStatusSnapshotSchema = z.object({
   activityLabel: z.string(),
+  assistantProviderId: z.string().min(1).optional(),
   emotion: assistantEmotionalStateSchema.nullable(),
   overlayLine: z.string().nullable(),
   state: assistantSemanticStateSchema,
@@ -73,6 +74,7 @@ export type AssistantStatusIntensity = z.infer<
 
 export interface AssistantStatusUpdate {
   activityLabel?: string;
+  assistantProviderId?: string;
   emotion?: AssistantEmotionalState;
   state: AssistantSemanticState;
   line: string;
@@ -131,6 +133,7 @@ export function createDefaultAssistantStatusSnapshot(
 ): AssistantStatusSnapshot {
   return {
     activityLabel: "연결 대기 중",
+    assistantProviderId: "claude",
     emotion: null,
     overlayLine: null,
     state: "disconnected",

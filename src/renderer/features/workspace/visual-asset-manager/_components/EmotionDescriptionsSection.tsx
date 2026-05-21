@@ -11,7 +11,14 @@ import {
   Image as ImageIcon,
   Search,
 } from "lucide-react";
-import type { VisualAssetCatalog } from "../../../../../shared/visual-assets";
+import {
+  getVisualAssetProviderEmotionDescriptions,
+  getVisualAssetProviderMappings,
+  resolveVisualAsset,
+  resolveVisualEmotionDescription,
+  type VisualAssetCatalog,
+  type VisualAssetProviderId,
+} from "../../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
   type VisualEmotionPresetId,
@@ -31,10 +38,12 @@ interface EmotionDescriptionsSectionProps {
     emotion: VisualEmotionPresetId,
     description: string,
   ) => void;
+  providerId: VisualAssetProviderId;
 }
 
 function createEmotionDescriptionDrafts(
   catalog: VisualAssetCatalog,
+  providerId: VisualAssetProviderId,
 ): Record<VisualEmotionPresetId, string> {
   const drafts: Record<VisualEmotionPresetId, string> = {
     angry: "",
@@ -64,7 +73,10 @@ function createEmotionDescriptionDrafts(
     surprised: "",
   };
 
-  for (const mapping of catalog.emotionDescriptions) {
+  for (const mapping of getVisualAssetProviderEmotionDescriptions(
+    catalog,
+    providerId,
+  )) {
     drafts[mapping.emotion] = mapping.description;
   }
 
@@ -73,10 +85,11 @@ function createEmotionDescriptionDrafts(
 
 function collectMappedEmotions(
   catalog: VisualAssetCatalog,
+  providerId: VisualAssetProviderId,
 ): ReadonlySet<VisualEmotionPresetId> {
   const mapped = new Set<VisualEmotionPresetId>();
 
-  for (const mapping of catalog.mappings) {
+  for (const mapping of getVisualAssetProviderMappings(catalog, providerId)) {
     if (mapping.emotion !== undefined) {
       mapped.add(mapping.emotion);
     }
@@ -91,43 +104,41 @@ const tooltipClassName =
 export function EmotionDescriptionsSection({
   catalog,
   onSetEmotionDescription,
+  providerId,
 }: EmotionDescriptionsSectionProps): ReactElement {
   const [descriptionDrafts, setDescriptionDrafts] = useState<
     Record<VisualEmotionPresetId, string>
-  >(() => createEmotionDescriptionDrafts(catalog));
+  >(() => createEmotionDescriptionDrafts(catalog, providerId));
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    setDescriptionDrafts(createEmotionDescriptionDrafts(catalog));
-  }, [catalog]);
+    setDescriptionDrafts(createEmotionDescriptionDrafts(catalog, providerId));
+  }, [catalog, providerId]);
 
   const mappedEmotions = useMemo(
-    () => collectMappedEmotions(catalog),
-    [catalog],
+    () => collectMappedEmotions(catalog, providerId),
+    [catalog, providerId],
   );
 
-  // emotion-only 매핑만 추려서 미리 Map 으로 두면 렌더 루프가 n*m 스캔을 피한다.
   const emotionAssetUrls = useMemo(() => {
     const urls = new Map<VisualEmotionPresetId, string>();
 
-    for (const mapping of catalog.mappings) {
-      if (mapping.emotion === undefined || mapping.state !== undefined) {
+    for (const emotion of mappedEmotions) {
+      const resolution = resolveVisualAsset(catalog, {
+        emotion,
+        providerId,
+        state: "waiting",
+      });
+
+      if (resolution === null) {
         continue;
       }
 
-      const asset = catalog.assets.find(
-        (candidate) => candidate.id === mapping.assetId,
-      );
-
-      if (asset === undefined) {
-        continue;
-      }
-
-      urls.set(mapping.emotion, createStatusPanelAssetUrl(asset.path));
+      urls.set(emotion, createStatusPanelAssetUrl(resolution.asset.path));
     }
 
     return urls;
-  }, [catalog]);
+  }, [catalog, mappedEmotions, providerId]);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
@@ -185,6 +196,9 @@ export function EmotionDescriptionsSection({
           const isNeutral = preset.id === "neutral";
           const isUnmapped = !isNeutral && !mappedEmotions.has(preset.id);
           const assetUrl = emotionAssetUrls.get(preset.id) ?? null;
+          const effectiveDescription =
+            resolveVisualEmotionDescription(catalog, preset.id, providerId) ??
+            preset.description;
 
           return (
             <div className="flex flex-col gap-1.5" key={preset.id}>
@@ -284,7 +298,7 @@ export function EmotionDescriptionsSection({
                     event.currentTarget.blur();
                   }
                 }}
-                placeholder={preset.description}
+                placeholder={effectiveDescription}
                 type="text"
                 value={descriptionDrafts[preset.id]}
               />

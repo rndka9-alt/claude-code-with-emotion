@@ -49,8 +49,14 @@ function resolveVisualMcpRuntime(env = process.env) {
   const eventQueueDir =
     env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR ||
     (typeof state?.eventQueueDir === "string" ? state.eventQueueDir : "");
+  const assistantProviderId =
+    env.CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID ||
+    (typeof state?.assistantProviderId === "string"
+      ? state.assistantProviderId
+      : "");
 
   return {
+    assistantProviderId,
     traceFilePath,
     visualAssetCatalogFilePath,
     eventQueueDir,
@@ -74,6 +80,12 @@ function createVisualMcpChildEnv(env = process.env) {
     ...(runtime.eventQueueDir.length > 0
       ? {
           CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR: runtime.eventQueueDir,
+        }
+      : {}),
+    ...(runtime.assistantProviderId.length > 0
+      ? {
+          CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID:
+            runtime.assistantProviderId,
         }
       : {}),
   };

@@ -1,6 +1,9 @@
 import {
+  BASE_VISUAL_ASSET_PROVIDER_ID,
   type VisualAssetCatalog,
   type VisualAssetMapping,
+  type VisualAssetProviderId,
+  type VisualAssetProviderOverride,
   type VisualAssetRecord,
 } from "../../../../shared/visual-assets";
 import {
@@ -194,14 +197,108 @@ function removeMatchingStateEmotionMappings(
   });
 }
 
+function createEmptyProviderOverride(): VisualAssetProviderOverride {
+  return {
+    defaultAssetId: undefined,
+    emotionDescriptions: [],
+    mappings: [],
+    stateLines: [],
+    useBaseProviderWhenMissing: true,
+  };
+}
+
+function getProviderOverride(
+  catalog: VisualAssetCatalog,
+  providerId: VisualAssetProviderId,
+): VisualAssetProviderOverride {
+  if (providerId === BASE_VISUAL_ASSET_PROVIDER_ID) {
+    return {
+      defaultAssetId: catalog.assets.find((asset) => asset.isDefault === true)
+        ?.id,
+      emotionDescriptions: catalog.emotionDescriptions,
+      mappings: catalog.mappings,
+      stateLines: catalog.stateLines,
+      useBaseProviderWhenMissing: false,
+    };
+  }
+
+  return {
+    ...createEmptyProviderOverride(),
+    ...catalog.providerOverrides?.[providerId],
+  };
+}
+
+function updateProviderOverride(
+  catalog: VisualAssetCatalog,
+  providerId: VisualAssetProviderId,
+  update: (
+    providerOverride: VisualAssetProviderOverride,
+  ) => VisualAssetProviderOverride,
+): VisualAssetCatalog {
+  if (providerId === BASE_VISUAL_ASSET_PROVIDER_ID) {
+    const nextOverride = update(getProviderOverride(catalog, providerId));
+
+    return {
+      ...catalog,
+      assets: catalog.assets.map((asset) => {
+        if (asset.id === nextOverride.defaultAssetId) {
+          return {
+            ...asset,
+            isDefault: true,
+          };
+        }
+
+        if (asset.isDefault === true) {
+          return {
+            ...asset,
+            isDefault: false,
+          };
+        }
+
+        return asset;
+      }),
+      emotionDescriptions: nextOverride.emotionDescriptions,
+      mappings: nextOverride.mappings,
+      stateLines: nextOverride.stateLines,
+    };
+  }
+
+  return {
+    ...catalog,
+    providerOverrides: {
+      ...catalog.providerOverrides,
+      [providerId]: update(getProviderOverride(catalog, providerId)),
+    },
+  };
+}
+
+function updateProviderMappings(
+  catalog: VisualAssetCatalog,
+  providerId: VisualAssetProviderId,
+  update: (
+    mappings: ReadonlyArray<VisualAssetMapping>,
+  ) => ReadonlyArray<VisualAssetMapping>,
+): VisualAssetCatalog {
+  return updateProviderOverride(catalog, providerId, (providerOverride) => {
+    return {
+      ...providerOverride,
+      mappings: update(providerOverride.mappings),
+    };
+  });
+}
+
 export function mergePickedVisualAssets(
   catalog: VisualAssetCatalog,
   files: ReadonlyArray<VisualAssetPickerFile>,
   createId: () => string = createVisualAssetId,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
   const knownPaths = new Set(catalog.assets.map((asset) => asset.path));
   let nextAssets: VisualAssetRecord[] = [...catalog.assets];
-  let nextMappings: VisualAssetMapping[] = [...catalog.mappings];
+  let nextProviderOverride = getProviderOverride(catalog, providerId);
+  let nextMappings: VisualAssetMapping[] = [
+    ...nextProviderOverride.mappings,
+  ];
 
   for (const file of files) {
     if (knownPaths.has(file.path)) {
@@ -222,23 +319,10 @@ export function mergePickedVisualAssets(
     ];
 
     if (filenameAssignment?.isDefault === true) {
-      nextAssets = nextAssets.map((asset) => {
-        if (asset.id === nextAssetId) {
-          return {
-            ...asset,
-            isDefault: true,
-          };
-        }
-
-        if (asset.isDefault === true) {
-          return {
-            ...asset,
-            isDefault: false,
-          };
-        }
-
-        return asset;
-      });
+      nextProviderOverride = {
+        ...nextProviderOverride,
+        defaultAssetId: nextAssetId,
+      };
     }
 
     if (filenameAssignment !== null && filenameAssignment.pair !== null) {
@@ -281,49 +365,78 @@ export function mergePickedVisualAssets(
     knownPaths.add(file.path);
   }
 
-  return {
-    ...catalog,
-    assets: nextAssets,
-    mappings: nextMappings,
-  };
+  return updateProviderOverride(
+    {
+      ...catalog,
+      assets: nextAssets,
+    },
+    providerId,
+    (providerOverride) => {
+      return {
+        ...providerOverride,
+        defaultAssetId: nextProviderOverride.defaultAssetId,
+        mappings: nextMappings,
+      };
+    },
+  );
 }
 
 export function removeVisualAsset(
   catalog: VisualAssetCatalog,
   assetId: string,
 ): VisualAssetCatalog {
-  return {
+  const nextProviderOverrides: VisualAssetCatalog["providerOverrides"] = {};
+
+  for (const [providerId, providerOverride] of Object.entries(
+    catalog.providerOverrides ?? {},
+  )) {
+    if (providerId !== "codex" || providerOverride === undefined) {
+      continue;
+    }
+
+    nextProviderOverrides[providerId] = {
+      ...providerOverride,
+      defaultAssetId:
+        providerOverride.defaultAssetId === assetId
+          ? undefined
+          : providerOverride.defaultAssetId,
+      mappings: providerOverride.mappings.filter((mapping) => {
+        return mapping.assetId !== assetId;
+      }),
+    };
+  }
+
+  const nextCatalog: VisualAssetCatalog = {
     ...catalog,
     assets: catalog.assets.filter((asset) => asset.id !== assetId),
     mappings: catalog.mappings.filter((mapping) => mapping.assetId !== assetId),
   };
+
+  if (Object.keys(nextProviderOverrides).length > 0) {
+    return {
+      ...nextCatalog,
+      providerOverrides: nextProviderOverrides,
+    };
+  }
+
+  const { providerOverrides: _providerOverrides, ...catalogWithoutOverrides } =
+    nextCatalog;
+
+  return catalogWithoutOverrides;
 }
 
 export function setVisualAssetDefault(
   catalog: VisualAssetCatalog,
   assetId: string,
   isDefault: boolean,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
-  return {
-    ...catalog,
-    assets: catalog.assets.map((asset) => {
-      if (asset.id === assetId) {
-        return {
-          ...asset,
-          isDefault,
-        };
-      }
-
-      if (isDefault && asset.isDefault === true) {
-        return {
-          ...asset,
-          isDefault: false,
-        };
-      }
-
-      return asset;
-    }),
-  };
+  return updateProviderOverride(catalog, providerId, (providerOverride) => {
+    return {
+      ...providerOverride,
+      defaultAssetId: isDefault ? assetId : undefined,
+    };
+  });
 }
 
 // 각 슬롯(state, emotion, state+emotion pair)은 1:1 로 유지돼요.
@@ -334,20 +447,20 @@ export function setVisualAssetStateMapping(
   assetId: string,
   state: VisualStatePresetId,
   isEnabled: boolean,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
-  const nextMappings = removeMatchingStateOnlyMappings(catalog.mappings, state);
+  return updateProviderMappings(catalog, providerId, (mappings) => {
+    const nextMappings = removeMatchingStateOnlyMappings(mappings, state);
 
-  if (isEnabled) {
-    nextMappings.push({
-      assetId,
-      state,
-    });
-  }
+    if (isEnabled) {
+      nextMappings.push({
+        assetId,
+        state,
+      });
+    }
 
-  return {
-    ...catalog,
-    mappings: nextMappings,
-  };
+    return nextMappings;
+  });
 }
 
 export function setVisualAssetEmotionMapping(
@@ -355,23 +468,20 @@ export function setVisualAssetEmotionMapping(
   assetId: string,
   emotion: VisualEmotionPresetId,
   isEnabled: boolean,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
-  const nextMappings = removeMatchingEmotionOnlyMappings(
-    catalog.mappings,
-    emotion,
-  );
+  return updateProviderMappings(catalog, providerId, (mappings) => {
+    const nextMappings = removeMatchingEmotionOnlyMappings(mappings, emotion);
 
-  if (isEnabled) {
-    nextMappings.push({
-      assetId,
-      emotion,
-    });
-  }
+    if (isEnabled) {
+      nextMappings.push({
+        assetId,
+        emotion,
+      });
+    }
 
-  return {
-    ...catalog,
-    mappings: nextMappings,
-  };
+    return nextMappings;
+  });
 }
 
 export function setVisualAssetStateEmotionMapping(
@@ -380,25 +490,25 @@ export function setVisualAssetStateEmotionMapping(
   state: VisualStatePresetId,
   emotion: VisualEmotionPresetId,
   isEnabled: boolean,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
-  const nextMappings = removeMatchingStateEmotionMappings(
-    catalog.mappings,
-    state,
-    emotion,
-  );
-
-  if (isEnabled) {
-    nextMappings.push({
-      assetId,
+  return updateProviderMappings(catalog, providerId, (mappings) => {
+    const nextMappings = removeMatchingStateEmotionMappings(
+      mappings,
       state,
       emotion,
-    });
-  }
+    );
 
-  return {
-    ...catalog,
-    mappings: nextMappings,
-  };
+    if (isEnabled) {
+      nextMappings.push({
+        assetId,
+        state,
+        emotion,
+      });
+    }
+
+    return nextMappings;
+  });
 }
 
 // 슬롯 점유자 조회. 해당 매핑이 가리키는 자산이 실제로 카탈로그에 남아 잇을 때만 반환해요.
@@ -406,10 +516,12 @@ export function setVisualAssetStateEmotionMapping(
 function findSlotOwnerAssetId(
   catalog: VisualAssetCatalog,
   matcher: (mapping: VisualAssetMapping) => boolean,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): string | null {
   const knownAssetIds = new Set(catalog.assets.map((asset) => asset.id));
+  const mappings = getProviderOverride(catalog, providerId).mappings;
 
-  for (const mapping of catalog.mappings) {
+  for (const mapping of mappings) {
     if (!matcher(mapping)) {
       continue;
     }
@@ -425,75 +537,103 @@ function findSlotOwnerAssetId(
 export function findVisualAssetStateOwner(
   catalog: VisualAssetCatalog,
   state: VisualStatePresetId,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): string | null {
   return findSlotOwnerAssetId(catalog, (mapping) => {
     return mapping.state === state && mapping.emotion === undefined;
-  });
+  }, providerId);
 }
 
 export function findVisualAssetEmotionOwner(
   catalog: VisualAssetCatalog,
   emotion: VisualEmotionPresetId,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): string | null {
   return findSlotOwnerAssetId(catalog, (mapping) => {
     return mapping.state === undefined && mapping.emotion === emotion;
-  });
+  }, providerId);
 }
 
 export function findVisualAssetStateEmotionOwner(
   catalog: VisualAssetCatalog,
   state: VisualStatePresetId,
   emotion: VisualEmotionPresetId,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): string | null {
   return findSlotOwnerAssetId(catalog, (mapping) => {
     return mapping.state === state && mapping.emotion === emotion;
-  });
+  }, providerId);
 }
 
 export function setVisualAssetStateLine(
   catalog: VisualAssetCatalog,
   state: VisualStatePresetId,
   line: string,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
   const trimmedLine = line.trim();
 
-  return {
-    ...catalog,
-    stateLines: [
-      ...catalog.stateLines.filter((mapping) => mapping.state !== state),
-      ...(trimmedLine.length > 0
-        ? [
-            {
-              state,
-              line: trimmedLine,
-            },
-          ]
-        : []),
-    ],
-  };
+  return updateProviderOverride(catalog, providerId, (providerOverride) => {
+    return {
+      ...providerOverride,
+      stateLines: [
+        ...providerOverride.stateLines.filter(
+          (mapping) => mapping.state !== state,
+        ),
+        ...(trimmedLine.length > 0
+          ? [
+              {
+                state,
+                line: trimmedLine,
+              },
+            ]
+          : []),
+      ],
+    };
+  });
 }
 
 export function setVisualAssetEmotionDescription(
   catalog: VisualAssetCatalog,
   emotion: VisualEmotionPresetId,
   description: string,
+  providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
   const trimmedDescription = description.trim();
 
-  return {
-    ...catalog,
-    emotionDescriptions: [
-      ...catalog.emotionDescriptions.filter(
-        (mapping) => mapping.emotion !== emotion,
-      ),
-      ...(trimmedDescription.length > 0
-        ? [
-            {
-              emotion,
-              description: trimmedDescription,
-            },
-          ]
-        : []),
-    ],
-  };
+  return updateProviderOverride(catalog, providerId, (providerOverride) => {
+    return {
+      ...providerOverride,
+      emotionDescriptions: [
+        ...providerOverride.emotionDescriptions.filter(
+          (mapping) => mapping.emotion !== emotion,
+        ),
+        ...(trimmedDescription.length > 0
+          ? [
+              {
+                emotion,
+                description: trimmedDescription,
+              },
+            ]
+          : []),
+      ],
+    };
+  });
+}
+
+export function setVisualAssetProviderFallback(
+  catalog: VisualAssetCatalog,
+  providerId: VisualAssetProviderId,
+  useBaseProviderWhenMissing: boolean,
+): VisualAssetCatalog {
+  if (providerId === BASE_VISUAL_ASSET_PROVIDER_ID) {
+    return catalog;
+  }
+
+  return updateProviderOverride(catalog, providerId, (providerOverride) => {
+    return {
+      ...providerOverride,
+      useBaseProviderWhenMissing,
+    };
+  });
 }

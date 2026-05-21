@@ -1,8 +1,10 @@
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import {
   createEmptyVisualAssetCatalog,
+  normalizeVisualAssetProviderId,
   resolveVisualStateLine,
   type VisualAssetCatalog,
+  type VisualAssetProviderId,
 } from "../../../../shared/visual-assets";
 import {
   getDefaultVisualStateLine,
@@ -12,6 +14,9 @@ import {
 export function formatStatusPanelLine(
   assistantStatus: AssistantStatusSnapshot,
   catalog: VisualAssetCatalog = createEmptyVisualAssetCatalog(),
+  providerId: VisualAssetProviderId = normalizeVisualAssetProviderId(
+    assistantStatus.assistantProviderId,
+  ),
 ): string {
   const normalizedSelection = normalizeAssistantVisualSelection({
     state: assistantStatus.state,
@@ -23,7 +28,11 @@ export function formatStatusPanelLine(
       : "";
   const overlayLine = assistantStatus.overlayLine?.trim() ?? "";
   const customStateLine =
-    resolveVisualStateLine(catalog, normalizedSelection.state)?.trim() ?? "";
+    resolveVisualStateLine(
+      catalog,
+      normalizedSelection.state,
+      providerId,
+    )?.trim() ?? "";
   const defaultStateLine = getDefaultVisualStateLine(
     normalizedSelection.state,
   ).trim();

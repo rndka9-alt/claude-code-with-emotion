@@ -6,7 +6,13 @@ import {
   type ReactElement,
 } from "react";
 import { CircleHelp, Image as ImageIcon, Search } from "lucide-react";
-import type { VisualAssetCatalog } from "../../../../../shared/visual-assets";
+import {
+  getVisualAssetProviderStateLines,
+  resolveVisualAsset,
+  type VisualAssetCatalog,
+  type VisualAssetProviderId,
+  type VisualProviderStateMetadata,
+} from "../../../../../shared/visual-assets";
 import {
   getDefaultVisualStateLine,
   STATE_PRESETS,
@@ -24,10 +30,13 @@ import {
 interface StatusLinesSectionProps {
   catalog: VisualAssetCatalog;
   onSetStateLine: (state: VisualStatePresetId, line: string) => void;
+  providerId: VisualAssetProviderId;
+  stateMetadata: ReadonlyArray<VisualProviderStateMetadata>;
 }
 
 function createStateLineDrafts(
   catalog: VisualAssetCatalog,
+  providerId: VisualAssetProviderId,
 ): Record<VisualStatePresetId, string> {
   const drafts: Record<VisualStatePresetId, string> = {
     disconnected: "",
@@ -41,112 +50,87 @@ function createStateLineDrafts(
     tool_failed: "",
   };
 
-  for (const preset of STATE_PRESETS) {
-    drafts[preset.id] =
-      catalog.stateLines.find((mapping) => mapping.state === preset.id)?.line ??
-      "";
+  for (const mapping of getVisualAssetProviderStateLines(catalog, providerId)) {
+    drafts[mapping.state] = mapping.line;
   }
 
   return drafts;
 }
 
-function getSituationMessageDescription(state: VisualStatePresetId): string {
-  if (state === "disconnected") {
-    return "Claude 세션이 아직 연결되지 않은 상태예요.";
+function formatStateMetadataTooltip(
+  metadata: VisualProviderStateMetadata,
+): string {
+  if (metadata.eventNames.length === 0) {
+    return metadata.description;
   }
 
-  if (state === "thinking") {
-    return "질문을 읽거나 다음 행동을 정리하면서 흐름을 잡는 상태예요.";
-  }
+  return `${metadata.description}\n\n실제 이벤트: ${metadata.eventNames.join(", ")}`;
+}
 
-  if (state === "working") {
-    return "툴을 쓰거나 파일을 수정하면서 실제 작업을 진행 중인 상태예요.";
-  }
-
-  if (state === "waiting") {
-    return "작업이 잠시 멈춰 있고 다음 입력이나 이벤트를 기다리는 상태예요.";
-  }
-
-  if (state === "permission_wait") {
-    return "권한 허용이 필요해서 다음 툴 작업으로 못 넘어가고 멈춘 상태예요.";
-  }
-
-  if (state === "compacting") {
-    return "대화 내용을 compact 하는 중이라 잠깐 자리를 비운 상태예요.";
-  }
-
-  if (state === "completed") {
-    return "작업이 끝나고 마무리된 상태예요.";
-  }
-
-  if (state === "tool_failed") {
-    return "세션은 살아 있지만 특정 툴 시도가 실패한 상태예요.";
-  }
-
-  return "오류가 발생해서 정상 흐름에서 벗어난 상태예요.";
+function getStateLabel(state: VisualStatePresetId): string {
+  return STATE_PRESETS.find((preset) => preset.id === state)?.label ?? state;
 }
 
 export function StatusLinesSection({
   catalog,
   onSetStateLine,
+  providerId,
+  stateMetadata,
 }: StatusLinesSectionProps): ReactElement {
   const [stateLineDrafts, setStateLineDrafts] = useState<
     Record<VisualStatePresetId, string>
-  >(() => createStateLineDrafts(catalog));
+  >(() => createStateLineDrafts(catalog, providerId));
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    setStateLineDrafts(createStateLineDrafts(catalog));
-  }, [catalog]);
+    setStateLineDrafts(createStateLineDrafts(catalog, providerId));
+  }, [catalog, providerId]);
 
-  // 매핑된 이미지를 preset 루프 안에서 즉석으로 찾으면 스캔이 n*m 으로 늘어나니
-  // state-only mapping 만 골라 미리 Map 으로 만들어 둔다.
   const stateAssetUrls = useMemo(() => {
     const urls = new Map<VisualStatePresetId, string>();
 
-    for (const mapping of catalog.mappings) {
-      if (mapping.state === undefined || mapping.emotion !== undefined) {
-        continue;
+    for (const metadata of stateMetadata) {
+      const resolution = resolveVisualAsset(catalog, {
+        emotion: null,
+        providerId,
+        state: metadata.state,
+      });
+
+      if (resolution !== null) {
+        urls.set(metadata.state, createStatusPanelAssetUrl(resolution.asset.path));
       }
-
-      const asset = catalog.assets.find(
-        (candidate) => candidate.id === mapping.assetId,
-      );
-
-      if (asset === undefined) {
-        continue;
-      }
-
-      urls.set(mapping.state, createStatusPanelAssetUrl(asset.path));
     }
 
     return urls;
-  }, [catalog]);
+  }, [catalog, providerId, stateMetadata]);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
-  const filteredPresets = useMemo(() => {
+  const filteredMetadata = useMemo(() => {
     if (normalizedSearchQuery.length === 0) {
-      return STATE_PRESETS;
+      return stateMetadata;
     }
 
-    return STATE_PRESETS.filter((preset) => {
+    return stateMetadata.filter((metadata) => {
       return (
-        preset.label.toLowerCase().includes(normalizedSearchQuery) ||
-        preset.id.toLowerCase().includes(normalizedSearchQuery) ||
-        getSituationMessageDescription(preset.id)
+        metadata.state.toLowerCase().includes(normalizedSearchQuery) ||
+        getStateLabel(metadata.state)
           .toLowerCase()
-          .includes(normalizedSearchQuery)
+          .includes(normalizedSearchQuery) ||
+        metadata.description.toLowerCase().includes(normalizedSearchQuery) ||
+        metadata.eventNames.some((eventName) => {
+          return eventName.toLowerCase().includes(normalizedSearchQuery);
+        })
       );
     });
-  }, [normalizedSearchQuery]);
+  }, [normalizedSearchQuery, stateMetadata]);
 
   return (
     <section className="flex flex-col gap-2">
       <h3 className="m-0">Status Text</h3>
       <p className={managerSectionCopyClassName}>
-        상태별 기본 한 줄을 덮어써요. Claude가 직접 띄운 overlay 문구는 여전히
-        먼저 보여요.
+        상태별 기본 한 줄을 덮어써요. Provider마다 실제로 들어오는 상태만
+        편집해요.
       </p>
       <div className="relative">
         <span className={managerSearchIconWrapperClassName}>
@@ -158,33 +142,34 @@ export function StatusLinesSection({
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
             setSearchQuery(event.currentTarget.value);
           }}
-          placeholder="상태 또는 설명으로 검색"
+          placeholder="상태, 설명 또는 실제 이벤트로 검색"
           type="search"
           value={searchQuery}
         />
       </div>
-      {filteredPresets.length === 0 ? (
+      {filteredMetadata.length === 0 ? (
         <div className="border-border-muted bg-surface-empty text-text-faint border border-dashed p-7">
           검색어에 걸리는 상태가 읍어요...!
         </div>
       ) : null}
       <div className="grid gap-3 min-[901px]:grid-cols-2">
-        {filteredPresets.map((preset) => {
-          const inputId = `state-line-${preset.id}`;
-          const assetUrl = stateAssetUrls.get(preset.id) ?? null;
+        {filteredMetadata.map((metadata) => {
+          const inputId = `state-line-${providerId}-${metadata.state}`;
+          const assetUrl = stateAssetUrls.get(metadata.state) ?? null;
+          const label = getStateLabel(metadata.state);
 
           return (
-            <div className="flex flex-col gap-1.5" key={preset.id}>
+            <div className="flex flex-col gap-1.5" key={metadata.state}>
               <div className="flex items-center gap-1.5">
                 <label
                   className="text-text-secondary text-xs font-semibold"
                   htmlFor={inputId}
                 >
-                  {preset.label}
+                  {label}
                 </label>
                 <span className="group relative inline-flex items-center">
                   <button
-                    aria-label={`${preset.label} 상태 설명 보기`}
+                    aria-label={`${label} 상태 설명 보기`}
                     className="text-text-accent inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent"
                     type="button"
                   >
@@ -194,16 +179,16 @@ export function StatusLinesSection({
                     />
                   </button>
                   <span
-                    className="border-tab-border bg-surface-tooltip text-text-tooltip shadow-tooltip pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-[220px] -translate-y-1 border px-3 py-2.5 text-xs leading-[1.45] opacity-0 transition-[opacity,transform] duration-150 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100"
+                    className="border-tab-border bg-surface-tooltip text-text-tooltip shadow-tooltip pointer-events-none absolute top-full left-0 z-[1] mt-2 block w-[240px] -translate-y-1 whitespace-pre-line border px-3 py-2.5 text-xs leading-[1.45] opacity-0 transition-[opacity,transform] duration-150 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100"
                     role="tooltip"
                   >
-                    {getSituationMessageDescription(preset.id)}
+                    {formatStateMetadataTooltip(metadata)}
                   </span>
                 </span>
                 {assetUrl !== null ? (
                   <span className="group relative inline-flex items-center">
                     <button
-                      aria-label={`${preset.label} 매핑 이미지 미리보기`}
+                      aria-label={`${label} 매핑 이미지 미리보기`}
                       className="text-text-accent inline-flex h-[18px] w-[18px] items-center justify-center bg-transparent"
                       type="button"
                     >
@@ -229,7 +214,10 @@ export function StatusLinesSection({
                 className={managerInputClassName}
                 id={inputId}
                 onBlur={() => {
-                  onSetStateLine(preset.id, stateLineDrafts[preset.id]);
+                  onSetStateLine(
+                    metadata.state,
+                    stateLineDrafts[metadata.state],
+                  );
                 }}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   const nextLine = event.currentTarget.value;
@@ -237,7 +225,7 @@ export function StatusLinesSection({
                   setStateLineDrafts((current) => {
                     return {
                       ...current,
-                      [preset.id]: nextLine,
+                      [metadata.state]: nextLine,
                     };
                   });
                 }}
@@ -246,9 +234,9 @@ export function StatusLinesSection({
                     event.currentTarget.blur();
                   }
                 }}
-                placeholder={getDefaultVisualStateLine(preset.id)}
+                placeholder={getDefaultVisualStateLine(metadata.state)}
                 type="text"
-                value={stateLineDrafts[preset.id]}
+                value={stateLineDrafts[metadata.state]}
               />
             </div>
           );

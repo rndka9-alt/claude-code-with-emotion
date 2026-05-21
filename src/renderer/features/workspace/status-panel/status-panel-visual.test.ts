@@ -90,4 +90,50 @@ describe("resolveStatusPanelVisual", () => {
 
     expect(visual).toBeNull();
   });
+
+  it("uses a Codex provider default before falling back to Claude mappings", () => {
+    const visual = resolveStatusPanelVisual(
+      {
+        ...baseSnapshot,
+        assistantProviderId: "codex",
+      },
+      {
+        version: 1,
+        assets: [
+          {
+            id: "asset-claude-working",
+            kind: "image",
+            label: "Claude Working",
+            path: "/tmp/claude-working.png",
+          },
+          {
+            id: "asset-codex-default",
+            kind: "image",
+            label: "Codex Default",
+            path: "/tmp/codex-default.png",
+          },
+        ],
+        mappings: [
+          {
+            assetId: "asset-claude-working",
+            state: "working",
+          },
+        ],
+        providerOverrides: {
+          codex: {
+            defaultAssetId: "asset-codex-default",
+            emotionDescriptions: [],
+            mappings: [],
+            stateLines: [],
+            useBaseProviderWhenMissing: true,
+          },
+        },
+        stateLines: [],
+        emotionDescriptions: [],
+      },
+    );
+
+    expect(visual?.resolution.asset.id).toBe("asset-codex-default");
+    expect(visual?.resolution.match).toBe("default");
+  });
 });

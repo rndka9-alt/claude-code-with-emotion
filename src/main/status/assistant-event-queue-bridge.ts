@@ -31,6 +31,7 @@ const statusPayloadSchema = z
       "error",
     ]),
     line: z.string(),
+    assistantProviderId: z.string().min(1).optional(),
     emotion: emotionalStateSchema.optional(),
     currentTask: z.string().optional(),
     activityLabel: z.string().optional(),
@@ -41,6 +42,9 @@ const statusPayloadSchema = z
       state: parsed.state,
       line: parsed.line,
     };
+    if (parsed.assistantProviderId !== undefined) {
+      update.assistantProviderId = parsed.assistantProviderId;
+    }
     if (parsed.emotion !== undefined && parsed.emotion !== "neutral") {
       update.emotion = parsed.emotion;
     }

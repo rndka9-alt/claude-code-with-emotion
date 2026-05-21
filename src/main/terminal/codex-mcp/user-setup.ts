@@ -192,6 +192,8 @@ export function installCodexVisualMcpUserSetup(
     "--env",
     `PATH=${effectivePath}`,
     "--env",
+    `${ENV_KEYS.ASSISTANT_PROVIDER_ID}=codex`,
+    "--env",
     `${ENV_KEYS.VISUAL_MCP_STATE_FILE}=${stateFilePath}`,
     "--",
     path.join(helperBinDir, resolver.getHelperBinFilename("claude-visual-mcp")),

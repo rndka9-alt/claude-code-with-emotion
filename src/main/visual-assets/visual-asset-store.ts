@@ -7,6 +7,7 @@ import {
   type AvailableVisualOptions,
   type VisualAssetCatalog,
   type VisualAssetMapping,
+  type VisualAssetProviderOverride,
   type VisualAssetRecord,
   type VisualEmotionDescriptionMapping,
   type VisualStateLineMapping,
@@ -96,14 +97,43 @@ function isVisualEmotionDescriptionMapping(
   );
 }
 
-function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
-  const assets = candidate.assets.filter((asset) => {
-    return (
-      asset.id.length > 0 && asset.label.length > 0 && asset.path.length > 0
-    );
-  });
-  const knownAssetIds = new Set(assets.map((asset) => asset.id));
-  const mappings = candidate.mappings.filter((mapping) => {
+function isVisualAssetProviderOverride(
+  value: unknown,
+): value is VisualAssetProviderOverride {
+  if (!isObjectRecord(value)) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(value.mappings) ||
+    !Array.isArray(value.stateLines) ||
+    !Array.isArray(value.emotionDescriptions)
+  ) {
+    return false;
+  }
+
+  if (
+    Object.hasOwn(value, "defaultAssetId") &&
+    typeof value.defaultAssetId !== "string"
+  ) {
+    return false;
+  }
+
+  if (
+    Object.hasOwn(value, "useBaseProviderWhenMissing") &&
+    typeof value.useBaseProviderWhenMissing !== "boolean"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function sanitizeMappings(
+  mappings: ReadonlyArray<VisualAssetMapping>,
+  knownAssetIds: ReadonlySet<string>,
+): VisualAssetMapping[] {
+  return mappings.filter((mapping) => {
     if (!knownAssetIds.has(mapping.assetId)) {
       return false;
     }
@@ -115,7 +145,12 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
 
     return stateIsValid && emotionIsValid;
   });
-  const stateLines = candidate.stateLines
+}
+
+function sanitizeStateLines(
+  stateLines: ReadonlyArray<VisualStateLineMapping>,
+): VisualStateLineMapping[] {
+  return stateLines
     .filter((mapping) => {
       return (
         isVisualStatePresetId(mapping.state) && mapping.line.trim().length > 0
@@ -127,7 +162,12 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
         line: mapping.line.trim(),
       };
     });
-  const emotionDescriptions = candidate.emotionDescriptions
+}
+
+function sanitizeEmotionDescriptions(
+  emotionDescriptions: ReadonlyArray<VisualEmotionDescriptionMapping>,
+): VisualEmotionDescriptionMapping[] {
+  return emotionDescriptions
     .filter((mapping) => {
       return (
         isVisualEmotionPresetId(mapping.emotion) &&
@@ -140,14 +180,56 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
         description: mapping.description.trim(),
       };
     });
+}
 
-  return {
+function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
+  const assets = candidate.assets.filter((asset) => {
+    return (
+      asset.id.length > 0 && asset.label.length > 0 && asset.path.length > 0
+    );
+  });
+  const knownAssetIds = new Set(assets.map((asset) => asset.id));
+  const mappings = sanitizeMappings(candidate.mappings, knownAssetIds);
+  const stateLines = sanitizeStateLines(candidate.stateLines);
+  const emotionDescriptions = sanitizeEmotionDescriptions(
+    candidate.emotionDescriptions,
+  );
+  const providerOverrides: VisualAssetCatalog["providerOverrides"] = {};
+  const codexOverride = candidate.providerOverrides?.codex;
+
+  if (codexOverride !== undefined) {
+    providerOverrides.codex = {
+      defaultAssetId:
+        codexOverride.defaultAssetId !== undefined &&
+        knownAssetIds.has(codexOverride.defaultAssetId)
+          ? codexOverride.defaultAssetId
+          : undefined,
+      emotionDescriptions: sanitizeEmotionDescriptions(
+        codexOverride.emotionDescriptions,
+      ),
+      mappings: sanitizeMappings(codexOverride.mappings, knownAssetIds),
+      stateLines: sanitizeStateLines(codexOverride.stateLines),
+      useBaseProviderWhenMissing:
+        codexOverride.useBaseProviderWhenMissing !== false,
+    };
+  }
+
+  const sanitizedCatalog: VisualAssetCatalog = {
     version: 1,
     assets,
     emotionDescriptions,
     mappings,
     stateLines,
   };
+
+  if (Object.keys(providerOverrides).length > 0) {
+    return {
+      ...sanitizedCatalog,
+      providerOverrides,
+    };
+  }
+
+  return sanitizedCatalog;
 }
 
 function parseCatalogFromDisk(
@@ -172,6 +254,34 @@ function parseCatalogFromDisk(
       version: 1,
       assets: parsed.assets.filter(isVisualAssetRecord),
       mappings: parsed.mappings.filter(isVisualAssetMapping),
+      providerOverrides:
+        isObjectRecord(parsed.providerOverrides) &&
+        isVisualAssetProviderOverride(parsed.providerOverrides.codex)
+          ? {
+              codex: {
+                defaultAssetId:
+                  typeof parsed.providerOverrides.codex.defaultAssetId ===
+                  "string"
+                    ? parsed.providerOverrides.codex.defaultAssetId
+                    : undefined,
+                emotionDescriptions:
+                  parsed.providerOverrides.codex.emotionDescriptions.filter(
+                    isVisualEmotionDescriptionMapping,
+                  ),
+                mappings:
+                  parsed.providerOverrides.codex.mappings.filter(
+                    isVisualAssetMapping,
+                  ),
+                stateLines:
+                  parsed.providerOverrides.codex.stateLines.filter(
+                    isVisualStateLineMapping,
+                  ),
+                useBaseProviderWhenMissing:
+                  parsed.providerOverrides.codex.useBaseProviderWhenMissing !==
+                  false,
+              },
+            }
+          : {},
       stateLines: Array.isArray(parsed.stateLines)
         ? parsed.stateLines.filter(isVisualStateLineMapping)
         : [],

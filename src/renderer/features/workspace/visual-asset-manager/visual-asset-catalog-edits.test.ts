@@ -7,10 +7,12 @@ import {
   setVisualAssetDefault,
   setVisualAssetEmotionDescription,
   setVisualAssetEmotionMapping,
+  setVisualAssetProviderFallback,
   setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
   setVisualAssetStateMapping,
 } from "./visual-asset-catalog-edits";
+import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 
 describe("visual asset catalog edits", () => {
   it("merges picked files without duplicating existing paths", () => {
@@ -309,6 +311,76 @@ describe("visual asset catalog edits", () => {
         path: "/tmp/b.png",
       },
     ]);
+  });
+
+  it("keeps Codex defaults and mappings separate from Claude base mappings", () => {
+    const baseCatalog: VisualAssetCatalog = {
+      version: 1,
+      assets: [
+        {
+          id: "asset-claude",
+          isDefault: true,
+          kind: "image",
+          label: "Claude",
+          path: "/tmp/claude.png",
+        },
+        {
+          id: "asset-codex",
+          kind: "image",
+          label: "Codex",
+          path: "/tmp/codex.png",
+        },
+      ],
+      mappings: [
+        {
+          assetId: "asset-claude",
+          state: "working",
+        },
+      ],
+      stateLines: [],
+      emotionDescriptions: [],
+    };
+    const withCodexDefault = setVisualAssetDefault(
+      baseCatalog,
+      "asset-codex",
+      true,
+      "codex",
+    );
+    const withCodexMapping = setVisualAssetStateMapping(
+      withCodexDefault,
+      "asset-codex",
+      "thinking",
+      true,
+      "codex",
+    );
+
+    expect(withCodexMapping.assets[0]?.isDefault).toBe(true);
+    expect(withCodexMapping.mappings).toEqual([
+      {
+        assetId: "asset-claude",
+        state: "working",
+      },
+    ]);
+    expect(withCodexMapping.providerOverrides?.codex).toMatchObject({
+      defaultAssetId: "asset-codex",
+      mappings: [
+        {
+          assetId: "asset-codex",
+          state: "thinking",
+        },
+      ],
+      useBaseProviderWhenMissing: true,
+    });
+
+    const withoutFallback = setVisualAssetProviderFallback(
+      withCodexMapping,
+      "codex",
+      false,
+    );
+
+    expect(
+      withoutFallback.providerOverrides?.codex?.useBaseProviderWhenMissing,
+    ).toBe(false);
   });
 
   it("adds and removes state-only and emotion-only mappings independently", () => {

@@ -110,6 +110,8 @@ export class AssistantStatusStore {
   ): AssistantStatusSnapshot {
     return {
       activityLabel: update.activityLabel ?? this.currentSnapshot.activityLabel,
+      assistantProviderId:
+        update.assistantProviderId ?? this.currentSnapshot.assistantProviderId,
       // currentSnapshot.emotion 은 오버레이까지 얹힌 값이라 폴백으로 쓰면 감정이 base 에
       // 스탬프처럼 복사대 영원히 남는다. base 는 훅이 직접 준 감정만 담고, 오버레이는
       // applyOverlay 에서만 얹어야 "다음 state 에서 감정 만료" 흐름이 성립한다.

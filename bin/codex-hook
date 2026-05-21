@@ -148,6 +148,8 @@ function main() {
       status.task,
       "--intensity",
       status.intensity,
+      "--provider",
+      "codex",
     ]);
   }
 }

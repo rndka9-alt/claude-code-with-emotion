@@ -26,6 +26,11 @@ function normalizeCatalog(catalog: VisualAssetCatalog): VisualAssetCatalog {
     emotionDescriptions: Array.isArray(catalog.emotionDescriptions)
       ? catalog.emotionDescriptions
       : [],
+    providerOverrides:
+      typeof catalog.providerOverrides === "object" &&
+      catalog.providerOverrides !== null
+        ? catalog.providerOverrides
+        : {},
   };
 }
 

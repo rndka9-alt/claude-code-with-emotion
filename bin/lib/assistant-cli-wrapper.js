@@ -32,7 +32,7 @@ function publishStatus(args) {
 }
 
 function publishStatusUpdate(status) {
-  publishStatus([
+  const args = [
     "--state",
     status.state,
     "--line",
@@ -43,7 +43,13 @@ function publishStatusUpdate(status) {
     status.task,
     "--intensity",
     status.intensity,
-  ]);
+  ];
+
+  if (typeof status.providerId === "string" && status.providerId.length > 0) {
+    args.push("--provider", status.providerId);
+  }
+
+  publishStatus(args);
 }
 
 function runAssistantCliWrapper(config) {

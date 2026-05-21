@@ -17,7 +17,10 @@ import {
   type VisualEmotionPresetId,
   type VisualStatePresetId,
 } from "../../../../shared/visual-presets";
-import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+import type {
+  VisualAssetCatalog,
+  VisualAssetProviderId,
+} from "../../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
 import type { WorkspaceWindowScreenPoint } from "../../../../shared/workspace-window-bridge";
 import { useToast } from "../../toast/ToastProvider";
@@ -44,6 +47,7 @@ import {
   setVisualAssetDefault,
   setVisualAssetEmotionDescription,
   setVisualAssetEmotionMapping,
+  setVisualAssetProviderFallback,
   setVisualAssetStateEmotionMapping,
   setVisualAssetStateLine,
   setVisualAssetStateMapping,
@@ -128,6 +132,7 @@ function createAssistantLaunchPendingSnapshot(
 ): AssistantStatusSnapshot {
   return {
     activityLabel: `${assistantProvider.displayName} 세션 시작하는 중`,
+    assistantProviderId: assistantProvider.id,
     emotion: null,
     overlayLine: null,
     state: "working",
@@ -253,7 +258,10 @@ export interface WorkspaceScreenViewModel {
   createTab: () => void;
   detachTab: (tabId: string, screenPoint?: WorkspaceWindowScreenPoint) => void;
   dismissMcpSetupPrompt: () => void;
-  dropVisualAssets: (files: ReadonlyArray<File>) => void;
+  dropVisualAssets: (
+    files: ReadonlyArray<File>,
+    providerId: VisualAssetProviderId,
+  ) => void;
   handleLaunchAssistant: () => void;
   isMcpSetupPromptDismissed: boolean;
   isInstallingVisualMcp: boolean;
@@ -265,7 +273,7 @@ export interface WorkspaceScreenViewModel {
   notifiedTabIds: ReadonlySet<string>;
   installVisualMcp: (targetId?: VisualMcpSetupTargetId) => void;
   openSettingsDialog: () => void;
-  pickVisualAssets: () => void;
+  pickVisualAssets: (providerId: VisualAssetProviderId) => void;
   activeTab:
     | ReturnType<typeof useWorkspaceState>["state"]["tabs"][number]
     | null;
@@ -277,29 +285,45 @@ export interface WorkspaceScreenViewModel {
   reorderTab: (tabId: string, destinationIndex: number) => void;
   resizeSplit: (splitId: string, deltaRatio: number) => void;
   setThemeId: (themeId: AppThemeId) => void;
-  setDefaultAsset: (assetId: string, isDefault: boolean) => void;
+  setDefaultAsset: (
+    assetId: string,
+    isDefault: boolean,
+    providerId: VisualAssetProviderId,
+  ) => void;
   setEmotionDescription: (
     emotion: VisualEmotionPresetId,
     description: string,
+    providerId: VisualAssetProviderId,
   ) => void;
-  setStateLine: (statePreset: VisualStatePresetId, line: string) => void;
+  setProviderFallback: (
+    providerId: VisualAssetProviderId,
+    useBaseProviderWhenMissing: boolean,
+  ) => void;
+  setStateLine: (
+    statePreset: VisualStatePresetId,
+    line: string,
+    providerId: VisualAssetProviderId,
+  ) => void;
   assistantPresentation: ReturnType<typeof resolveAssistantPresentation>;
   tabs: ReturnType<typeof useWorkspaceState>["state"]["tabs"];
   toggleEmotion: (
     assetId: string,
     emotion: VisualEmotionPresetId,
     isEnabled: boolean,
+    providerId: VisualAssetProviderId,
   ) => void;
   toggleState: (
     assetId: string,
     statePreset: VisualStatePresetId,
     isEnabled: boolean,
+    providerId: VisualAssetProviderId,
   ) => void;
   toggleStateEmotion: (
     assetId: string,
     statePreset: VisualStatePresetId,
     emotion: VisualEmotionPresetId,
     isEnabled: boolean,
+    providerId: VisualAssetProviderId,
   ) => void;
   renameTab: (tabId: string, title: string) => void;
   syncSessionTitle: (sessionId: string, title: string) => void;
@@ -493,6 +517,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
 
   const importVisualAssets = (
     filesPromise: Promise<ReadonlyArray<VisualAssetPickerFile>>,
+    providerId: VisualAssetProviderId,
   ): void => {
     void filesPromise.then((importedFiles) => {
       if (importedFiles.length === 0) {
@@ -500,7 +525,12 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       }
 
       void persistVisualAssetCatalog(
-        mergePickedVisualAssets(visualAssetCatalog, importedFiles),
+        mergePickedVisualAssets(
+          visualAssetCatalog,
+          importedFiles,
+          undefined,
+          providerId,
+        ),
       );
     });
   };
@@ -614,7 +644,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       setIsMcpSetupPromptDismissed(true);
       persistMcpSetupPromptDismissedPreference(true);
     },
-    dropVisualAssets: (files) => {
+    dropVisualAssets: (files, providerId) => {
       // webUtils.getPathForFile는 드랍·파일시스템 출처가 아닌 File에 대해 빈 문자열을 돌려주므로 그런 건 걸러냄
       const bridge = window.claudeApp?.visualAssets;
 
@@ -631,7 +661,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         return;
       }
 
-      importVisualAssets(importVisualAssetFiles(filePaths));
+      importVisualAssets(importVisualAssetFiles(filePaths), providerId);
     },
     handleLaunchAssistant,
     isMcpSetupPromptDismissed,
@@ -663,8 +693,8 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     },
     sessions: state.sessions,
     terminalFocusRequestKey,
-    pickVisualAssets: () => {
-      importVisualAssets(pickVisualAssetFiles());
+    pickVisualAssets: (providerId) => {
+      importVisualAssets(pickVisualAssetFiles(), providerId);
     },
     removeAsset: (assetId) => {
       void persistVisualAssetCatalog(
@@ -674,30 +704,50 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     reorderTab,
     resizeSplit,
     setThemeId,
-    setDefaultAsset: (assetId, isDefault) => {
+    setDefaultAsset: (assetId, isDefault, providerId) => {
       void persistVisualAssetCatalog(
-        setVisualAssetDefault(visualAssetCatalog, assetId, isDefault),
+        setVisualAssetDefault(
+          visualAssetCatalog,
+          assetId,
+          isDefault,
+          providerId,
+        ),
       );
     },
-    setEmotionDescription: (emotion, description) => {
+    setEmotionDescription: (emotion, description, providerId) => {
       void persistVisualAssetCatalog(
         setVisualAssetEmotionDescription(
           visualAssetCatalog,
           emotion,
           description,
+          providerId,
         ),
       );
     },
-    setStateLine: (statePreset, line) => {
+    setProviderFallback: (providerId, useBaseProviderWhenMissing) => {
       void persistVisualAssetCatalog(
-        setVisualAssetStateLine(visualAssetCatalog, statePreset, line),
+        setVisualAssetProviderFallback(
+          visualAssetCatalog,
+          providerId,
+          useBaseProviderWhenMissing,
+        ),
+      );
+    },
+    setStateLine: (statePreset, line, providerId) => {
+      void persistVisualAssetCatalog(
+        setVisualAssetStateLine(
+          visualAssetCatalog,
+          statePreset,
+          line,
+          providerId,
+        ),
       );
     },
     assistantPresentation,
     tabs: state.tabs,
-    toggleEmotion: (assetId, emotion, isEnabled) => {
+    toggleEmotion: (assetId, emotion, isEnabled, providerId) => {
       const previousOwnerAssetId = isEnabled
-        ? findVisualAssetEmotionOwner(visualAssetCatalog, emotion)
+        ? findVisualAssetEmotionOwner(visualAssetCatalog, emotion, providerId)
         : null;
 
       void persistVisualAssetCatalog(
@@ -706,6 +756,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
           assetId,
           emotion,
           isEnabled,
+          providerId,
         ),
       );
 
@@ -729,6 +780,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
                   previousOwnerAssetId,
                   emotion,
                   true,
+                  providerId,
                 ),
               );
             },
@@ -736,9 +788,13 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         });
       }
     },
-    toggleState: (assetId, statePreset, isEnabled) => {
+    toggleState: (assetId, statePreset, isEnabled, providerId) => {
       const previousOwnerAssetId = isEnabled
-        ? findVisualAssetStateOwner(visualAssetCatalog, statePreset)
+        ? findVisualAssetStateOwner(
+            visualAssetCatalog,
+            statePreset,
+            providerId,
+          )
         : null;
 
       void persistVisualAssetCatalog(
@@ -747,6 +803,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
           assetId,
           statePreset,
           isEnabled,
+          providerId,
         ),
       );
 
@@ -770,6 +827,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
                   previousOwnerAssetId,
                   statePreset,
                   true,
+                  providerId,
                 ),
               );
             },
@@ -777,12 +835,19 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         });
       }
     },
-    toggleStateEmotion: (assetId, statePreset, emotion, isEnabled) => {
+    toggleStateEmotion: (
+      assetId,
+      statePreset,
+      emotion,
+      isEnabled,
+      providerId,
+    ) => {
       const previousOwnerAssetId = isEnabled
         ? findVisualAssetStateEmotionOwner(
             visualAssetCatalog,
             statePreset,
             emotion,
+            providerId,
           )
         : null;
 
@@ -793,6 +858,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
           statePreset,
           emotion,
           isEnabled,
+          providerId,
         ),
       );
 
@@ -818,6 +884,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
                   statePreset,
                   emotion,
                   true,
+                  providerId,
                 ),
               );
             },

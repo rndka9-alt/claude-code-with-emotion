@@ -1,4 +1,5 @@
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
+import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import { formatStatusPanelLine } from "./status-panel-line";
 
 const baseSnapshot: AssistantStatusSnapshot = {
@@ -55,6 +56,46 @@ describe("formatStatusPanelLine", () => {
         emotionDescriptions: [],
       }),
     ).toBe("상황 파악중...!\n(자료를 찾는 중)");
+  });
+
+  it("resolves Codex state lines before Claude fallback lines", () => {
+    const catalog: VisualAssetCatalog = {
+      version: 1,
+      assets: [],
+      mappings: [],
+      providerOverrides: {
+        codex: {
+          defaultAssetId: undefined,
+          emotionDescriptions: [],
+          mappings: [],
+          stateLines: [
+            {
+              state: "thinking",
+              line: "Codex가 생각 정리 중이에요...!",
+            },
+          ],
+          useBaseProviderWhenMissing: true,
+        },
+      },
+      stateLines: [
+        {
+          state: "thinking",
+          line: "Claude가 생각 정리 중이에요...!",
+        },
+      ],
+      emotionDescriptions: [],
+    };
+
+    expect(
+      formatStatusPanelLine(
+        {
+          ...baseSnapshot,
+          assistantProviderId: "codex",
+        },
+        catalog,
+        "codex",
+      ),
+    ).toBe("Codex가 생각 정리 중이에요...!\n(자료를 찾는 중)");
   });
 
   it("uses a command-provided disconnected line before the Claude default line", () => {

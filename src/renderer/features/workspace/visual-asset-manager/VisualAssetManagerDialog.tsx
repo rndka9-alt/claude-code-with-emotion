@@ -1,13 +1,21 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { X } from "lucide-react";
-import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+import {
+  BASE_VISUAL_ASSET_PROVIDER_ID,
+  getVisualAssetProviderOverride,
+  getVisualAssetProviderStateMetadata,
+  VISUAL_ASSET_PROVIDER_OPTIONS,
+  type VisualAssetCatalog,
+  type VisualAssetProviderId,
+} from "../../../../shared/visual-assets";
 import type {
   VisualMcpSetupOverview,
   VisualMcpSetupTargetId,
 } from "../../../../shared/mcp-setup-bridge";
-import type {
-  VisualEmotionPresetId,
-  VisualStatePresetId,
+import {
+  STATE_PRESETS,
+  type VisualEmotionPresetId,
+  type VisualStatePresetId,
 } from "../../../../shared/visual-presets";
 import type { AppThemeId, AppThemeOption } from "../../../../shared/theme";
 import {
@@ -33,32 +41,51 @@ interface VisualAssetManagerDialogProps {
   mcpSetupErrorsByTargetId: Partial<Record<VisualMcpSetupTargetId, string>>;
   mcpSetupStatus: VisualMcpSetupOverview | null;
   onClose: () => void;
-  onDropFiles: (files: ReadonlyArray<File>) => void;
+  onDropFiles: (
+    files: ReadonlyArray<File>,
+    providerId: VisualAssetProviderId,
+  ) => void;
   onInstallVisualMcp: (targetId?: VisualMcpSetupTargetId) => void;
-  onPickFiles: () => void;
+  onPickFiles: (providerId: VisualAssetProviderId) => void;
   onRemoveAsset: (assetId: string) => void;
   onSelectTheme: (themeId: AppThemeId) => void;
-  onSetDefaultAsset: (assetId: string, isDefault: boolean) => void;
+  onSetDefaultAsset: (
+    assetId: string,
+    isDefault: boolean,
+    providerId: VisualAssetProviderId,
+  ) => void;
   onSetEmotionDescription: (
     emotion: VisualEmotionPresetId,
     description: string,
+    providerId: VisualAssetProviderId,
   ) => void;
-  onSetStateLine: (state: VisualStatePresetId, line: string) => void;
+  onSetProviderFallback: (
+    providerId: VisualAssetProviderId,
+    useBaseProviderWhenMissing: boolean,
+  ) => void;
+  onSetStateLine: (
+    state: VisualStatePresetId,
+    line: string,
+    providerId: VisualAssetProviderId,
+  ) => void;
   onToggleEmotion: (
     assetId: string,
     emotion: VisualEmotionPresetId,
     isEnabled: boolean,
+    providerId: VisualAssetProviderId,
   ) => void;
   onToggleState: (
     assetId: string,
     state: VisualStatePresetId,
     isEnabled: boolean,
+    providerId: VisualAssetProviderId,
   ) => void;
   onToggleStateEmotion: (
     assetId: string,
     state: VisualStatePresetId,
     emotion: VisualEmotionPresetId,
     isEnabled: boolean,
+    providerId: VisualAssetProviderId,
   ) => void;
 }
 
@@ -87,6 +114,7 @@ export function VisualAssetManagerDialog({
   onSelectTheme,
   onSetDefaultAsset,
   onSetEmotionDescription,
+  onSetProviderFallback,
   onSetStateLine,
   onToggleEmotion,
   onToggleState,
@@ -96,6 +124,20 @@ export function VisualAssetManagerDialog({
     useState<VisualAssetManagerTabId>("general");
   const [activeStatusPanelTab, setActiveStatusPanelTab] =
     useState<StatusPanelSettingsTabId>("assets");
+  const [activeProviderId, setActiveProviderId] =
+    useState<VisualAssetProviderId>(BASE_VISUAL_ASSET_PROVIDER_ID);
+  const activeProviderOverride = getVisualAssetProviderOverride(
+    catalog,
+    activeProviderId,
+  );
+  const activeStateMetadata =
+    getVisualAssetProviderStateMetadata(activeProviderId);
+  const activeStateIds = new Set(
+    activeStateMetadata.map((metadata) => metadata.state),
+  );
+  const activeStatePresets = STATE_PRESETS.filter((preset) => {
+    return activeStateIds.has(preset.id);
+  });
 
   useEffect(() => {
     const handleWindowKeyDown = (event: KeyboardEvent): void => {
@@ -239,11 +281,44 @@ export function VisualAssetManagerDialog({
                 <select
                   aria-label="상태창 provider"
                   className={managerInputClassName}
-                  defaultValue="claude"
+                  onChange={(event) => {
+                    const nextProviderId =
+                      event.currentTarget.value === "codex"
+                        ? "codex"
+                        : BASE_VISUAL_ASSET_PROVIDER_ID;
+                    setActiveProviderId(nextProviderId);
+                  }}
+                  value={activeProviderId}
                   id="status-panel-provider"
                 >
-                  <option value="claude">Claude Code</option>
+                  {VISUAL_ASSET_PROVIDER_OPTIONS.map((option) => {
+                    return (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                        {option.isBase ? " (default)" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
+                {activeProviderId !== BASE_VISUAL_ASSET_PROVIDER_ID ? (
+                  <label className="text-text-secondary flex items-center gap-2 text-xs">
+                    <input
+                      checked={
+                        activeProviderOverride.useBaseProviderWhenMissing !==
+                        false
+                      }
+                      className="accent-terminal-blue"
+                      onChange={(event) => {
+                        onSetProviderFallback(
+                          activeProviderId,
+                          event.currentTarget.checked,
+                        );
+                      }}
+                      type="checkbox"
+                    />
+                    없으면 Claude Code 사용
+                  </label>
+                ) : null}
               </div>
 
               <div
@@ -308,13 +383,43 @@ export function VisualAssetManagerDialog({
               >
                 <EmotionSection
                   catalog={catalog}
-                  onDropFiles={onDropFiles}
-                  onPickFiles={onPickFiles}
+                  onDropFiles={(files) => {
+                    onDropFiles(files, activeProviderId);
+                  }}
+                  onPickFiles={() => {
+                    onPickFiles(activeProviderId);
+                  }}
                   onRemoveAsset={onRemoveAsset}
-                  onSetDefaultAsset={onSetDefaultAsset}
-                  onToggleEmotion={onToggleEmotion}
-                  onToggleState={onToggleState}
-                  onToggleStateEmotion={onToggleStateEmotion}
+                  onSetDefaultAsset={(assetId, isDefault) => {
+                    onSetDefaultAsset(assetId, isDefault, activeProviderId);
+                  }}
+                  onToggleEmotion={(assetId, emotion, isEnabled) => {
+                    onToggleEmotion(
+                      assetId,
+                      emotion,
+                      isEnabled,
+                      activeProviderId,
+                    );
+                  }}
+                  onToggleState={(assetId, state, isEnabled) => {
+                    onToggleState(assetId, state, isEnabled, activeProviderId);
+                  }}
+                  onToggleStateEmotion={(
+                    assetId,
+                    state,
+                    emotion,
+                    isEnabled,
+                  ) => {
+                    onToggleStateEmotion(
+                      assetId,
+                      state,
+                      emotion,
+                      isEnabled,
+                      activeProviderId,
+                    );
+                  }}
+                  providerId={activeProviderId}
+                  statePresets={activeStatePresets}
                 />
               </section>
 
@@ -326,7 +431,11 @@ export function VisualAssetManagerDialog({
               >
                 <StatusLinesSection
                   catalog={catalog}
-                  onSetStateLine={onSetStateLine}
+                  onSetStateLine={(state, line) => {
+                    onSetStateLine(state, line, activeProviderId);
+                  }}
+                  providerId={activeProviderId}
+                  stateMetadata={activeStateMetadata}
                 />
               </section>
 
@@ -338,7 +447,14 @@ export function VisualAssetManagerDialog({
               >
                 <EmotionDescriptionsSection
                   catalog={catalog}
-                  onSetEmotionDescription={onSetEmotionDescription}
+                  onSetEmotionDescription={(emotion, description) => {
+                    onSetEmotionDescription(
+                      emotion,
+                      description,
+                      activeProviderId,
+                    );
+                  }}
+                  providerId={activeProviderId}
                 />
               </section>
             </div>
