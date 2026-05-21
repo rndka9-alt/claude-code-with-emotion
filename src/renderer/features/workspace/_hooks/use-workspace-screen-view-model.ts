@@ -18,8 +18,11 @@ import {
   type VisualStatePresetId,
 } from "../../../../shared/visual-presets";
 import type {
-  VisualAssetCatalog,
+  VisualAssetCatalogStore,
   VisualAssetProviderId,
+} from "../../../../shared/visual-assets";
+import {
+  getVisualAssetProviderCatalog,
 } from "../../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../../shared/visual-assets-bridge";
 import type { WorkspaceWindowScreenPoint } from "../../../../shared/workspace-window-bridge";
@@ -68,7 +71,13 @@ function findStateLabel(stateId: VisualStatePresetId): string {
   );
 }
 
-function findAssetLabel(catalog: VisualAssetCatalog, assetId: string): string {
+function findAssetLabel(
+  catalogStore: VisualAssetCatalogStore,
+  assetId: string,
+  providerId: VisualAssetProviderId,
+): string {
+  const catalog = getVisualAssetProviderCatalog(catalogStore, providerId);
+
   return catalog.assets.find((asset) => asset.id === assetId)?.label ?? assetId;
 }
 
@@ -281,7 +290,7 @@ export interface WorkspaceScreenViewModel {
   focusPane: (paneId: string) => void;
   sessions: ReturnType<typeof useWorkspaceState>["state"]["sessions"];
   terminalFocusRequestKey: number;
-  removeAsset: (assetId: string) => void;
+  removeAsset: (assetId: string, providerId: VisualAssetProviderId) => void;
   reorderTab: (tabId: string, destinationIndex: number) => void;
   resizeSplit: (splitId: string, deltaRatio: number) => void;
   setThemeId: (themeId: AppThemeId) => void;
@@ -696,9 +705,9 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     pickVisualAssets: (providerId) => {
       importVisualAssets(pickVisualAssetFiles(), providerId);
     },
-    removeAsset: (assetId) => {
+    removeAsset: (assetId, providerId) => {
       void persistVisualAssetCatalog(
-        removeVisualAsset(visualAssetCatalog, assetId),
+        removeVisualAsset(visualAssetCatalog, assetId, providerId),
       );
     },
     reorderTab,
@@ -764,8 +773,13 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         const previousOwnerLabel = findAssetLabel(
           visualAssetCatalog,
           previousOwnerAssetId,
+          providerId,
         );
-        const newOwnerLabel = findAssetLabel(visualAssetCatalog, assetId);
+        const newOwnerLabel = findAssetLabel(
+          visualAssetCatalog,
+          assetId,
+          providerId,
+        );
         const emotionLabel = findEmotionLabel(emotion);
 
         toast.showToast({
@@ -811,8 +825,13 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         const previousOwnerLabel = findAssetLabel(
           visualAssetCatalog,
           previousOwnerAssetId,
+          providerId,
         );
-        const newOwnerLabel = findAssetLabel(visualAssetCatalog, assetId);
+        const newOwnerLabel = findAssetLabel(
+          visualAssetCatalog,
+          assetId,
+          providerId,
+        );
         const stateLabel = findStateLabel(statePreset);
 
         toast.showToast({
@@ -866,8 +885,13 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
         const previousOwnerLabel = findAssetLabel(
           visualAssetCatalog,
           previousOwnerAssetId,
+          providerId,
         );
-        const newOwnerLabel = findAssetLabel(visualAssetCatalog, assetId);
+        const newOwnerLabel = findAssetLabel(
+          visualAssetCatalog,
+          assetId,
+          providerId,
+        );
         const stateLabel = findStateLabel(statePreset);
         const emotionLabel = findEmotionLabel(emotion);
 

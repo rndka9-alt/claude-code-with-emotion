@@ -6,11 +6,11 @@ export {
 export type {
   AvailableVisualOptions,
   VisualAssetCatalog,
+  VisualAssetCatalogStore,
   VisualAssetMapping,
+  VisualAssetProviderCatalogs,
   VisualAssetProviderId,
   VisualAssetProviderOption,
-  VisualAssetProviderOverride,
-  VisualAssetProviderOverrides,
   VisualAssetRecord,
   VisualAssetResolution,
   VisualAssetResolutionRequest,
@@ -24,16 +24,14 @@ export {
 } from "./utils/collect-available-visual-options";
 export {
   createEmptyVisualAssetCatalog,
+  createEmptyVisualAssetCatalogStore,
 } from "./utils/create-empty-visual-asset-catalog";
 export {
   createVisualAssetCatalogForProvider,
 } from "./utils/create-visual-asset-catalog-for-provider";
 export {
-  getVisualAssetProviderOverride,
-} from "./utils/get-visual-asset-provider-override";
-export {
-  isVisualAssetDefaultForProvider,
-} from "./utils/is-visual-asset-default-for-provider";
+  getVisualAssetProviderCatalog,
+} from "./utils/get-visual-asset-provider-catalog";
 export {
   normalizeVisualAssetProviderId,
 } from "./utils/normalize-visual-asset-provider-id";

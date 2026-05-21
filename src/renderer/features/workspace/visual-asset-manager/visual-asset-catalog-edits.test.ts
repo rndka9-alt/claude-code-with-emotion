@@ -1,4 +1,9 @@
 import {
+  getVisualAssetProviderCatalog,
+  type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
+} from "../../../../shared/visual-assets";
+import {
   findVisualAssetEmotionOwner,
   findVisualAssetStateEmotionOwner,
   findVisualAssetStateOwner,
@@ -8,17 +13,62 @@ import {
   setVisualAssetEmotionDescription,
   setVisualAssetEmotionMapping,
   setVisualAssetProviderFallback,
-  setVisualAssetStateLine,
   setVisualAssetStateEmotionMapping,
+  setVisualAssetStateLine,
   setVisualAssetStateMapping,
 } from "./visual-asset-catalog-edits";
-import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
+
+function createEmptyCatalog(
+  useBaseProviderWhenMissing?: boolean,
+): VisualAssetCatalog {
+  const catalog: VisualAssetCatalog = {
+    version: 1,
+    assets: [],
+    mappings: [],
+    stateLines: [],
+    emotionDescriptions: [],
+  };
+
+  if (useBaseProviderWhenMissing !== undefined) {
+    return {
+      ...catalog,
+      useBaseProviderWhenMissing,
+    };
+  }
+
+  return catalog;
+}
+
+function createCatalogStore(
+  claudeCatalog: VisualAssetCatalog,
+  codexCatalog: VisualAssetCatalog = createEmptyCatalog(true),
+): VisualAssetCatalogStore {
+  return {
+    version: 1,
+    providers: {
+      claude: claudeCatalog,
+      codex: codexCatalog,
+    },
+  };
+}
+
+function getClaudeCatalog(
+  catalogStore: VisualAssetCatalogStore,
+): VisualAssetCatalog {
+  return getVisualAssetProviderCatalog(catalogStore, "claude");
+}
+
+function getCodexCatalog(
+  catalogStore: VisualAssetCatalogStore,
+): VisualAssetCatalog {
+  return getVisualAssetProviderCatalog(catalogStore, "codex");
+}
 
 describe("visual asset catalog edits", () => {
-  it("merges picked files without duplicating existing paths", () => {
+  it("merges picked files into the selected provider without duplicating existing paths", () => {
     const catalog = mergePickedVisualAssets(
-      {
-        version: 1,
+      createCatalogStore({
+        ...createEmptyCatalog(),
         assets: [
           {
             id: "asset-a",
@@ -27,10 +77,7 @@ describe("visual asset catalog edits", () => {
             path: "/tmp/a.png",
           },
         ],
-        mappings: [],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
+      }),
       [
         {
           label: "A again",
@@ -44,16 +91,18 @@ describe("visual asset catalog edits", () => {
       () => "asset-b",
     );
 
-    expect(catalog.assets.map((asset) => asset.id)).toEqual([
-      "asset-a",
-      "asset-b",
-    ]);
+    expect(
+      getClaudeCatalog(catalog).assets.map((asset) => {
+        return asset.id;
+      }),
+    ).toEqual(["asset-a", "asset-b"]);
+    expect(getCodexCatalog(catalog).assets).toEqual([]);
   });
 
   it("auto-maps imported assets from filename rules and updates conflicting slots", () => {
     const catalog = mergePickedVisualAssets(
-      {
-        version: 1,
+      createCatalogStore({
+        ...createEmptyCatalog(),
         assets: [
           {
             id: "asset-default-old",
@@ -75,9 +124,7 @@ describe("visual asset catalog edits", () => {
             state: "working",
           },
         ],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
+      }),
       [
         {
           label: "working.png",
@@ -115,8 +162,9 @@ describe("visual asset catalog edits", () => {
         };
       })(),
     );
+    const claudeCatalog = getClaudeCatalog(catalog);
 
-    expect(catalog.assets).toEqual([
+    expect(claudeCatalog.assets).toEqual([
       {
         id: "asset-default-old",
         isDefault: false,
@@ -126,24 +174,28 @@ describe("visual asset catalog edits", () => {
       },
       {
         id: "asset-working-old",
+        isDefault: false,
         kind: "image",
         label: "Working Old",
         path: "/tmp/working-old.png",
       },
       {
         id: "asset-working-new",
+        isDefault: false,
         kind: "image",
         label: "working.png",
         path: "/tmp/working.png",
       },
       {
         id: "asset-happy-new",
+        isDefault: false,
         kind: "image",
         label: "happy.png",
         path: "/tmp/happy.png",
       },
       {
         id: "asset-working-happy-new",
+        isDefault: false,
         kind: "image",
         label: "working__happy.png",
         path: "/tmp/working__happy.png",
@@ -156,7 +208,7 @@ describe("visual asset catalog edits", () => {
         path: "/tmp/default__fallback.png",
       },
     ]);
-    expect(catalog.mappings).toEqual([
+    expect(claudeCatalog.mappings).toEqual([
       {
         assetId: "asset-working-new",
         state: "working",
@@ -173,15 +225,9 @@ describe("visual asset catalog edits", () => {
     ]);
   });
 
-  it("fans out same-category filenames into multiple slots", () => {
+  it("fans out same-category filenames and keeps only the larger side on mixed filenames", () => {
     const catalog = mergePickedVisualAssets(
-      {
-        version: 1,
-        assets: [],
-        mappings: [],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
+      createCatalogStore(createEmptyCatalog()),
       [
         {
           label: "working__waiting.png",
@@ -191,60 +237,13 @@ describe("visual asset catalog edits", () => {
           label: "happy__angry__sad.png",
           path: "/tmp/happy__angry__sad.png",
         },
-      ],
-      (() => {
-        const ids = ["asset-states", "asset-emotions"];
-
-        return () => {
-          const nextId = ids.shift();
-
-          if (nextId === undefined) {
-            throw new Error("Expected another visual asset id");
-          }
-
-          return nextId;
-        };
-      })(),
-    );
-
-    expect(catalog.mappings).toEqual([
-      { assetId: "asset-states", state: "working" },
-      { assetId: "asset-states", state: "waiting" },
-      { assetId: "asset-emotions", emotion: "happy" },
-      { assetId: "asset-emotions", emotion: "angry" },
-      { assetId: "asset-emotions", emotion: "sad" },
-    ]);
-  });
-
-  it("keeps only the larger side on mixed N:M filenames and breaks ties toward emotions", () => {
-    const catalog = mergePickedVisualAssets(
-      {
-        version: 1,
-        assets: [],
-        mappings: [],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
-      // 파일마다 서로 겹치지 않는 슬롯을 쓰게 해서 나중 파일이 앞 매핑을 뺏지 않도록 구성.
-      [
-        // 상태 2 vs 감정 1 → 상태가 이겨서 happy 는 버려짐
-        {
-          label: "working__waiting__happy.png",
-          path: "/tmp/states-win.png",
-        },
-        // 상태 1 vs 감정 2 → 감정이 이겨서 thinking 은 버려짐
-        {
-          label: "thinking__curious__serious.png",
-          path: "/tmp/emotions-win.png",
-        },
-        // 동점(2:2) → 감정 우선이라 completed/error 는 버려짐
         {
           label: "completed__error__proud__surprised.png",
           path: "/tmp/tie.png",
         },
       ],
       (() => {
-        const ids = ["asset-states-win", "asset-emotions-win", "asset-tie"];
+        const ids = ["asset-states", "asset-emotions", "asset-tie"];
 
         return () => {
           const nextId = ids.shift();
@@ -258,64 +257,20 @@ describe("visual asset catalog edits", () => {
       })(),
     );
 
-    expect(catalog.mappings).toEqual([
-      { assetId: "asset-states-win", state: "working" },
-      { assetId: "asset-states-win", state: "waiting" },
-      { assetId: "asset-emotions-win", emotion: "curious" },
-      { assetId: "asset-emotions-win", emotion: "serious" },
+    expect(getClaudeCatalog(catalog).mappings).toEqual([
+      { assetId: "asset-states", state: "working" },
+      { assetId: "asset-states", state: "waiting" },
+      { assetId: "asset-emotions", emotion: "happy" },
+      { assetId: "asset-emotions", emotion: "angry" },
+      { assetId: "asset-emotions", emotion: "sad" },
       { assetId: "asset-tie", emotion: "proud" },
       { assetId: "asset-tie", emotion: "surprised" },
     ]);
   });
 
-  it("keeps only one default asset at a time", () => {
-    const catalog = setVisualAssetDefault(
-      {
-        version: 1,
-        assets: [
-          {
-            id: "asset-a",
-            isDefault: true,
-            kind: "image",
-            label: "A",
-            path: "/tmp/a.png",
-          },
-          {
-            id: "asset-b",
-            kind: "image",
-            label: "B",
-            path: "/tmp/b.png",
-          },
-        ],
-        mappings: [],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
-      "asset-b",
-      true,
-    );
-
-    expect(catalog.assets).toEqual([
-      {
-        id: "asset-a",
-        isDefault: false,
-        kind: "image",
-        label: "A",
-        path: "/tmp/a.png",
-      },
-      {
-        id: "asset-b",
-        isDefault: true,
-        kind: "image",
-        label: "B",
-        path: "/tmp/b.png",
-      },
-    ]);
-  });
-
-  it("keeps Codex defaults and mappings separate from Claude base mappings", () => {
+  it("keeps Codex defaults and mappings separate from Claude mappings", () => {
     const baseCatalog: VisualAssetCatalog = {
-      version: 1,
+      ...createEmptyCatalog(),
       assets: [
         {
           id: "asset-claude",
@@ -324,12 +279,6 @@ describe("visual asset catalog edits", () => {
           label: "Claude",
           path: "/tmp/claude.png",
         },
-        {
-          id: "asset-codex",
-          kind: "image",
-          label: "Codex",
-          path: "/tmp/codex.png",
-        },
       ],
       mappings: [
         {
@@ -337,11 +286,20 @@ describe("visual asset catalog edits", () => {
           state: "working",
         },
       ],
-      stateLines: [],
-      emotionDescriptions: [],
+    };
+    const codexCatalog: VisualAssetCatalog = {
+      ...createEmptyCatalog(true),
+      assets: [
+        {
+          id: "asset-codex",
+          kind: "image",
+          label: "Codex",
+          path: "/tmp/codex.png",
+        },
+      ],
     };
     const withCodexDefault = setVisualAssetDefault(
-      baseCatalog,
+      createCatalogStore(baseCatalog, codexCatalog),
       "asset-codex",
       true,
       "codex",
@@ -354,23 +312,28 @@ describe("visual asset catalog edits", () => {
       "codex",
     );
 
-    expect(withCodexMapping.assets[0]?.isDefault).toBe(true);
-    expect(withCodexMapping.mappings).toEqual([
+    expect(getClaudeCatalog(withCodexMapping).assets[0]?.isDefault).toBe(true);
+    expect(getClaudeCatalog(withCodexMapping).mappings).toEqual([
       {
         assetId: "asset-claude",
         state: "working",
       },
     ]);
-    expect(withCodexMapping.providerOverrides?.codex).toMatchObject({
-      defaultAssetId: "asset-codex",
-      mappings: [
-        {
-          assetId: "asset-codex",
-          state: "thinking",
-        },
-      ],
-      useBaseProviderWhenMissing: true,
-    });
+    expect(getCodexCatalog(withCodexMapping).assets).toEqual([
+      {
+        id: "asset-codex",
+        isDefault: true,
+        kind: "image",
+        label: "Codex",
+        path: "/tmp/codex.png",
+      },
+    ]);
+    expect(getCodexCatalog(withCodexMapping).mappings).toEqual([
+      {
+        assetId: "asset-codex",
+        state: "thinking",
+      },
+    ]);
 
     const withoutFallback = setVisualAssetProviderFallback(
       withCodexMapping,
@@ -378,66 +341,93 @@ describe("visual asset catalog edits", () => {
       false,
     );
 
-    expect(
-      withoutFallback.providerOverrides?.codex?.useBaseProviderWhenMissing,
-    ).toBe(false);
+    expect(getCodexCatalog(withoutFallback).useBaseProviderWhenMissing).toBe(
+      false,
+    );
   });
 
-  it("adds and removes state-only and emotion-only mappings independently", () => {
-    const withState = setVisualAssetStateMapping(
-      {
-        version: 1,
-        assets: [
-          {
-            id: "asset-a",
-            kind: "image",
-            label: "A",
-            path: "/tmp/a.png",
-          },
-        ],
-        mappings: [],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
-      "asset-a",
-      "working",
-      true,
-    );
-    const withEmotion = setVisualAssetEmotionMapping(
-      withState,
-      "asset-a",
+  it("adds, removes, and steals mapping slots inside the selected provider", () => {
+    const baseCatalog: VisualAssetCatalog = {
+      ...createEmptyCatalog(),
+      assets: [
+        {
+          id: "asset-a",
+          kind: "image",
+          label: "A",
+          path: "/tmp/a.png",
+        },
+        {
+          id: "asset-b",
+          kind: "image",
+          label: "B",
+          path: "/tmp/b.png",
+        },
+      ],
+      mappings: [
+        { assetId: "asset-a", emotion: "happy" },
+        { assetId: "asset-a", state: "working" },
+        {
+          assetId: "asset-a",
+          state: "working",
+          emotion: "sad",
+        },
+      ],
+    };
+    const catalog = createCatalogStore(baseCatalog);
+    const stolenEmotion = setVisualAssetEmotionMapping(
+      catalog,
+      "asset-b",
       "happy",
       true,
     );
-    const withoutState = setVisualAssetStateMapping(
-      withEmotion,
-      "asset-a",
+    const stolenState = setVisualAssetStateMapping(
+      catalog,
+      "asset-b",
       "working",
+      true,
+    );
+    const stolenPair = setVisualAssetStateEmotionMapping(
+      catalog,
+      "asset-b",
+      "working",
+      "sad",
+      true,
+    );
+
+    expect(getClaudeCatalog(stolenEmotion).mappings).toEqual([
+      { assetId: "asset-a", state: "working" },
+      { assetId: "asset-a", state: "working", emotion: "sad" },
+      { assetId: "asset-b", emotion: "happy" },
+    ]);
+    expect(getClaudeCatalog(stolenState).mappings).toEqual([
+      { assetId: "asset-a", emotion: "happy" },
+      { assetId: "asset-a", state: "working", emotion: "sad" },
+      { assetId: "asset-b", state: "working" },
+    ]);
+    expect(getClaudeCatalog(stolenPair).mappings).toEqual([
+      { assetId: "asset-a", emotion: "happy" },
+      { assetId: "asset-a", state: "working" },
+      { assetId: "asset-b", state: "working", emotion: "sad" },
+    ]);
+
+    const withoutPair = setVisualAssetStateEmotionMapping(
+      stolenPair,
+      "asset-b",
+      "working",
+      "sad",
       false,
     );
 
-    expect(withEmotion.mappings).toEqual([
-      {
-        assetId: "asset-a",
-        state: "working",
-      },
-      {
-        assetId: "asset-a",
-        emotion: "happy",
-      },
-    ]);
-    expect(withoutState.mappings).toEqual([
-      {
-        assetId: "asset-a",
-        emotion: "happy",
-      },
+    expect(getClaudeCatalog(withoutPair).mappings).toEqual([
+      { assetId: "asset-a", emotion: "happy" },
+      { assetId: "asset-a", state: "working" },
     ]);
   });
 
   it("removes asset mappings together with the asset", () => {
     const catalog = removeVisualAsset(
-      {
-        version: 1,
+      createCatalogStore({
+        ...createEmptyCatalog(),
         assets: [
           {
             id: "asset-a",
@@ -452,181 +442,59 @@ describe("visual asset catalog edits", () => {
             state: "working",
           },
         ],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
+      }),
       "asset-a",
     );
 
-    expect(catalog).toEqual({
-      version: 1,
-      assets: [],
-      mappings: [],
-      stateLines: [],
-      emotionDescriptions: [],
-    });
-  });
-
-  it("adds and removes exact state-and-emotion mappings independently", () => {
-    const withPair = setVisualAssetStateEmotionMapping(
-      {
-        version: 1,
-        assets: [
-          {
-            id: "asset-a",
-            kind: "image",
-            label: "A",
-            path: "/tmp/a.png",
-          },
-        ],
-        mappings: [],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
-      "asset-a",
-      "working",
-      "sad",
-      true,
-    );
-    const withoutPair = setVisualAssetStateEmotionMapping(
-      withPair,
-      "asset-a",
-      "working",
-      "sad",
-      false,
-    );
-
-    expect(withPair.mappings).toEqual([
-      {
-        assetId: "asset-a",
-        state: "working",
-        emotion: "sad",
-      },
-    ]);
-    expect(withoutPair.mappings).toEqual([]);
+    expect(getClaudeCatalog(catalog)).toEqual(createEmptyCatalog());
   });
 
   it("sets and clears state lines independently from asset mappings", () => {
     const withLine = setVisualAssetStateLine(
-      {
-        version: 1,
-        assets: [],
-        mappings: [],
-        stateLines: [],
-        emotionDescriptions: [],
-      },
+      createCatalogStore(createEmptyCatalog()),
       "thinking",
       "읽는 중이에요...!",
     );
     const withoutLine = setVisualAssetStateLine(withLine, "thinking", "   ");
 
-    expect(withLine.stateLines).toEqual([
+    expect(getClaudeCatalog(withLine).stateLines).toEqual([
       {
         state: "thinking",
         line: "읽는 중이에요...!",
       },
     ]);
-    expect(withoutLine.stateLines).toEqual([]);
-  });
-
-  it("steals emotion/state/pair slots away from previous owners on enable", () => {
-    const baseCatalog = {
-      version: 1 as const,
-      assets: [
-        {
-          id: "asset-a",
-          kind: "image" as const,
-          label: "A",
-          path: "/tmp/a.png",
-        },
-        {
-          id: "asset-b",
-          kind: "image" as const,
-          label: "B",
-          path: "/tmp/b.png",
-        },
-      ],
-      mappings: [
-        { assetId: "asset-a", emotion: "happy" as const },
-        { assetId: "asset-a", state: "working" as const },
-        {
-          assetId: "asset-a",
-          state: "working" as const,
-          emotion: "sad" as const,
-        },
-      ],
-      stateLines: [],
-      emotionDescriptions: [],
-    };
-
-    const stolenEmotion = setVisualAssetEmotionMapping(
-      baseCatalog,
-      "asset-b",
-      "happy",
-      true,
-    );
-    const stolenState = setVisualAssetStateMapping(
-      baseCatalog,
-      "asset-b",
-      "working",
-      true,
-    );
-    const stolenPair = setVisualAssetStateEmotionMapping(
-      baseCatalog,
-      "asset-b",
-      "working",
-      "sad",
-      true,
-    );
-
-    expect(stolenEmotion.mappings).toEqual([
-      { assetId: "asset-a", state: "working" },
-      { assetId: "asset-a", state: "working", emotion: "sad" },
-      { assetId: "asset-b", emotion: "happy" },
-    ]);
-    expect(stolenState.mappings).toEqual([
-      { assetId: "asset-a", emotion: "happy" },
-      { assetId: "asset-a", state: "working", emotion: "sad" },
-      { assetId: "asset-b", state: "working" },
-    ]);
-    expect(stolenPair.mappings).toEqual([
-      { assetId: "asset-a", emotion: "happy" },
-      { assetId: "asset-a", state: "working" },
-      { assetId: "asset-b", state: "working", emotion: "sad" },
-    ]);
+    expect(getClaudeCatalog(withoutLine).stateLines).toEqual([]);
   });
 
   it("reports the current slot owner or null when the slot is free", () => {
-    const catalog = {
-      version: 1 as const,
+    const catalog = createCatalogStore({
+      ...createEmptyCatalog(),
       assets: [
         {
           id: "asset-a",
-          kind: "image" as const,
+          kind: "image",
           label: "A",
           path: "/tmp/a.png",
         },
         {
           id: "asset-orphan",
-          kind: "image" as const,
+          kind: "image",
           label: "Orphan",
           path: "/tmp/orphan.png",
         },
       ],
       mappings: [
-        { assetId: "asset-a", emotion: "happy" as const },
-        { assetId: "asset-a", state: "working" as const },
+        { assetId: "asset-a", emotion: "happy" },
+        { assetId: "asset-a", state: "working" },
         {
           assetId: "asset-a",
-          state: "working" as const,
-          emotion: "sad" as const,
+          state: "working",
+          emotion: "sad",
         },
         // 좀비 매핑: assetId 가 카탈로그에 읍는 경우는 owner 가 아니에요.
-        { assetId: "asset-ghost", emotion: "angry" as const },
+        { assetId: "asset-ghost", emotion: "angry" },
       ],
-      stateLines: [],
-      emotionDescriptions: [],
-    };
+    });
 
     expect(findVisualAssetEmotionOwner(catalog, "happy")).toEqual("asset-a");
     expect(findVisualAssetEmotionOwner(catalog, "angry")).toEqual(null);
@@ -642,15 +510,8 @@ describe("visual asset catalog edits", () => {
   });
 
   it("sets, replaces, and clears emotion description overrides", () => {
-    const base = {
-      version: 1 as const,
-      assets: [],
-      mappings: [],
-      stateLines: [],
-      emotionDescriptions: [],
-    };
     const withDescription = setVisualAssetEmotionDescription(
-      base,
+      createCatalogStore(createEmptyCatalog()),
       "happy",
       "  기분 좋음  ",
     );
@@ -665,18 +526,18 @@ describe("visual asset catalog edits", () => {
       "   ",
     );
 
-    expect(withDescription.emotionDescriptions).toEqual([
+    expect(getClaudeCatalog(withDescription).emotionDescriptions).toEqual([
       {
         emotion: "happy",
         description: "기분 좋음",
       },
     ]);
-    expect(withReplacement.emotionDescriptions).toEqual([
+    expect(getClaudeCatalog(withReplacement).emotionDescriptions).toEqual([
       {
         emotion: "happy",
         description: "완전 신남",
       },
     ]);
-    expect(withCleared.emotionDescriptions).toEqual([]);
+    expect(getClaudeCatalog(withCleared).emotionDescriptions).toEqual([]);
   });
 });

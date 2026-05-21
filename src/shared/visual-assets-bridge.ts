@@ -1,6 +1,6 @@
 import type {
   AvailableVisualOptions,
-  VisualAssetCatalog,
+  VisualAssetCatalogStore,
 } from "./visual-assets";
 
 export interface VisualAssetPickerFile {
@@ -10,16 +10,18 @@ export interface VisualAssetPickerFile {
 
 export interface VisualAssetBridge {
   getAvailableOptions: () => Promise<AvailableVisualOptions>;
-  getCatalog: () => Promise<VisualAssetCatalog>;
+  getCatalog: () => Promise<VisualAssetCatalogStore>;
   // Electron 32+는 File.path 속성을 지웟으므로 renderer에서 드랍된 File의 절대경로를 알아내려면 webUtils.getPathForFile 경유가 필수
   getPathForFile: (file: File) => string;
   importFiles: (
     filePaths: ReadonlyArray<string>,
   ) => Promise<VisualAssetPickerFile[]>;
-  onCatalog: (listener: (catalog: VisualAssetCatalog) => void) => () => void;
+  onCatalog: (listener: (catalog: VisualAssetCatalogStore) => void) => () => void;
   pickFiles: () => Promise<VisualAssetPickerFile[]>;
   printAvailableOptions: () => Promise<AvailableVisualOptions>;
-  saveCatalog: (catalog: VisualAssetCatalog) => Promise<VisualAssetCatalog>;
+  saveCatalog: (
+    catalog: VisualAssetCatalogStore,
+  ) => Promise<VisualAssetCatalogStore>;
 }
 
 export const VISUAL_ASSET_CHANNELS: {

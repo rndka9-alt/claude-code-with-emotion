@@ -1,4 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type {
+  VisualAssetCatalog,
+  VisualAssetCatalogStore,
+} from "../../../../shared/visual-assets";
 import type { VisualMcpSetupOverview } from "../../../../shared/mcp-setup-bridge";
 import { VisualAssetManagerDialog } from "./VisualAssetManagerDialog";
 
@@ -26,6 +30,35 @@ function createMcpSetupStatus(
   };
 }
 
+function createCatalogStore(
+  claudeCatalog: VisualAssetCatalog,
+): VisualAssetCatalogStore {
+  return {
+    version: 1,
+    providers: {
+      claude: claudeCatalog,
+      codex: {
+        version: 1,
+        assets: [],
+        mappings: [],
+        stateLines: [],
+        emotionDescriptions: [],
+        useBaseProviderWhenMissing: true,
+      },
+    },
+  };
+}
+
+function createEmptyCatalogStore(): VisualAssetCatalogStore {
+  return createCatalogStore({
+    version: 1,
+    assets: [],
+    mappings: [],
+    stateLines: [],
+    emotionDescriptions: [],
+  });
+}
+
 describe("VisualAssetManagerDialog", () => {
   it("switches between general, theme, and status panel sections", () => {
     render(
@@ -34,13 +67,7 @@ describe("VisualAssetManagerDialog", () => {
           { id: "current-dark", label: "Current Dark" },
           { id: "gruvbox-light", label: "Gruvbox Light" },
         ]}
-        catalog={{
-          version: 1,
-          assets: [],
-          mappings: [],
-          stateLines: [],
-          emotionDescriptions: [],
-        }}
+        catalog={createEmptyCatalogStore()}
         currentThemeId="current-dark"
         installingVisualMcpTargetId={null}
         mcpSetupErrorsByTargetId={{}}
@@ -112,13 +139,7 @@ describe("VisualAssetManagerDialog", () => {
     render(
       <VisualAssetManagerDialog
         availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
-        catalog={{
-          version: 1,
-          assets: [],
-          mappings: [],
-          stateLines: [],
-          emotionDescriptions: [],
-        }}
+        catalog={createEmptyCatalogStore()}
         currentThemeId="current-dark"
         installingVisualMcpTargetId={null}
         mcpSetupErrorsByTargetId={{}}
@@ -154,13 +175,7 @@ describe("VisualAssetManagerDialog", () => {
     render(
       <VisualAssetManagerDialog
         availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
-        catalog={{
-          version: 1,
-          assets: [],
-          mappings: [],
-          stateLines: [],
-          emotionDescriptions: [],
-        }}
+        catalog={createEmptyCatalogStore()}
         currentThemeId="current-dark"
         installingVisualMcpTargetId={null}
         mcpSetupErrorsByTargetId={{}}
@@ -198,13 +213,7 @@ describe("VisualAssetManagerDialog", () => {
     render(
       <VisualAssetManagerDialog
         availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
-        catalog={{
-          version: 1,
-          assets: [],
-          mappings: [],
-          stateLines: [],
-          emotionDescriptions: [],
-        }}
+        catalog={createEmptyCatalogStore()}
         currentThemeId="current-dark"
         installingVisualMcpTargetId={null}
         mcpSetupErrorsByTargetId={{}}
@@ -272,13 +281,7 @@ describe("VisualAssetManagerDialog", () => {
     render(
       <VisualAssetManagerDialog
         availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
-        catalog={{
-          version: 1,
-          assets: [],
-          mappings: [],
-          stateLines: [],
-          emotionDescriptions: [],
-        }}
+        catalog={createEmptyCatalogStore()}
         currentThemeId="current-dark"
         installingVisualMcpTargetId={null}
         mcpSetupErrorsByTargetId={{}}
@@ -308,7 +311,7 @@ describe("VisualAssetManagerDialog", () => {
     render(
       <VisualAssetManagerDialog
         availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
-        catalog={{
+        catalog={createCatalogStore({
           version: 1,
           assets: [
             {
@@ -327,7 +330,7 @@ describe("VisualAssetManagerDialog", () => {
           mappings: [{ assetId: "asset-a", emotion: "happy" }],
           stateLines: [],
           emotionDescriptions: [],
-        }}
+        })}
         currentThemeId="current-dark"
         installingVisualMcpTargetId={null}
         mcpSetupErrorsByTargetId={{}}
@@ -382,13 +385,7 @@ describe("VisualAssetManagerDialog", () => {
     render(
       <VisualAssetManagerDialog
         availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
-        catalog={{
-          version: 1,
-          assets: [],
-          mappings: [],
-          stateLines: [],
-          emotionDescriptions: [],
-        }}
+        catalog={createEmptyCatalogStore()}
         currentThemeId="current-dark"
         installingVisualMcpTargetId={null}
         mcpSetupErrorsByTargetId={{}}

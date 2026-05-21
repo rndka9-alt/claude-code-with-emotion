@@ -1,5 +1,9 @@
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
-import { createVisualAssetCatalogForProvider } from "../../../../shared/visual-assets";
+import {
+  createVisualAssetCatalogForProvider,
+  type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
+} from "../../../../shared/visual-assets";
 import { resolveStatusPanelVisual } from "./status-panel-visual";
 
 const baseSnapshot: AssistantStatusSnapshot = {
@@ -13,6 +17,19 @@ const baseSnapshot: AssistantStatusSnapshot = {
   intensity: "medium",
   source: "test",
 };
+
+function createCatalogStore(
+  claudeCatalog: VisualAssetCatalog,
+  codexCatalog: VisualAssetCatalog,
+): VisualAssetCatalogStore {
+  return {
+    version: 1,
+    providers: {
+      claude: claudeCatalog,
+      codex: codexCatalog,
+    },
+  };
+}
 
 describe("resolveStatusPanelVisual", () => {
   it("uses exact state matches for asset selection", () => {
@@ -94,40 +111,43 @@ describe("resolveStatusPanelVisual", () => {
 
   it("uses a Claude mapping before a Codex default after provider catalog creation", () => {
     const catalog = createVisualAssetCatalogForProvider(
-      {
-        version: 1,
-        assets: [
-          {
-            id: "asset-claude-working",
-            kind: "image",
-            label: "Claude Working",
-            path: "/tmp/claude-working.png",
-          },
-          {
-            id: "asset-codex-default",
-            kind: "image",
-            label: "Codex Default",
-            path: "/tmp/codex-default.png",
-          },
-        ],
-        mappings: [
-          {
-            assetId: "asset-claude-working",
-            state: "working",
-          },
-        ],
-        providerOverrides: {
-          codex: {
-            defaultAssetId: "asset-codex-default",
-            emotionDescriptions: [],
-            mappings: [],
-            stateLines: [],
-            useBaseProviderWhenMissing: true,
-          },
+      createCatalogStore(
+        {
+          version: 1,
+          assets: [
+            {
+              id: "asset-claude-working",
+              kind: "image",
+              label: "Claude Working",
+              path: "/tmp/claude-working.png",
+            },
+          ],
+          mappings: [
+            {
+              assetId: "asset-claude-working",
+              state: "working",
+            },
+          ],
+          stateLines: [],
+          emotionDescriptions: [],
         },
-        stateLines: [],
-        emotionDescriptions: [],
-      },
+        {
+          version: 1,
+          assets: [
+            {
+              id: "asset-codex-default",
+              isDefault: true,
+              kind: "image",
+              label: "Codex Default",
+              path: "/tmp/codex-default.png",
+            },
+          ],
+          mappings: [],
+          stateLines: [],
+          emotionDescriptions: [],
+          useBaseProviderWhenMissing: true,
+        },
+      ),
       "codex",
     );
     const visual = resolveStatusPanelVisual(

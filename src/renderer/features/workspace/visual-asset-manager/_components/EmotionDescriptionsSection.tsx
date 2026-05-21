@@ -12,12 +12,9 @@ import {
   Search,
 } from "lucide-react";
 import {
-  createVisualAssetCatalogForProvider,
-  getVisualAssetProviderOverride,
   resolveVisualAsset,
   resolveVisualEmotionDescription,
   type VisualAssetCatalog,
-  type VisualAssetProviderId,
 } from "../../../../../shared/visual-assets";
 import {
   EMOTION_PRESETS,
@@ -34,16 +31,15 @@ import {
 
 interface EmotionDescriptionsSectionProps {
   catalog: VisualAssetCatalog;
+  effectiveCatalog: VisualAssetCatalog;
   onSetEmotionDescription: (
     emotion: VisualEmotionPresetId,
     description: string,
   ) => void;
-  providerId: VisualAssetProviderId;
 }
 
 function createEmotionDescriptionDrafts(
   catalog: VisualAssetCatalog,
-  providerId: VisualAssetProviderId,
 ): Record<VisualEmotionPresetId, string> {
   const drafts: Record<VisualEmotionPresetId, string> = {
     angry: "",
@@ -73,8 +69,7 @@ function createEmotionDescriptionDrafts(
     surprised: "",
   };
 
-  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
-    .emotionDescriptions) {
+  for (const mapping of catalog.emotionDescriptions) {
     drafts[mapping.emotion] = mapping.description;
   }
 
@@ -83,12 +78,10 @@ function createEmotionDescriptionDrafts(
 
 function collectMappedEmotions(
   catalog: VisualAssetCatalog,
-  providerId: VisualAssetProviderId,
 ): ReadonlySet<VisualEmotionPresetId> {
   const mapped = new Set<VisualEmotionPresetId>();
 
-  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
-    .mappings) {
+  for (const mapping of catalog.mappings) {
     if (mapping.emotion !== undefined) {
       mapped.add(mapping.emotion);
     }
@@ -102,24 +95,21 @@ const tooltipClassName =
 
 export function EmotionDescriptionsSection({
   catalog,
+  effectiveCatalog,
   onSetEmotionDescription,
-  providerId,
 }: EmotionDescriptionsSectionProps): ReactElement {
   const [descriptionDrafts, setDescriptionDrafts] = useState<
     Record<VisualEmotionPresetId, string>
-  >(() => createEmotionDescriptionDrafts(catalog, providerId));
+  >(() => createEmotionDescriptionDrafts(catalog));
   const [searchQuery, setSearchQuery] = useState("");
-  const effectiveCatalog = useMemo(() => {
-    return createVisualAssetCatalogForProvider(catalog, providerId);
-  }, [catalog, providerId]);
 
   useEffect(() => {
-    setDescriptionDrafts(createEmotionDescriptionDrafts(catalog, providerId));
-  }, [catalog, providerId]);
+    setDescriptionDrafts(createEmotionDescriptionDrafts(catalog));
+  }, [catalog]);
 
   const mappedEmotions = useMemo(
-    () => collectMappedEmotions(catalog, providerId),
-    [catalog, providerId],
+    () => collectMappedEmotions(catalog),
+    [catalog],
   );
 
   const emotionAssetUrls = useMemo(() => {

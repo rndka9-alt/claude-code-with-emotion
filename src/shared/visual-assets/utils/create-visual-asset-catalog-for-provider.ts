@@ -1,31 +1,13 @@
 import { BASE_VISUAL_ASSET_PROVIDER_ID } from "../constants/provider-metadata";
 import type {
   VisualAssetCatalog,
+  VisualAssetCatalogStore,
   VisualAssetMapping,
   VisualAssetProviderId,
-  VisualAssetRecord,
   VisualEmotionDescriptionMapping,
   VisualStateLineMapping,
 } from "../types/visual-asset-types";
-import { getVisualAssetProviderOverride } from "./get-visual-asset-provider-override";
-
-function getBaseDefaultAssetId(
-  assets: ReadonlyArray<VisualAssetRecord>,
-): string | undefined {
-  return assets.find((asset) => asset.isDefault === true)?.id;
-}
-
-function withDefaultAsset(
-  assets: ReadonlyArray<VisualAssetRecord>,
-  defaultAssetId: string | undefined,
-): ReadonlyArray<VisualAssetRecord> {
-  return assets.map((asset) => {
-    return {
-      ...asset,
-      isDefault: asset.id === defaultAssetId,
-    };
-  });
-}
+import { getVisualAssetProviderCatalog } from "./get-visual-asset-provider-catalog";
 
 function getVisualAssetMappingKey(mapping: VisualAssetMapping): string {
   return `${mapping.state ?? ""}:${mapping.emotion ?? ""}`;
@@ -101,43 +83,53 @@ function mergeEmotionDescriptions(
 }
 
 export function createVisualAssetCatalogForProvider(
-  catalog: VisualAssetCatalog,
+  catalogStore: VisualAssetCatalogStore,
   providerId: VisualAssetProviderId = BASE_VISUAL_ASSET_PROVIDER_ID,
 ): VisualAssetCatalog {
+  const providerCatalog = getVisualAssetProviderCatalog(
+    catalogStore,
+    providerId,
+  );
+
   if (providerId === BASE_VISUAL_ASSET_PROVIDER_ID) {
-    return {
-      version: catalog.version,
-      assets: catalog.assets,
-      emotionDescriptions: catalog.emotionDescriptions,
-      mappings: catalog.mappings,
-      stateLines: catalog.stateLines,
-    };
+    return providerCatalog;
   }
 
-  const providerOverride = getVisualAssetProviderOverride(catalog, providerId);
   const useBaseWhenMissing =
-    providerOverride.useBaseProviderWhenMissing !== false;
-  const defaultAssetId =
-    providerOverride.defaultAssetId ??
-    (useBaseWhenMissing ? getBaseDefaultAssetId(catalog.assets) : undefined);
+    providerCatalog.useBaseProviderWhenMissing !== false;
+  const baseCatalog = getVisualAssetProviderCatalog(
+    catalogStore,
+    BASE_VISUAL_ASSET_PROVIDER_ID,
+  );
 
-  return {
-    version: catalog.version,
-    assets: withDefaultAsset(catalog.assets, defaultAssetId),
+  const effectiveCatalog: VisualAssetCatalog = {
+    version: providerCatalog.version,
+    assets: useBaseWhenMissing
+      ? [...providerCatalog.assets, ...baseCatalog.assets]
+      : providerCatalog.assets,
     emotionDescriptions: mergeEmotionDescriptions(
-      catalog.emotionDescriptions,
-      providerOverride.emotionDescriptions,
+      baseCatalog.emotionDescriptions,
+      providerCatalog.emotionDescriptions,
       useBaseWhenMissing,
     ),
     mappings: mergeMappings(
-      catalog.mappings,
-      providerOverride.mappings,
+      baseCatalog.mappings,
+      providerCatalog.mappings,
       useBaseWhenMissing,
     ),
     stateLines: mergeStateLines(
-      catalog.stateLines,
-      providerOverride.stateLines,
+      baseCatalog.stateLines,
+      providerCatalog.stateLines,
       useBaseWhenMissing,
     ),
   };
+
+  if (providerCatalog.useBaseProviderWhenMissing !== undefined) {
+    return {
+      ...effectiveCatalog,
+      useBaseProviderWhenMissing: providerCatalog.useBaseProviderWhenMissing,
+    };
+  }
+
+  return effectiveCatalog;
 }

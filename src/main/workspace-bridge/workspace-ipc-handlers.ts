@@ -25,7 +25,7 @@ import {
   type TerminalResizeRequest,
 } from "../../shared/terminal-bridge";
 import { VISUAL_ASSET_CHANNELS } from "../../shared/visual-assets-bridge";
-import type { VisualAssetCatalog } from "../../shared/visual-assets";
+import type { VisualAssetCatalogStore } from "../../shared/visual-assets";
 import type { AppThemeSelection } from "../../shared/theme";
 import {
   WORKSPACE_WINDOW_CHANNELS,
@@ -210,7 +210,7 @@ export function registerWorkspaceIpcHandlers({
   });
   ipcMain.handle(
     VISUAL_ASSET_CHANNELS.saveCatalog,
-    (_event, catalog: VisualAssetCatalog) => {
+    (_event, catalog: VisualAssetCatalogStore) => {
       return visualAssetStore.replaceCatalog(catalog);
     },
   );

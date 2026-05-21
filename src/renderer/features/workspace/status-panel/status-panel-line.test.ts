@@ -2,6 +2,7 @@ import type { AssistantStatusSnapshot } from "../../../../shared/assistant-statu
 import {
   createVisualAssetCatalogForProvider,
   type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
 } from "../../../../shared/visual-assets";
 import { formatStatusPanelLine } from "./status-panel-line";
 
@@ -16,6 +17,26 @@ const baseSnapshot: AssistantStatusSnapshot = {
   intensity: "medium",
   source: "test",
 };
+
+function createCatalogStore(
+  claudeCatalog: VisualAssetCatalog,
+  codexCatalog: VisualAssetCatalog = {
+    version: 1,
+    assets: [],
+    mappings: [],
+    stateLines: [],
+    emotionDescriptions: [],
+    useBaseProviderWhenMissing: true,
+  },
+): VisualAssetCatalogStore {
+  return {
+    version: 1,
+    providers: {
+      claude: claudeCatalog,
+      codex: codexCatalog,
+    },
+  };
+}
 
 describe("formatStatusPanelLine", () => {
   it("renders the shared default state line in parentheses when no overlay line exists", () => {
@@ -62,32 +83,33 @@ describe("formatStatusPanelLine", () => {
   });
 
   it("resolves Codex state lines before Claude fallback lines", () => {
-    const catalog: VisualAssetCatalog = {
-      version: 1,
-      assets: [],
-      mappings: [],
-      providerOverrides: {
-        codex: {
-          defaultAssetId: undefined,
-          emotionDescriptions: [],
-          mappings: [],
-          stateLines: [
-            {
-              state: "thinking",
-              line: "Codex가 생각 정리 중이에요...!",
-            },
-          ],
-          useBaseProviderWhenMissing: true,
-        },
+    const catalog = createCatalogStore(
+      {
+        version: 1,
+        assets: [],
+        mappings: [],
+        stateLines: [
+          {
+            state: "thinking",
+            line: "Claude가 생각 정리 중이에요...!",
+          },
+        ],
+        emotionDescriptions: [],
       },
-      stateLines: [
-        {
-          state: "thinking",
-          line: "Claude가 생각 정리 중이에요...!",
-        },
-      ],
-      emotionDescriptions: [],
-    };
+      {
+        version: 1,
+        assets: [],
+        mappings: [],
+        stateLines: [
+          {
+            state: "thinking",
+            line: "Codex가 생각 정리 중이에요...!",
+          },
+        ],
+        emotionDescriptions: [],
+        useBaseProviderWhenMissing: true,
+      },
+    );
 
     const effectiveCatalog = createVisualAssetCatalogForProvider(
       catalog,

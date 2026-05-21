@@ -2,10 +2,11 @@ import { useEffect, useState, type ReactElement } from "react";
 import { X } from "lucide-react";
 import {
   BASE_VISUAL_ASSET_PROVIDER_ID,
-  getVisualAssetProviderOverride,
+  createVisualAssetCatalogForProvider,
+  getVisualAssetProviderCatalog,
   VISUAL_ASSET_PROVIDER_OPTIONS,
   VISUAL_PROVIDER_STATE_METADATA,
-  type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
   type VisualAssetProviderId,
 } from "../../../../shared/visual-assets";
 import type {
@@ -35,7 +36,7 @@ import {
 
 interface VisualAssetManagerDialogProps {
   availableThemes: AppThemeOption[];
-  catalog: VisualAssetCatalog;
+  catalog: VisualAssetCatalogStore;
   currentThemeId: AppThemeId;
   installingVisualMcpTargetId: VisualMcpSetupTargetId | null;
   mcpSetupErrorsByTargetId: Partial<Record<VisualMcpSetupTargetId, string>>;
@@ -47,7 +48,7 @@ interface VisualAssetManagerDialogProps {
   ) => void;
   onInstallVisualMcp: (targetId?: VisualMcpSetupTargetId) => void;
   onPickFiles: (providerId: VisualAssetProviderId) => void;
-  onRemoveAsset: (assetId: string) => void;
+  onRemoveAsset: (assetId: string, providerId: VisualAssetProviderId) => void;
   onSelectTheme: (themeId: AppThemeId) => void;
   onSetDefaultAsset: (
     assetId: string,
@@ -126,7 +127,11 @@ export function VisualAssetManagerDialog({
     useState<StatusPanelSettingsTabId>("assets");
   const [activeProviderId, setActiveProviderId] =
     useState<VisualAssetProviderId>(BASE_VISUAL_ASSET_PROVIDER_ID);
-  const activeProviderOverride = getVisualAssetProviderOverride(
+  const activeCatalog = getVisualAssetProviderCatalog(
+    catalog,
+    activeProviderId,
+  );
+  const activeEffectiveCatalog = createVisualAssetCatalogForProvider(
     catalog,
     activeProviderId,
   );
@@ -303,8 +308,7 @@ export function VisualAssetManagerDialog({
                   <label className="text-text-secondary flex items-center gap-2 text-xs">
                     <input
                       checked={
-                        activeProviderOverride.useBaseProviderWhenMissing !==
-                        false
+                        activeCatalog.useBaseProviderWhenMissing !== false
                       }
                       className="accent-terminal-blue"
                       onChange={(event) => {
@@ -381,14 +385,16 @@ export function VisualAssetManagerDialog({
                 role="tabpanel"
               >
                 <EmotionSection
-                  catalog={catalog}
+                  catalog={activeCatalog}
                   onDropFiles={(files) => {
                     onDropFiles(files, activeProviderId);
                   }}
                   onPickFiles={() => {
                     onPickFiles(activeProviderId);
                   }}
-                  onRemoveAsset={onRemoveAsset}
+                  onRemoveAsset={(assetId) => {
+                    onRemoveAsset(assetId, activeProviderId);
+                  }}
                   onSetDefaultAsset={(assetId, isDefault) => {
                     onSetDefaultAsset(assetId, isDefault, activeProviderId);
                   }}
@@ -417,7 +423,6 @@ export function VisualAssetManagerDialog({
                       activeProviderId,
                     );
                   }}
-                  providerId={activeProviderId}
                   statePresets={activeStatePresets}
                 />
               </section>
@@ -429,11 +434,11 @@ export function VisualAssetManagerDialog({
                 role="tabpanel"
               >
                 <StatusLinesSection
-                  catalog={catalog}
+                  catalog={activeCatalog}
+                  effectiveCatalog={activeEffectiveCatalog}
                   onSetStateLine={(state, line) => {
                     onSetStateLine(state, line, activeProviderId);
                   }}
-                  providerId={activeProviderId}
                   stateMetadata={activeStateMetadata}
                 />
               </section>
@@ -445,7 +450,8 @@ export function VisualAssetManagerDialog({
                 role="tabpanel"
               >
                 <EmotionDescriptionsSection
-                  catalog={catalog}
+                  catalog={activeCatalog}
+                  effectiveCatalog={activeEffectiveCatalog}
                   onSetEmotionDescription={(emotion, description) => {
                     onSetEmotionDescription(
                       emotion,
@@ -453,7 +459,6 @@ export function VisualAssetManagerDialog({
                       activeProviderId,
                     );
                   }}
-                  providerId={activeProviderId}
                 />
               </section>
             </div>

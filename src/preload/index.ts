@@ -28,7 +28,7 @@ import {
   type TerminalOutputEvent,
 } from "../shared/terminal-bridge";
 import { VISUAL_ASSET_CHANNELS } from "../shared/visual-assets-bridge";
-import type { VisualAssetCatalog } from "../shared/visual-assets";
+import type { VisualAssetCatalogStore } from "../shared/visual-assets";
 import { WORKSPACE_COMMAND_CHANNELS } from "../shared/workspace-command-bridge";
 import {
   parseInitialWorkspaceStateFromArguments,
@@ -204,7 +204,7 @@ const claudeAppApi: ClaudeAppApi = {
     onCatalog: (listener) => {
       const subscription = (
         _event: IpcRendererEvent,
-        payload: VisualAssetCatalog,
+        payload: VisualAssetCatalogStore,
       ) => {
         listener(payload);
       };

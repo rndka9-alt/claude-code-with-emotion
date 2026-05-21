@@ -4,6 +4,7 @@ import {
   resolveVisualAsset,
   resolveVisualStateLine,
   type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
 } from "./visual-assets";
 
 function createCatalog(): VisualAssetCatalog {
@@ -58,6 +59,26 @@ function createCatalog(): VisualAssetCatalog {
       },
     ],
     emotionDescriptions: [],
+  };
+}
+
+function createCatalogStore(
+  claudeCatalog: VisualAssetCatalog,
+  codexCatalog: VisualAssetCatalog = {
+    version: 1,
+    assets: [],
+    mappings: [],
+    stateLines: [],
+    emotionDescriptions: [],
+    useBaseProviderWhenMissing: true,
+  },
+): VisualAssetCatalogStore {
+  return {
+    version: 1,
+    providers: {
+      claude: claudeCatalog,
+      codex: codexCatalog,
+    },
   };
 }
 
@@ -154,40 +175,43 @@ describe("visual asset resolver", () => {
   });
 
   it("creates a provider catalog with provider values and base fallback values resolved once", () => {
-    const catalog: VisualAssetCatalog = {
-      ...createCatalog(),
-      providerOverrides: {
-        codex: {
-          defaultAssetId: "asset-happy",
-          emotionDescriptions: [
-            {
-              emotion: "sad",
-              description: "Codex sad",
-            },
-          ],
-          mappings: [
-            {
-              assetId: "asset-happy",
-              state: "thinking",
-            },
-          ],
-          stateLines: [
-            {
-              state: "thinking",
-              line: "Codex thinking",
-            },
-          ],
-          useBaseProviderWhenMissing: true,
+    const catalog = createCatalogStore(createCatalog(), {
+      version: 1,
+      assets: [
+        {
+          id: "asset-happy",
+          isDefault: true,
+          kind: "image",
+          label: "Happy",
+          path: "/tmp/happy.png",
         },
-      },
-    };
+      ],
+      emotionDescriptions: [
+        {
+          emotion: "sad",
+          description: "Codex sad",
+        },
+      ],
+      mappings: [
+        {
+          assetId: "asset-happy",
+          state: "thinking",
+        },
+      ],
+      stateLines: [
+        {
+          state: "thinking",
+          line: "Codex thinking",
+        },
+      ],
+      useBaseProviderWhenMissing: true,
+    });
 
     const providerCatalog = createVisualAssetCatalogForProvider(
       catalog,
       "codex",
     );
 
-    expect(providerCatalog.providerOverrides).toBeUndefined();
     expect(providerCatalog.assets.find((asset) => asset.id === "asset-happy"))
       .toMatchObject({ isDefault: true });
     expect(providerCatalog.mappings).toEqual([

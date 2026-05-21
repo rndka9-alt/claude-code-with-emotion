@@ -20,9 +20,11 @@ export function attachWorkspaceWindowSubscriptions({
   visualAssetStore,
 }: AttachWorkspaceWindowSubscriptionsOptions): () => void {
   const unsubscribeVisualAssets = visualAssetStore.subscribe((catalog) => {
+    const claudeCatalog = catalog.providers.claude;
+
     runtimeLog.write(
       "visual-assets",
-      `snapshot assets=${catalog.assets.length} mappings=${catalog.mappings.length}`,
+      `snapshot claudeAssets=${claudeCatalog.assets.length} claudeMappings=${claudeCatalog.mappings.length}`,
     );
     mainWindow.webContents.send(VISUAL_ASSET_CHANNELS.catalog, catalog);
   });

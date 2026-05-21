@@ -1,9 +1,9 @@
 import type { AssistantStatusSnapshot } from "../../../../shared/assistant-status";
 import {
-  createEmptyVisualAssetCatalog,
+  createEmptyVisualAssetCatalogStore,
   createVisualAssetCatalogForProvider,
   normalizeVisualAssetProviderId,
-  type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
   type VisualAssetProviderId,
 } from "../../../../shared/visual-assets";
 import { formatStatusPanelLine } from "./status-panel-line";
@@ -20,7 +20,7 @@ export interface AssistantPresentation {
 
 export function resolveAssistantPresentation(
   assistantStatus: AssistantStatusSnapshot,
-  catalog: VisualAssetCatalog = createEmptyVisualAssetCatalog(),
+  catalog: VisualAssetCatalogStore = createEmptyVisualAssetCatalogStore(),
   providerId: VisualAssetProviderId = normalizeVisualAssetProviderId(
     assistantStatus.assistantProviderId,
   ),

@@ -41,24 +41,22 @@ export interface VisualEmotionDescriptionMapping {
   emotion: VisualEmotionPresetId;
 }
 
-export interface VisualAssetProviderOverride {
-  defaultAssetId: string | undefined;
-  emotionDescriptions: ReadonlyArray<VisualEmotionDescriptionMapping>;
-  mappings: ReadonlyArray<VisualAssetMapping>;
-  stateLines: ReadonlyArray<VisualStateLineMapping>;
-  useBaseProviderWhenMissing: boolean;
-}
-
-export type VisualAssetProviderOverrides = Partial<
-  Record<Exclude<VisualAssetProviderId, "claude">, VisualAssetProviderOverride>
->;
-
 export interface VisualAssetCatalog {
   assets: ReadonlyArray<VisualAssetRecord>;
   emotionDescriptions: ReadonlyArray<VisualEmotionDescriptionMapping>;
   mappings: ReadonlyArray<VisualAssetMapping>;
-  providerOverrides?: VisualAssetProviderOverrides;
   stateLines: ReadonlyArray<VisualStateLineMapping>;
+  useBaseProviderWhenMissing?: boolean;
+  version: 1;
+}
+
+export type VisualAssetProviderCatalogs = Record<
+  VisualAssetProviderId,
+  VisualAssetCatalog
+>;
+
+export interface VisualAssetCatalogStore {
+  providers: VisualAssetProviderCatalogs;
   version: 1;
 }
 

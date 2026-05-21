@@ -7,11 +7,8 @@ import {
 } from "react";
 import { CircleHelp, Image as ImageIcon, Search } from "lucide-react";
 import {
-  createVisualAssetCatalogForProvider,
-  getVisualAssetProviderOverride,
   resolveVisualAsset,
   type VisualAssetCatalog,
-  type VisualAssetProviderId,
   type VisualProviderStateMetadata,
 } from "../../../../../shared/visual-assets";
 import {
@@ -30,14 +27,13 @@ import {
 
 interface StatusLinesSectionProps {
   catalog: VisualAssetCatalog;
+  effectiveCatalog: VisualAssetCatalog;
   onSetStateLine: (state: VisualStatePresetId, line: string) => void;
-  providerId: VisualAssetProviderId;
   stateMetadata: ReadonlyArray<VisualProviderStateMetadata>;
 }
 
 function createStateLineDrafts(
   catalog: VisualAssetCatalog,
-  providerId: VisualAssetProviderId,
 ): Record<VisualStatePresetId, string> {
   const drafts: Record<VisualStatePresetId, string> = {
     disconnected: "",
@@ -51,8 +47,7 @@ function createStateLineDrafts(
     tool_failed: "",
   };
 
-  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
-    .stateLines) {
+  for (const mapping of catalog.stateLines) {
     drafts[mapping.state] = mapping.line;
   }
 
@@ -75,21 +70,18 @@ function getStateLabel(state: VisualStatePresetId): string {
 
 export function StatusLinesSection({
   catalog,
+  effectiveCatalog,
   onSetStateLine,
-  providerId,
   stateMetadata,
 }: StatusLinesSectionProps): ReactElement {
   const [stateLineDrafts, setStateLineDrafts] = useState<
     Record<VisualStatePresetId, string>
-  >(() => createStateLineDrafts(catalog, providerId));
+  >(() => createStateLineDrafts(catalog));
   const [searchQuery, setSearchQuery] = useState("");
-  const effectiveCatalog = useMemo(() => {
-    return createVisualAssetCatalogForProvider(catalog, providerId);
-  }, [catalog, providerId]);
 
   useEffect(() => {
-    setStateLineDrafts(createStateLineDrafts(catalog, providerId));
-  }, [catalog, providerId]);
+    setStateLineDrafts(createStateLineDrafts(catalog));
+  }, [catalog]);
 
   const stateAssetUrls = useMemo(() => {
     const urls = new Map<VisualStatePresetId, string>();
@@ -158,7 +150,7 @@ export function StatusLinesSection({
       ) : null}
       <div className="grid gap-3 min-[901px]:grid-cols-2">
         {filteredMetadata.map((metadata) => {
-          const inputId = `state-line-${providerId}-${metadata.state}`;
+          const inputId = `state-line-${metadata.state}`;
           const assetUrl = stateAssetUrls.get(metadata.state) ?? null;
           const label = getStateLabel(metadata.state);
 

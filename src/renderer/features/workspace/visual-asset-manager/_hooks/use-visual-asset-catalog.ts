@@ -1,43 +1,56 @@
 import { useEffect, useState } from "react";
 import {
-  createEmptyVisualAssetCatalog,
+  createEmptyVisualAssetCatalogStore,
   type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
 } from "../../../../../shared/visual-assets";
 import type { VisualAssetPickerFile } from "../../../../../shared/visual-assets-bridge";
 
 export interface VisualAssetCatalogViewModel {
-  catalog: VisualAssetCatalog;
+  catalog: VisualAssetCatalogStore;
   importFiles: (
     filePaths: ReadonlyArray<string>,
   ) => Promise<VisualAssetPickerFile[]>;
   pickFiles: () => Promise<VisualAssetPickerFile[]>;
-  saveCatalog: (catalog: VisualAssetCatalog) => Promise<VisualAssetCatalog>;
+  saveCatalog: (
+    catalog: VisualAssetCatalogStore,
+  ) => Promise<VisualAssetCatalogStore>;
 }
 
 // 메인 프로세스가 구버전 스키마(필드 누락)로 catalog 를 돌려줄 수 있어서 IPC
 // 경계에서 기본값으로 채워 넣음. 그러지 않으면 신규 필드를 iterate 하는 UI 가
 // 즉시 throw 해버린다.
-function normalizeCatalog(catalog: VisualAssetCatalog): VisualAssetCatalog {
+function normalizeCatalog(
+  catalog: VisualAssetCatalog | VisualAssetCatalogStore,
+): VisualAssetCatalogStore {
+  const emptyCatalogStore = createEmptyVisualAssetCatalogStore();
+
+  if (!("providers" in catalog)) {
+    return {
+      version: 1,
+      providers: {
+        claude: {
+          ...catalog,
+          useBaseProviderWhenMissing: false,
+        },
+        codex: emptyCatalogStore.providers.codex,
+      },
+    };
+  }
+
   return {
     ...catalog,
-    assets: Array.isArray(catalog.assets) ? catalog.assets : [],
-    mappings: Array.isArray(catalog.mappings) ? catalog.mappings : [],
-    stateLines: Array.isArray(catalog.stateLines) ? catalog.stateLines : [],
-    emotionDescriptions: Array.isArray(catalog.emotionDescriptions)
-      ? catalog.emotionDescriptions
-      : [],
-    providerOverrides:
-      typeof catalog.providerOverrides === "object" &&
-      catalog.providerOverrides !== null
-        ? catalog.providerOverrides
-        : {},
+    providers: {
+      claude: catalog.providers.claude ?? emptyCatalogStore.providers.claude,
+      codex: catalog.providers.codex ?? emptyCatalogStore.providers.codex,
+    },
   };
 }
 
 export function useVisualAssetCatalog(): VisualAssetCatalogViewModel {
   const bridge = window.claudeApp?.visualAssets;
-  const [catalog, setCatalog] = useState<VisualAssetCatalog>(
-    createEmptyVisualAssetCatalog(),
+  const [catalog, setCatalog] = useState<VisualAssetCatalogStore>(
+    createEmptyVisualAssetCatalogStore(),
   );
 
   useEffect(() => {

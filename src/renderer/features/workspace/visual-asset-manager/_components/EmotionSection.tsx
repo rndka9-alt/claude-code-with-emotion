@@ -8,11 +8,6 @@ import {
 import { Search, Trash2 } from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../../shared/visual-assets";
 import {
-  getVisualAssetProviderOverride,
-  isVisualAssetDefaultForProvider,
-  type VisualAssetProviderId,
-} from "../../../../../shared/visual-assets";
-import {
   EMOTION_PRESETS,
   STATE_PRESETS,
   type VisualEmotionPresetId,
@@ -50,7 +45,6 @@ interface EmotionSectionProps {
     emotion: VisualEmotionPresetId,
     isEnabled: boolean,
   ) => void;
-  providerId: VisualAssetProviderId;
   statePresets: typeof STATE_PRESETS;
 }
 
@@ -68,9 +62,8 @@ function assetHasStateMapping(
   catalog: VisualAssetCatalog,
   assetId: string,
   state: VisualStatePresetId,
-  providerId: VisualAssetProviderId,
 ): boolean {
-  return getVisualAssetProviderOverride(catalog, providerId).mappings.some(
+  return catalog.mappings.some(
     (mapping) => {
       return (
         mapping.assetId === assetId &&
@@ -85,9 +78,8 @@ function assetHasEmotionMapping(
   catalog: VisualAssetCatalog,
   assetId: string,
   emotion: VisualEmotionPresetId,
-  providerId: VisualAssetProviderId,
 ): boolean {
-  return getVisualAssetProviderOverride(catalog, providerId).mappings.some(
+  return catalog.mappings.some(
     (mapping) => {
       return (
         mapping.assetId === assetId &&
@@ -103,9 +95,8 @@ function assetHasStateEmotionMapping(
   assetId: string,
   state: VisualStatePresetId,
   emotion: VisualEmotionPresetId,
-  providerId: VisualAssetProviderId,
 ): boolean {
-  return getVisualAssetProviderOverride(catalog, providerId).mappings.some(
+  return catalog.mappings.some(
     (mapping) => {
       return (
         mapping.assetId === assetId &&
@@ -122,10 +113,8 @@ function findOtherOwnerLabelForState(
   catalog: VisualAssetCatalog,
   selfAssetId: string,
   state: VisualStatePresetId,
-  providerId: VisualAssetProviderId,
 ): string | null {
-  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
-    .mappings) {
+  for (const mapping of catalog.mappings) {
     if (mapping.state !== state || mapping.emotion !== undefined) {
       continue;
     }
@@ -150,10 +139,8 @@ function findOtherOwnerLabelForEmotion(
   catalog: VisualAssetCatalog,
   selfAssetId: string,
   emotion: VisualEmotionPresetId,
-  providerId: VisualAssetProviderId,
 ): string | null {
-  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
-    .mappings) {
+  for (const mapping of catalog.mappings) {
     if (mapping.emotion !== emotion || mapping.state !== undefined) {
       continue;
     }
@@ -179,10 +166,8 @@ function findOtherOwnerLabelForStateEmotion(
   selfAssetId: string,
   state: VisualStatePresetId,
   emotion: VisualEmotionPresetId,
-  providerId: VisualAssetProviderId,
 ): string | null {
-  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
-    .mappings) {
+  for (const mapping of catalog.mappings) {
     if (mapping.state !== state || mapping.emotion !== emotion) {
       continue;
     }
@@ -225,7 +210,6 @@ function assetMatchesSearchQuery(
   assetId: string,
   assetLabel: string,
   normalizedQuery: string,
-  providerId: VisualAssetProviderId,
 ): boolean {
   if (normalizedQuery.length === 0) {
     return true;
@@ -235,8 +219,7 @@ function assetMatchesSearchQuery(
     return true;
   }
 
-  for (const mapping of getVisualAssetProviderOverride(catalog, providerId)
-    .mappings) {
+  for (const mapping of catalog.mappings) {
     if (mapping.assetId !== assetId) {
       continue;
     }
@@ -278,7 +261,6 @@ function assetMatchesSearchQuery(
 function collectAssetMappingBadges(
   catalog: VisualAssetCatalog,
   assetId: string,
-  providerId: VisualAssetProviderId,
   statePresets: typeof STATE_PRESETS,
 ): ReadonlyArray<AssetMappingBadge> {
   const pairBadges: AssetMappingBadge[] = [];
@@ -297,7 +279,6 @@ function collectAssetMappingBadges(
           assetId,
           statePreset.id,
           emotionPreset.id,
-          providerId,
         )
       ) {
         pairBadges.push({
@@ -309,7 +290,7 @@ function collectAssetMappingBadges(
   }
 
   for (const statePreset of statePresets) {
-    if (assetHasStateMapping(catalog, assetId, statePreset.id, providerId)) {
+    if (assetHasStateMapping(catalog, assetId, statePreset.id)) {
       stateBadges.push({
         key: `state-${statePreset.id}`,
         label: statePreset.label,
@@ -323,7 +304,7 @@ function collectAssetMappingBadges(
     }
 
     if (
-      assetHasEmotionMapping(catalog, assetId, emotionPreset.id, providerId)
+      assetHasEmotionMapping(catalog, assetId, emotionPreset.id)
     ) {
       emotionBadges.push({
         key: `emotion-${emotionPreset.id}`,
@@ -344,7 +325,6 @@ export function EmotionSection({
   onToggleEmotion,
   onToggleState,
   onToggleStateEmotion,
-  providerId,
   statePresets,
 }: EmotionSectionProps): ReactElement {
   const [isAssetDropActive, setIsAssetDropActive] = useState(false);
@@ -359,10 +339,9 @@ export function EmotionSection({
         asset.id,
         asset.label,
         normalizedSearchQuery,
-        providerId,
       );
     });
-  }, [catalog, normalizedSearchQuery, providerId]);
+  }, [catalog, normalizedSearchQuery]);
 
   const handleAssetDragLeave = (event: DragEvent<HTMLElement>): void => {
     const nextTarget = event.relatedTarget;
@@ -463,7 +442,6 @@ export function EmotionSection({
                 const mappingBadges = collectAssetMappingBadges(
                   catalog,
                   asset.id,
-                  providerId,
                   statePresets,
                 );
 
@@ -507,11 +485,7 @@ export function EmotionSection({
                         <div className="flex items-center gap-2.5">
                           <label className={managerChipClassName}>
                             <input
-                              checked={isVisualAssetDefaultForProvider(
-                                catalog,
-                                asset.id,
-                                providerId,
-                              )}
+                              checked={asset.isDefault === true}
                               className="accent-terminal-blue"
                               onChange={(
                                 event: ChangeEvent<HTMLInputElement>,
@@ -560,7 +534,6 @@ export function EmotionSection({
                                   catalog,
                                   asset.id,
                                   preset.id,
-                                  providerId,
                                 );
 
                               return (
@@ -578,7 +551,6 @@ export function EmotionSection({
                                       catalog,
                                       asset.id,
                                       preset.id,
-                                      providerId,
                                     )}
                                     className="accent-terminal-blue"
                                     id={inputId}
@@ -587,7 +559,7 @@ export function EmotionSection({
                                     ) => {
                                       onToggleState(
                                         asset.id,
-                                    preset.id,
+                                        preset.id,
                                         event.currentTarget.checked,
                                       );
                                     }}
@@ -620,7 +592,6 @@ export function EmotionSection({
                                   catalog,
                                   asset.id,
                                   preset.id,
-                                  providerId,
                                 );
 
                               return (
@@ -638,7 +609,6 @@ export function EmotionSection({
                                       catalog,
                                       asset.id,
                                       preset.id,
-                                      providerId,
                                     )}
                                     className="accent-terminal-blue"
                                     id={inputId}
@@ -701,7 +671,6 @@ export function EmotionSection({
                                           asset.id,
                                           statePreset.id,
                                           emotionPreset.id,
-                                          providerId,
                                         );
 
                                       return (
@@ -720,7 +689,6 @@ export function EmotionSection({
                                               asset.id,
                                               statePreset.id,
                                               emotionPreset.id,
-                                              providerId,
                                             )}
                                             className="accent-terminal-blue"
                                             id={inputId}

@@ -4,10 +4,12 @@ import path from "node:path";
 import {
   collectAvailableVisualOptions,
   createEmptyVisualAssetCatalog,
+  createEmptyVisualAssetCatalogStore,
   type AvailableVisualOptions,
   type VisualAssetCatalog,
+  type VisualAssetCatalogStore,
   type VisualAssetMapping,
-  type VisualAssetProviderOverride,
+  type VisualAssetProviderId,
   type VisualAssetRecord,
   type VisualEmotionDescriptionMapping,
   type VisualStateLineMapping,
@@ -18,7 +20,17 @@ import {
 } from "../../shared/visual-presets";
 import type { VisualAssetPickerFile } from "../../shared/visual-assets-bridge";
 
-type CatalogListener = (catalog: VisualAssetCatalog) => void;
+type CatalogListener = (catalog: VisualAssetCatalogStore) => void;
+
+function getProviderCatalog(
+  catalogStore: VisualAssetCatalogStore,
+  providerId: VisualAssetProviderId = "claude",
+): VisualAssetCatalog {
+  return (
+    catalogStore.providers[providerId] ??
+    createEmptyVisualAssetCatalog(providerId !== "claude")
+  );
+}
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -97,9 +109,7 @@ function isVisualEmotionDescriptionMapping(
   );
 }
 
-function isVisualAssetProviderOverride(
-  value: unknown,
-): value is VisualAssetProviderOverride {
+function isLegacyCodexProviderConfigRecord(value: unknown): boolean {
   if (!isObjectRecord(value)) {
     return false;
   }
@@ -194,25 +204,6 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
   const emotionDescriptions = sanitizeEmotionDescriptions(
     candidate.emotionDescriptions,
   );
-  const providerOverrides: VisualAssetCatalog["providerOverrides"] = {};
-  const codexOverride = candidate.providerOverrides?.codex;
-
-  if (codexOverride !== undefined) {
-    providerOverrides.codex = {
-      defaultAssetId:
-        codexOverride.defaultAssetId !== undefined &&
-        knownAssetIds.has(codexOverride.defaultAssetId)
-          ? codexOverride.defaultAssetId
-          : undefined,
-      emotionDescriptions: sanitizeEmotionDescriptions(
-        codexOverride.emotionDescriptions,
-      ),
-      mappings: sanitizeMappings(codexOverride.mappings, knownAssetIds),
-      stateLines: sanitizeStateLines(codexOverride.stateLines),
-      useBaseProviderWhenMissing:
-        codexOverride.useBaseProviderWhenMissing !== false,
-    };
-  }
 
   const sanitizedCatalog: VisualAssetCatalog = {
     version: 1,
@@ -222,66 +213,123 @@ function sanitizeCatalog(candidate: VisualAssetCatalog): VisualAssetCatalog {
     stateLines,
   };
 
-  if (Object.keys(providerOverrides).length > 0) {
+  if (candidate.useBaseProviderWhenMissing !== undefined) {
     return {
       ...sanitizedCatalog,
-      providerOverrides,
+      useBaseProviderWhenMissing: candidate.useBaseProviderWhenMissing,
     };
   }
 
   return sanitizedCatalog;
 }
 
-function parseCatalogFromDisk(
+function sanitizeCatalogStore(
+  candidate: VisualAssetCatalogStore,
+): VisualAssetCatalogStore {
+  return {
+    version: 1,
+    providers: {
+      claude: {
+        ...sanitizeCatalog(candidate.providers.claude),
+        useBaseProviderWhenMissing: false,
+      },
+      codex: {
+        ...sanitizeCatalog(candidate.providers.codex),
+        useBaseProviderWhenMissing:
+          candidate.providers.codex.useBaseProviderWhenMissing !== false,
+      },
+    },
+  };
+}
+
+function collectReferencedAssets(
+  assets: ReadonlyArray<VisualAssetRecord>,
+  assetIds: ReadonlySet<string>,
+): VisualAssetRecord[] {
+  return assets.filter((asset) => {
+    return assetIds.has(asset.id);
+  });
+}
+
+function createCatalogFromLegacyOverride(
+  assets: ReadonlyArray<VisualAssetRecord>,
+  legacyOverride: Record<string, unknown>,
+): VisualAssetCatalog {
+  const mappings = Array.isArray(legacyOverride.mappings)
+    ? legacyOverride.mappings.filter(isVisualAssetMapping)
+    : [];
+  const stateLines = Array.isArray(legacyOverride.stateLines)
+    ? legacyOverride.stateLines.filter(isVisualStateLineMapping)
+    : [];
+  const emotionDescriptions = Array.isArray(legacyOverride.emotionDescriptions)
+    ? legacyOverride.emotionDescriptions.filter(
+        isVisualEmotionDescriptionMapping,
+      )
+    : [];
+  const defaultAssetId =
+    typeof legacyOverride.defaultAssetId === "string"
+      ? legacyOverride.defaultAssetId
+      : undefined;
+  const referencedAssetIds = new Set(
+    mappings.map((mapping) => {
+      return mapping.assetId;
+    }),
+  );
+
+  if (defaultAssetId !== undefined) {
+    referencedAssetIds.add(defaultAssetId);
+  }
+
+  return {
+    version: 1,
+    assets: collectReferencedAssets(assets, referencedAssetIds).map((asset) => {
+      return {
+        ...asset,
+        isDefault: asset.id === defaultAssetId,
+      };
+    }),
+    emotionDescriptions,
+    mappings,
+    stateLines,
+    useBaseProviderWhenMissing:
+      legacyOverride.useBaseProviderWhenMissing !== false,
+  };
+}
+
+function parseCatalogStoreFromDisk(
   filePath: string,
   logEvent?: (message: string) => void,
-): VisualAssetCatalog {
+): VisualAssetCatalogStore {
   try {
     const text = fs.readFileSync(filePath, "utf8");
     const parsed: unknown = JSON.parse(text);
 
-    if (
-      !isObjectRecord(parsed) ||
-      parsed.version !== 1 ||
-      !Array.isArray(parsed.assets) ||
-      !Array.isArray(parsed.mappings)
-    ) {
+    if (!isObjectRecord(parsed) || parsed.version !== 1) {
       logEvent?.("visual asset catalog on disk had an invalid shape");
-      return createEmptyVisualAssetCatalog();
+      return createEmptyVisualAssetCatalogStore();
+    }
+
+    if (isObjectRecord(parsed.providers)) {
+      const candidate: VisualAssetCatalogStore = {
+        version: 1,
+        providers: {
+          claude: parseProviderCatalogFromRecord(parsed.providers.claude),
+          codex: parseProviderCatalogFromRecord(parsed.providers.codex),
+        },
+      };
+
+      return sanitizeCatalogStore(candidate);
+    }
+
+    if (!Array.isArray(parsed.assets) || !Array.isArray(parsed.mappings)) {
+      logEvent?.("visual asset catalog on disk had an invalid shape");
+      return createEmptyVisualAssetCatalogStore();
     }
 
     const candidate: VisualAssetCatalog = {
       version: 1,
       assets: parsed.assets.filter(isVisualAssetRecord),
       mappings: parsed.mappings.filter(isVisualAssetMapping),
-      providerOverrides:
-        isObjectRecord(parsed.providerOverrides) &&
-        isVisualAssetProviderOverride(parsed.providerOverrides.codex)
-          ? {
-              codex: {
-                defaultAssetId:
-                  typeof parsed.providerOverrides.codex.defaultAssetId ===
-                  "string"
-                    ? parsed.providerOverrides.codex.defaultAssetId
-                    : undefined,
-                emotionDescriptions:
-                  parsed.providerOverrides.codex.emotionDescriptions.filter(
-                    isVisualEmotionDescriptionMapping,
-                  ),
-                mappings:
-                  parsed.providerOverrides.codex.mappings.filter(
-                    isVisualAssetMapping,
-                  ),
-                stateLines:
-                  parsed.providerOverrides.codex.stateLines.filter(
-                    isVisualStateLineMapping,
-                  ),
-                useBaseProviderWhenMissing:
-                  parsed.providerOverrides.codex.useBaseProviderWhenMissing !==
-                  false,
-              },
-            }
-          : {},
       stateLines: Array.isArray(parsed.stateLines)
         ? parsed.stateLines.filter(isVisualStateLineMapping)
         : [],
@@ -289,20 +337,75 @@ function parseCatalogFromDisk(
         ? parsed.emotionDescriptions.filter(isVisualEmotionDescriptionMapping)
         : [],
     };
+    const legacyCodexOverride =
+      isObjectRecord(parsed.providerOverrides) &&
+      isLegacyCodexProviderConfigRecord(parsed.providerOverrides.codex) &&
+      isObjectRecord(parsed.providerOverrides.codex)
+        ? parsed.providerOverrides.codex
+        : undefined;
+    const legacyCatalogStore: VisualAssetCatalogStore = {
+      version: 1,
+      providers: {
+        claude: sanitizeCatalog({
+          ...candidate,
+          useBaseProviderWhenMissing: false,
+        }),
+        codex:
+          legacyCodexOverride !== undefined
+            ? sanitizeCatalog(
+                createCatalogFromLegacyOverride(
+                  candidate.assets,
+                  legacyCodexOverride,
+                ),
+              )
+            : createEmptyVisualAssetCatalog(true),
+      },
+    };
 
-    return sanitizeCatalog(candidate);
+    return sanitizeCatalogStore(legacyCatalogStore);
   } catch (error) {
     if (error instanceof Error && error.name !== "ENOENT") {
       logEvent?.(`failed to read visual asset catalog: ${error.message}`);
     }
 
+    return createEmptyVisualAssetCatalogStore();
+  }
+}
+
+function parseProviderCatalogFromRecord(value: unknown): VisualAssetCatalog {
+  if (!isObjectRecord(value)) {
     return createEmptyVisualAssetCatalog();
   }
+
+  const catalog: VisualAssetCatalog = {
+    version: 1,
+    assets: Array.isArray(value.assets)
+      ? value.assets.filter(isVisualAssetRecord)
+      : [],
+    mappings: Array.isArray(value.mappings)
+      ? value.mappings.filter(isVisualAssetMapping)
+      : [],
+    stateLines: Array.isArray(value.stateLines)
+      ? value.stateLines.filter(isVisualStateLineMapping)
+      : [],
+    emotionDescriptions: Array.isArray(value.emotionDescriptions)
+      ? value.emotionDescriptions.filter(isVisualEmotionDescriptionMapping)
+      : [],
+  };
+
+  if (typeof value.useBaseProviderWhenMissing === "boolean") {
+    return {
+      ...catalog,
+      useBaseProviderWhenMissing: value.useBaseProviderWhenMissing,
+    };
+  }
+
+  return catalog;
 }
 
 function persistCatalogIfMissing(
   filePath: string,
-  catalog: VisualAssetCatalog,
+  catalog: VisualAssetCatalogStore,
   logEvent?: (message: string) => void,
 ): void {
   if (fs.existsSync(filePath)) {
@@ -336,7 +439,7 @@ function isManagedAssetPath(
 }
 
 export class VisualAssetStore {
-  private catalog: VisualAssetCatalog;
+  private catalog: VisualAssetCatalogStore;
   private readonly listeners = new Set<CatalogListener>();
 
   constructor(
@@ -344,15 +447,15 @@ export class VisualAssetStore {
     private readonly assetLibraryDirPath: string,
     private readonly logEvent?: (message: string) => void,
   ) {
-    this.catalog = parseCatalogFromDisk(filePath, logEvent);
+    this.catalog = parseCatalogStoreFromDisk(filePath, logEvent);
     persistCatalogIfMissing(filePath, this.catalog, logEvent);
   }
 
   getAvailableOptions(): AvailableVisualOptions {
-    return collectAvailableVisualOptions(this.catalog);
+    return collectAvailableVisualOptions(getProviderCatalog(this.catalog));
   }
 
-  getCatalog(): VisualAssetCatalog {
+  getCatalog(): VisualAssetCatalogStore {
     return this.catalog;
   }
 
@@ -391,9 +494,11 @@ export class VisualAssetStore {
     });
   }
 
-  replaceCatalog(nextCatalog: VisualAssetCatalog): VisualAssetCatalog {
+  replaceCatalog(nextCatalog: VisualAssetCatalogStore): VisualAssetCatalogStore {
     const previousCatalog = this.catalog;
-    const sanitizedCatalog = sanitizeCatalog(nextCatalog);
+    const sanitizedCatalog = sanitizeCatalogStore(nextCatalog);
+    const claudeCatalog = getProviderCatalog(sanitizedCatalog);
+    const codexCatalog = getProviderCatalog(sanitizedCatalog, "codex");
     const directoryPath = path.dirname(this.filePath);
 
     fs.mkdirSync(directoryPath, { recursive: true });
@@ -406,7 +511,7 @@ export class VisualAssetStore {
     this.pruneUnusedImportedAssets(previousCatalog, sanitizedCatalog);
     this.emit();
     this.logEvent?.(
-      `saved visual asset catalog assets=${sanitizedCatalog.assets.length} mappings=${sanitizedCatalog.mappings.length} stateLines=${sanitizedCatalog.stateLines.length} emotionDescriptions=${sanitizedCatalog.emotionDescriptions.length}`,
+      `saved visual asset catalog claudeAssets=${claudeCatalog.assets.length} claudeMappings=${claudeCatalog.mappings.length} codexAssets=${codexCatalog.assets.length} codexMappings=${codexCatalog.mappings.length}`,
     );
 
     return sanitizedCatalog;
@@ -431,12 +536,20 @@ export class VisualAssetStore {
   }
 
   private pruneUnusedImportedAssets(
-    previousCatalog: VisualAssetCatalog,
-    nextCatalog: VisualAssetCatalog,
+    previousCatalog: VisualAssetCatalogStore,
+    nextCatalog: VisualAssetCatalogStore,
   ): void {
-    const nextPaths = new Set(nextCatalog.assets.map((asset) => asset.path));
+    const nextPaths = new Set(
+      Object.values(nextCatalog.providers).flatMap((catalog) => {
+        return catalog.assets.map((asset) => asset.path);
+      }),
+    );
 
-    for (const asset of previousCatalog.assets) {
+    for (const asset of Object.values(previousCatalog.providers).flatMap(
+      (catalog) => {
+        return catalog.assets;
+      },
+    )) {
       if (nextPaths.has(asset.path)) {
         continue;
       }
