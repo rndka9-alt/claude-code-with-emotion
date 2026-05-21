@@ -2,7 +2,10 @@ import { Menu, app, BrowserWindow } from "electron";
 import path from "node:path";
 import { createApplicationMenuTemplate } from "./application-menu";
 import { createRuntimeLog, resolveRuntimeLogPath } from "./diagnostics";
-import { ensureNodePtySpawnHelpersExecutable } from "./terminal";
+import {
+  ensureNodePtySpawnHelpersExecutable,
+  getDefaultAssistantProvider,
+} from "./terminal";
 import { ThemeStore } from "./theme";
 import {
   attachWorkspaceWindowDiagnostics,
@@ -95,6 +98,7 @@ void app.whenReady().then(() => {
       runtimeLog.write("window-bounds", message);
     },
   );
+  const assistantProvider = getDefaultAssistantProvider();
   installApplicationMenu();
   let workspaceBridge: WorkspaceBridge | null = null;
 
@@ -104,6 +108,7 @@ void app.whenReady().then(() => {
     const workspaceWindow = createWorkspaceWindow(
       themeStore.getSelection(),
       windowBoundsStore,
+      assistantProvider,
       request === undefined
         ? {}
         : {

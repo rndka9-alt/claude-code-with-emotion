@@ -70,12 +70,20 @@ describe("App shell", () => {
     expect(statusPanel).not.toHaveAttribute("hidden");
   });
 
-  it("runs claude in the active tab when disconnected launch button is clicked", async () => {
+  it("runs the active assistant provider in the active tab when launch is clicked", async () => {
     const sendInput = vi.fn().mockResolvedValue(undefined);
     const { installDisconnectedClaudeApp } =
       await import("./test-support/app-test-helpers");
 
-    installDisconnectedClaudeApp(sendInput);
+    installDisconnectedClaudeApp(sendInput, {
+      displayName: "Codex CLI",
+      features: {
+        sessionStatus: false,
+        visualMcpSetup: false,
+      },
+      id: "codex",
+      launchCommand: "codex",
+    });
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: "실행하기" }));
@@ -84,8 +92,30 @@ describe("App shell", () => {
       sessionId: expect.stringMatching(
         /^session-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
       ),
-      data: "\u0015claude\r",
+      data: "\u0015codex\r",
     });
+  });
+
+  it("uses the active assistant provider name for disconnected status text", async () => {
+    const { installDisconnectedClaudeApp } =
+      await import("./test-support/app-test-helpers");
+
+    installDisconnectedClaudeApp(vi.fn(), {
+      displayName: "Codex CLI",
+      features: {
+        sessionStatus: false,
+        visualMcpSetup: false,
+      },
+      id: "codex",
+      launchCommand: "codex",
+    });
+    render(<App />);
+
+    expect(
+      await screen.findByText(
+        /Codex CLI 아직 미연결이에요\. 준비되면 바로 붙을게요/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows a connected pending fallback right after launch is requested", async () => {

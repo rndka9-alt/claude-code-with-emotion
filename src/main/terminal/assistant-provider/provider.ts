@@ -1,3 +1,4 @@
+import type { AssistantProviderMetadata } from "../../../shared/assistant-provider";
 import type { VisualMcpSetupStatus } from "../../../shared/mcp-setup-bridge";
 
 export interface AssistantProviderSessionEnvironmentOptions {
@@ -18,10 +19,7 @@ export interface AssistantProviderMcpSetup {
   remove: (stateFilePath: string) => VisualMcpSetupStatus;
 }
 
-export interface AssistantProvider {
-  displayName: string;
-  id: string;
-  launchCommand: string;
+export interface AssistantProvider extends AssistantProviderMetadata {
   createSessionEnvironment: (
     options: AssistantProviderSessionEnvironmentOptions,
   ) => Record<string, string>;

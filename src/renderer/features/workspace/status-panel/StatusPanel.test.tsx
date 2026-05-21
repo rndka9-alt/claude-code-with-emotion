@@ -23,7 +23,7 @@ const defaultProps = {
   mcpSetupInstalled: true,
   onDismissMcpSetupPrompt: () => {},
   onInstallVisualMcp: () => {},
-  onLaunchClaude: () => {},
+  onLaunchAssistant: () => {},
   onOpenSettings: () => {},
 };
 
@@ -132,8 +132,8 @@ describe("StatusPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("launches claude when the disconnected portrait is clicked", () => {
-    const onLaunchClaude = vi.fn();
+  it("launches the assistant when the disconnected portrait is clicked", () => {
+    const onLaunchAssistant = vi.fn();
 
     const snapshot: AssistantStatusSnapshot = {
       ...assistantStatus,
@@ -143,14 +143,14 @@ describe("StatusPanel", () => {
     render(
       <StatusPanel
         {...defaultProps}
-        onLaunchClaude={onLaunchClaude}
+        onLaunchAssistant={onLaunchAssistant}
         presentation={createPresentation(snapshot)}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "실행하기" }));
 
-    expect(onLaunchClaude).toHaveBeenCalledTimes(1);
+    expect(onLaunchAssistant).toHaveBeenCalledTimes(1);
   });
 
   it("opens settings from the panel toolbar button", () => {

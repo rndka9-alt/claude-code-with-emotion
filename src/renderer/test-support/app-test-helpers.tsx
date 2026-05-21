@@ -1,11 +1,25 @@
 import type { Mock } from "vitest";
+import type { AssistantProviderMetadata } from "../../shared/assistant-provider";
 import { createDefaultAssistantStatusSnapshot } from "../../shared/assistant-status";
 import {
   createDefaultAppThemeSelection,
   type AppThemeSelection,
 } from "../../shared/theme";
 
-export function installDisconnectedClaudeApp(sendInput: Mock = vi.fn()): {
+const defaultAssistantProvider: AssistantProviderMetadata = {
+  displayName: "Claude Code",
+  features: {
+    sessionStatus: true,
+    visualMcpSetup: true,
+  },
+  id: "claude",
+  launchCommand: "claude",
+};
+
+export function installDisconnectedClaudeApp(
+  sendInput: Mock = vi.fn(),
+  assistantProvider: AssistantProviderMetadata = defaultAssistantProvider,
+): {
   saveThemeSelection: Mock;
 } {
   const saveThemeSelection = vi.fn(
@@ -16,6 +30,7 @@ export function installDisconnectedClaudeApp(sendInput: Mock = vi.fn()): {
     configurable: true,
     value: {
       appVersion: "test",
+      assistantProvider,
       workspaceCwd: "/tmp/claude-code-with-emotion",
       appTheme: {
         getSelection: vi

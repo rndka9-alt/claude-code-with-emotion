@@ -5,6 +5,10 @@ import {
   type AssistantSnapshotsBySessionId,
 } from "../../shared/assistant-status";
 import {
+  createInitialAssistantProviderMetadataArgument,
+  type AssistantProviderMetadata,
+} from "../../shared/assistant-provider";
+import {
   getAppThemeDefinition,
   type AppThemeSelection,
 } from "../../shared/theme";
@@ -32,6 +36,7 @@ export interface CreateWorkspaceWindowOptions {
 export function createWorkspaceWindow(
   themeSelection: AppThemeSelection,
   boundsStore: WindowBoundsStore,
+  assistantProvider: AssistantProviderMetadata,
   options: CreateWorkspaceWindowOptions = {},
 ): BrowserWindow {
   const preloadPath = path.join(__dirname, "../../preload/index.js");
@@ -52,6 +57,8 @@ export function createWorkspaceWindow(
             options.initialAssistantSnapshotsBySessionId,
           ),
         ];
+  const assistantProviderArgument =
+    createInitialAssistantProviderMetadataArgument(assistantProvider);
   const workspaceWindow = new BrowserWindow({
     ...initialBounds,
     minWidth: WORKSPACE_WINDOW_SIZE.minWidth,
@@ -62,6 +69,7 @@ export function createWorkspaceWindow(
     webPreferences: {
       preload: preloadPath,
       additionalArguments: [
+        assistantProviderArgument,
         ...additionalArguments,
         ...assistantSnapshotArguments,
       ],

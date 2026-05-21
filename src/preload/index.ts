@@ -6,6 +6,7 @@ import {
 } from "electron";
 import os from "node:os";
 import type { ClaudeAppApi } from "../shared/electron-api";
+import { parseInitialAssistantProviderMetadataFromArguments } from "../shared/assistant-provider";
 import { APP_THEME_CHANNELS } from "../shared/app-theme-bridge";
 import type { AppThemeSelection } from "../shared/theme";
 import {
@@ -48,8 +49,16 @@ const initialWorkspaceState: WorkspaceState | undefined =
   parseInitialWorkspaceStateFromArguments(process.argv);
 const initialAssistantSnapshotsBySessionId =
   parseInitialAssistantSnapshotsBySessionIdFromArguments(process.argv);
+const assistantProvider =
+  parseInitialAssistantProviderMetadataFromArguments(process.argv);
+
+if (assistantProvider === undefined) {
+  throw new Error("Assistant provider metadata argument is required.");
+}
+
 const claudeAppApi: ClaudeAppApi = {
   appVersion: process.versions.electron,
+  assistantProvider,
   ...(initialAssistantSnapshotsBySessionId !== undefined
     ? { initialAssistantSnapshotsBySessionId }
     : {}),

@@ -9,6 +9,10 @@ import type { AssistantProvider } from "../provider";
 
 export const claudeAssistantProvider: AssistantProvider = {
   displayName: "Claude Code",
+  features: {
+    sessionStatus: true,
+    visualMcpSetup: true,
+  },
   id: "claude",
   launchCommand: "claude",
   createSessionEnvironment: ({ helperBinDir, userDataPath }) => {

@@ -221,6 +221,10 @@ describe("TerminalSessionManager", () => {
     );
     const assistantProvider: AssistantProvider = {
       displayName: "Test Assistant",
+      features: {
+        sessionStatus: false,
+        visualMcpSetup: false,
+      },
       id: "test-assistant",
       launchCommand: "test-assistant",
       createSessionEnvironment: ({ eventQueueDir }) => {

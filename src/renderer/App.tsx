@@ -36,7 +36,7 @@ function AppContent(): ReactElement {
     dismissNotification,
     dismissMcpSetupPrompt,
     dropVisualAssets,
-    handleLaunchClaude,
+    handleLaunchAssistant,
     isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
     isSettingsDialogOpen,
@@ -143,7 +143,7 @@ function AppContent(): ReactElement {
               mcpSetupInstalled={mcpSetupStatus?.installed ?? true}
               onDismissMcpSetupPrompt={dismissMcpSetupPrompt}
               onInstallVisualMcp={installVisualMcp}
-              onLaunchClaude={handleLaunchClaude}
+              onLaunchAssistant={handleLaunchAssistant}
               onOpenSettings={openSettingsDialog}
               presentation={assistantPresentation}
             />

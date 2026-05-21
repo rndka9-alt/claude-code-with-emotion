@@ -1,3 +1,4 @@
+import type { AssistantProviderMetadata } from "./assistant-provider";
 import type { AppThemeBridge } from "./app-theme-bridge";
 import type {
   AssistantSnapshotsBySessionId,
@@ -20,6 +21,7 @@ export interface DiagnosticsBridge {
 
 export interface ClaudeAppApi {
   readonly appVersion: string;
+  readonly assistantProvider: AssistantProviderMetadata;
   readonly initialAssistantSnapshotsBySessionId?: AssistantSnapshotsBySessionId;
   readonly initialWorkspaceState?: WorkspaceState;
   readonly workspaceCwd: string;

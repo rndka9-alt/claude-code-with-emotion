@@ -11,7 +11,7 @@ interface StatusPanelProps {
   mcpSetupInstalled: boolean;
   onDismissMcpSetupPrompt: () => void;
   onInstallVisualMcp: () => void;
-  onLaunchClaude: () => void;
+  onLaunchAssistant: () => void;
   onOpenSettings: () => void;
   presentation: AssistantPresentation;
 }
@@ -53,7 +53,7 @@ export function StatusPanel({
   mcpSetupInstalled,
   onDismissMcpSetupPrompt,
   onInstallVisualMcp,
-  onLaunchClaude,
+  onLaunchAssistant,
   onOpenSettings,
   presentation,
 }: StatusPanelProps): ReactElement {
@@ -117,7 +117,7 @@ export function StatusPanel({
           <button
             aria-label="실행하기"
             className="hover:bg-surface-launch-hover/20 focus-visible:ring-border-strong focus-visible:ring-offset-surface-panel absolute inset-0 cursor-pointer transition-[background-color,transform] duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-            onClick={onLaunchClaude}
+            onClick={onLaunchAssistant}
             title="실행하기"
             type="button"
           >

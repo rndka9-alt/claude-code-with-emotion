@@ -4,10 +4,12 @@ import {
   createDefaultAssistantStatusSnapshot,
   type AssistantStatusSnapshot,
 } from "../../../../shared/assistant-status";
+import type { AssistantProviderMetadata } from "../../../../shared/assistant-provider";
 import type { AppThemeId, AppThemeOption } from "../../../../shared/theme";
 import type { VisualMcpSetupStatus } from "../../../../shared/mcp-setup-bridge";
 import {
   EMOTION_PRESETS,
+  getDefaultVisualStateLine,
   STATE_PRESETS,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
@@ -25,6 +27,7 @@ import {
 } from "../model";
 import {
   resolveAssistantPresentation,
+  type AssistantPresentation,
 } from "../status-panel";
 import { useTabNotifications } from "../tabs";
 import { useAssistantStatusStream } from "./use-assistant-status-stream";
@@ -116,20 +119,80 @@ function shouldRestoreTerminalFocus(activeElement: Element | null): boolean {
   return !["INPUT", "SELECT", "TEXTAREA"].includes(activeElement.tagName);
 }
 
-function createClaudeLaunchPendingSnapshot(
+function createAssistantLaunchPendingSnapshot(
+  assistantProvider: AssistantProviderMetadata,
   nowMs: number,
 ): AssistantStatusSnapshot {
   return {
-    activityLabel: "Claude 세션 시작하는 중",
+    activityLabel: `${assistantProvider.displayName} 세션 시작하는 중`,
     emotion: null,
     overlayLine: null,
     state: "working",
-    line: "Claude 세션 실행 중이에요...!",
-    currentTask: "Running Claude in the active terminal",
+    line: `${assistantProvider.displayName} 세션 실행 중이에요...!`,
+    currentTask: `Running ${assistantProvider.displayName} in the active terminal`,
     updatedAtMs: nowMs,
     intensity: "medium",
     source: "workspace-launch-pending",
   };
+}
+
+function createProviderDisconnectedLine(
+  assistantProvider: AssistantProviderMetadata,
+): string {
+  return `${assistantProvider.displayName} 아직 미연결이에요. 준비되면 바로 붙을게요...!`;
+}
+
+function resolveProviderAwareAssistantSnapshot(
+  snapshot: AssistantStatusSnapshot,
+  assistantProvider: AssistantProviderMetadata | undefined,
+): AssistantStatusSnapshot {
+  if (
+    assistantProvider === undefined ||
+    assistantProvider.id === "claude" ||
+    snapshot.state !== "disconnected" ||
+    snapshot.source !== "app"
+  ) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    line: createProviderDisconnectedLine(assistantProvider),
+    currentTask: `Waiting for ${assistantProvider.displayName} to start`,
+  };
+}
+
+function resolveProviderAwareAssistantPresentation(
+  presentation: AssistantPresentation,
+  assistantProvider: AssistantProviderMetadata | undefined,
+): AssistantPresentation {
+  if (
+    assistantProvider === undefined ||
+    assistantProvider.id === "claude" ||
+    presentation.snapshot.state !== "disconnected"
+  ) {
+    return presentation;
+  }
+
+  const defaultDisconnectedLine = getDefaultVisualStateLine("disconnected");
+  const providerDisconnectedLine =
+    createProviderDisconnectedLine(assistantProvider);
+
+  if (presentation.line === `(${defaultDisconnectedLine})`) {
+    return {
+      ...presentation,
+      line: `(${providerDisconnectedLine})`,
+    };
+  }
+
+  if (presentation.line === defaultDisconnectedLine) {
+    return {
+      ...presentation,
+      line: providerDisconnectedLine,
+    };
+  }
+
+  return presentation;
 }
 
 interface CollectAssistantSnapshotsForTabHandoffInput {
@@ -188,7 +251,7 @@ export interface WorkspaceScreenViewModel {
   detachTab: (tabId: string, screenPoint?: WorkspaceWindowScreenPoint) => void;
   dismissMcpSetupPrompt: () => void;
   dropVisualAssets: (files: ReadonlyArray<File>) => void;
-  handleLaunchClaude: () => void;
+  handleLaunchAssistant: () => void;
   isMcpSetupPromptDismissed: boolean;
   isInstallingVisualMcp: boolean;
   isSettingsDialogOpen: boolean;
@@ -290,6 +353,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
   const activeTab = getActiveTab(state);
   const activeSession = getFocusedSession(state);
+  const assistantProvider = window.claudeApp?.assistantProvider;
   const fallbackAssistantSnapshot: AssistantStatusSnapshot =
     activeSession !== null
       ? (pendingAssistantSnapshotsBySessionId[activeSession.id] ??
@@ -305,6 +369,10 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       activeSession?.id ?? null,
       fallbackAssistantSnapshot,
     );
+  const providerAwareAssistantSnapshot = resolveProviderAwareAssistantSnapshot(
+    assistantSnapshot,
+    assistantProvider,
+  );
   const {
     catalog: visualAssetCatalog,
     importFiles: importVisualAssetFiles,
@@ -317,9 +385,12 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   useEffect(() => {
     catalogRef.current = visualAssetCatalog;
   }, [visualAssetCatalog]);
-  const assistantPresentation = resolveAssistantPresentation(
-    assistantSnapshot,
-    visualAssetCatalog,
+  const assistantPresentation = resolveProviderAwareAssistantPresentation(
+    resolveAssistantPresentation(
+      providerAwareAssistantSnapshot,
+      visualAssetCatalog,
+    ),
+    assistantProvider,
   );
 
   useEffect(() => {
@@ -426,24 +497,27 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     });
   };
 
-  const handleLaunchClaude = (): void => {
+  const handleLaunchAssistant = (): void => {
     if (activeSession === null) {
       return;
     }
 
     const terminalsBridge = window.claudeApp?.terminals;
 
-    if (terminalsBridge === undefined) {
+    if (assistantProvider === undefined || terminalsBridge === undefined) {
       return;
     }
 
     setPendingAssistantSnapshotsBySessionId((current) => ({
       ...current,
-      [activeSession.id]: createClaudeLaunchPendingSnapshot(Date.now()),
+      [activeSession.id]: createAssistantLaunchPendingSnapshot(
+        assistantProvider,
+        Date.now(),
+      ),
     }));
     void terminalsBridge.sendInput({
       sessionId: activeSession.id,
-      data: "\u0015claude\r",
+      data: `\u0015${assistantProvider.launchCommand}\r`,
     });
     setTerminalFocusRequestKey((current) => current + 1);
   };
@@ -541,7 +615,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
 
       importVisualAssets(importVisualAssetFiles(filePaths));
     },
-    handleLaunchClaude,
+    handleLaunchAssistant,
     isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
     isSettingsDialogOpen,
