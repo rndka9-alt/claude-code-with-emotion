@@ -26,6 +26,7 @@ import {
 interface EmotionSectionProps {
   catalog: VisualAssetCatalog;
   onDropFiles: (files: ReadonlyArray<File>) => void;
+  onPickFiles: () => void;
   onRemoveAsset: (assetId: string) => void;
   onSetDefaultAsset: (assetId: string, isDefault: boolean) => void;
   onToggleEmotion: (
@@ -308,6 +309,7 @@ function collectAssetMappingBadges(
 export function EmotionSection({
   catalog,
   onDropFiles,
+  onPickFiles,
   onRemoveAsset,
   onSetDefaultAsset,
   onToggleEmotion,
@@ -330,7 +332,7 @@ export function EmotionSection({
     });
   }, [catalog, normalizedSearchQuery]);
 
-  const handleAssetDragLeave = (event: DragEvent<HTMLDivElement>): void => {
+  const handleAssetDragLeave = (event: DragEvent<HTMLElement>): void => {
     const nextTarget = event.relatedTarget;
 
     if (
@@ -343,7 +345,7 @@ export function EmotionSection({
     setIsAssetDropActive(false);
   };
 
-  const handleAssetDrop = (event: DragEvent<HTMLDivElement>): void => {
+  const handleAssetDrop = (event: DragEvent<HTMLElement>): void => {
     event.preventDefault();
     setIsAssetDropActive(false);
 
@@ -357,19 +359,20 @@ export function EmotionSection({
   return (
     <>
       <div className="mb-4">
-        <h3 className="m-0">Emotion Asset Mapping</h3>
+        <h3 className="m-0">Asset Mapping</h3>
         <p className={managerSectionCopyClassName}>
           상태 preset이 기본 축이고, 감정 preset은 선택적으로 얹혀요.
         </p>
       </div>
-      <div
+      <button
         aria-label="Image drop zone"
         className={[
-          "mb-4 border border-dashed px-4 py-3 transition-colors duration-150",
+          "mb-4 w-full cursor-pointer border border-dashed px-4 py-3 text-left transition-colors duration-150",
           isAssetDropActive
             ? "border-border-strong bg-surface-elevated-active"
-            : "border-border-soft bg-surface-elevated",
+            : "border-border-soft bg-surface-elevated hover:bg-surface-hover",
         ].join(" ")}
+        onClick={onPickFiles}
         onDragEnter={(event) => {
           event.preventDefault();
           setIsAssetDropActive(true);
@@ -380,9 +383,10 @@ export function EmotionSection({
           setIsAssetDropActive(true);
         }}
         onDrop={handleAssetDrop}
+        type="button"
       >
         <p className="text-text-secondary m-0 text-sm">
-          이미지를 여기로 여러 장 드래그해서 바로 가져올 수 있어요.
+          이미지를 여기로 여러 장 드래그하거나 클릭해서 가져올 수 있어요.
         </p>
         <p className={managerSectionCopyClassName}>
           자동 매칭 규칙: 토큰은 <code>__</code>(언더스코어 2개)로 구분해요. 한
@@ -392,7 +396,7 @@ export function EmotionSection({
           <code>happy.png</code>, <code>working__happy.png</code>,{" "}
           <code>happy__angry__sad.png</code>, <code>default__fallback.png</code>
         </p>
-      </div>
+      </button>
       {catalog.assets.length === 0 ? (
         <div className="border-border-muted bg-surface-empty text-text-faint mt-4 border border-dashed p-7">
           아직 등록된 이미지가 읍어요...! 먼저 파일 몇 장 골라서 붙여보죠.
@@ -404,7 +408,7 @@ export function EmotionSection({
               <Search aria-hidden="true" className={managerIconClassName} />
             </span>
             <input
-              aria-label="감정 에셋 검색"
+              aria-label="상태창 에셋 검색"
               className={managerSearchInputClassName}
               onChange={(event: ChangeEvent<HTMLInputElement>) => {
                 setSearchQuery(event.currentTarget.value);

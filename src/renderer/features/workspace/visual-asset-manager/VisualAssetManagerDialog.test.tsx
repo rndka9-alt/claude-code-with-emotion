@@ -27,7 +27,7 @@ function createMcpSetupStatus(
 }
 
 describe("VisualAssetManagerDialog", () => {
-  it("switches between general, theme, asset, and message tabs", () => {
+  it("switches between general, theme, and status panel sections", () => {
     render(
       <VisualAssetManagerDialog
         availableThemes={[
@@ -73,12 +73,17 @@ describe("VisualAssetManagerDialog", () => {
       "current-dark",
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "감정 에셋" }));
+    fireEvent.click(screen.getByRole("tab", { name: "상태창" }));
 
+    expect(screen.getByRole("combobox", { name: "상태창 provider" })).toHaveValue(
+      "claude",
+    );
     expect(
-      screen.getByRole("button", { name: "Add Images" }),
+      screen.queryByRole("button", { name: "Add Images" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Image drop zone" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Image drop zone")).toBeInTheDocument();
     expect(screen.getByText("working__happy.png")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "상태 텍스트" }));
@@ -94,6 +99,48 @@ describe("VisualAssetManagerDialog", () => {
     expect(
       screen.getByRole("button", { name: "Disconnected 상태 설명 보기" }),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "감정 설명" }));
+
+    expect(screen.getByText("Emotion Descriptions")).toBeInTheDocument();
+  });
+
+  it("opens the image picker from the asset drop zone", () => {
+    const onPickFiles = vi.fn();
+
+    render(
+      <VisualAssetManagerDialog
+        availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
+        catalog={{
+          version: 1,
+          assets: [],
+          mappings: [],
+          stateLines: [],
+          emotionDescriptions: [],
+        }}
+        currentThemeId="current-dark"
+        installingVisualMcpTargetId={null}
+        mcpSetupErrorsByTargetId={{}}
+        mcpSetupStatus={createMcpSetupStatus()}
+        onClose={() => {}}
+        onDropFiles={() => {}}
+        onInstallVisualMcp={() => {}}
+        onPickFiles={onPickFiles}
+        onRemoveAsset={() => {}}
+        onSelectTheme={() => {}}
+        onSetDefaultAsset={() => {}}
+        onSetEmotionDescription={() => {}}
+        onSetStateLine={() => {}}
+        onToggleEmotion={() => {}}
+        onToggleState={() => {}}
+        onToggleStateEmotion={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "상태창" }));
+    fireEvent.click(screen.getByRole("button", { name: "Image drop zone" }));
+
+    expect(onPickFiles).toHaveBeenCalledTimes(1);
   });
 
   it("imports dropped image files from the asset drop zone", () => {
@@ -131,8 +178,8 @@ describe("VisualAssetManagerDialog", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "감정 에셋" }));
-    fireEvent.drop(screen.getByLabelText("Image drop zone"), {
+    fireEvent.click(screen.getByRole("tab", { name: "상태창" }));
+    fireEvent.drop(screen.getByRole("button", { name: "Image drop zone" }), {
       dataTransfer: {
         files: [droppedFile],
       },
@@ -221,7 +268,7 @@ describe("VisualAssetManagerDialog", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "감정 에셋" }));
+    fireEvent.click(screen.getByRole("tab", { name: "상태창" }));
 
     // details 두 개 (A, B) 다 열어서 chip 을 보이게 만들어요.
     for (const summary of screen.getAllByText("매핑 설정")) {

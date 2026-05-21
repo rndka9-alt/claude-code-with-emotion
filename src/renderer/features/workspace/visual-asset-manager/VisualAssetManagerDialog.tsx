@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
-import { ImagePlus, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import type {
   VisualMcpSetupOverview,
@@ -19,9 +19,9 @@ import {
 } from "./_components";
 import {
   getManagerTabClassName,
-  managerActionButtonClassName,
   managerIconButtonClassName,
   managerIconClassName,
+  managerInputClassName,
   managerSectionCopyClassName,
 } from "./_utils";
 
@@ -65,6 +65,9 @@ interface VisualAssetManagerDialogProps {
 type VisualAssetManagerTabId =
   | "general"
   | "theme"
+  | "status-panel";
+
+type StatusPanelSettingsTabId =
   | "assets"
   | "messages"
   | "emotion-descriptions";
@@ -91,6 +94,8 @@ export function VisualAssetManagerDialog({
 }: VisualAssetManagerDialogProps): ReactElement {
   const [activeTab, setActiveTab] =
     useState<VisualAssetManagerTabId>("general");
+  const [activeStatusPanelTab, setActiveStatusPanelTab] =
+    useState<StatusPanelSettingsTabId>("assets");
 
   useEffect(() => {
     const handleWindowKeyDown = (event: KeyboardEvent): void => {
@@ -127,26 +132,11 @@ export function VisualAssetManagerDialog({
           <div>
             <h2 className="m-0">Settings</h2>
             <p className={managerSectionCopyClassName}>
-              테마, Visual MCP, 감정 에셋, 상태 텍스트, 감정 설명을 한 군데서
-              만져요.
+              테마, Visual MCP, 상태창 에셋과 문구를 한 군데서 만져요.
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
-            {activeTab === "assets" ? (
-              <button
-                className={managerActionButtonClassName}
-                onClick={onPickFiles}
-                type="button"
-              >
-                <ImagePlus
-                  aria-hidden="true"
-                  className={managerIconClassName}
-                />
-                Add Images
-              </button>
-            ) : null}
-
             <button
               aria-label="Close settings"
               className={managerIconButtonClassName}
@@ -191,45 +181,17 @@ export function VisualAssetManagerDialog({
               테마
             </button>
             <button
-              aria-controls="visual-assets-panel"
-              aria-selected={activeTab === "assets"}
-              className={getManagerTabClassName(activeTab === "assets")}
-              id="visual-assets-tab"
+              aria-controls="status-panel-settings-panel"
+              aria-selected={activeTab === "status-panel"}
+              className={getManagerTabClassName(activeTab === "status-panel")}
+              id="status-panel-settings-tab"
               onClick={() => {
-                setActiveTab("assets");
+                setActiveTab("status-panel");
               }}
               role="tab"
               type="button"
             >
-              감정 에셋
-            </button>
-            <button
-              aria-controls="situation-messages-panel"
-              aria-selected={activeTab === "messages"}
-              className={getManagerTabClassName(activeTab === "messages")}
-              id="situation-messages-tab"
-              onClick={() => {
-                setActiveTab("messages");
-              }}
-              role="tab"
-              type="button"
-            >
-              상태 텍스트
-            </button>
-            <button
-              aria-controls="emotion-descriptions-panel"
-              aria-selected={activeTab === "emotion-descriptions"}
-              className={getManagerTabClassName(
-                activeTab === "emotion-descriptions",
-              )}
-              id="emotion-descriptions-tab"
-              onClick={() => {
-                setActiveTab("emotion-descriptions");
-              }}
-              role="tab"
-              type="button"
-            >
-              감정 설명
+              상태창
             </button>
           </div>
 
@@ -261,44 +223,125 @@ export function VisualAssetManagerDialog({
           </section>
 
           <section
-            aria-labelledby="visual-assets-tab"
-            hidden={activeTab !== "assets"}
-            id="visual-assets-panel"
+            aria-labelledby="status-panel-settings-tab"
+            hidden={activeTab !== "status-panel"}
+            id="status-panel-settings-panel"
             role="tabpanel"
           >
-            <EmotionSection
-              catalog={catalog}
-              onDropFiles={onDropFiles}
-              onRemoveAsset={onRemoveAsset}
-              onSetDefaultAsset={onSetDefaultAsset}
-              onToggleEmotion={onToggleEmotion}
-              onToggleState={onToggleState}
-              onToggleStateEmotion={onToggleStateEmotion}
-            />
-          </section>
+            <div className="flex flex-col gap-4">
+              <div className="border-border-soft flex flex-col gap-2 border-b pb-4">
+                <label
+                  className="text-text-secondary text-xs font-semibold"
+                  htmlFor="status-panel-provider"
+                >
+                  Provider
+                </label>
+                <select
+                  aria-label="상태창 provider"
+                  className={managerInputClassName}
+                  defaultValue="claude"
+                  id="status-panel-provider"
+                >
+                  <option value="claude">Claude Code</option>
+                </select>
+              </div>
 
-          <section
-            aria-labelledby="situation-messages-tab"
-            hidden={activeTab !== "messages"}
-            id="situation-messages-panel"
-            role="tabpanel"
-          >
-            <StatusLinesSection
-              catalog={catalog}
-              onSetStateLine={onSetStateLine}
-            />
-          </section>
+              <div
+                aria-label="상태창 설정"
+                className="flex gap-2"
+                role="tablist"
+              >
+                <button
+                  aria-controls="status-panel-assets-panel"
+                  aria-selected={activeStatusPanelTab === "assets"}
+                  className={getManagerTabClassName(
+                    activeStatusPanelTab === "assets",
+                  )}
+                  id="status-panel-assets-tab"
+                  onClick={() => {
+                    setActiveStatusPanelTab("assets");
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  에셋
+                </button>
+                <button
+                  aria-controls="status-panel-messages-panel"
+                  aria-selected={activeStatusPanelTab === "messages"}
+                  className={getManagerTabClassName(
+                    activeStatusPanelTab === "messages",
+                  )}
+                  id="status-panel-messages-tab"
+                  onClick={() => {
+                    setActiveStatusPanelTab("messages");
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  상태 텍스트
+                </button>
+                <button
+                  aria-controls="status-panel-emotion-descriptions-panel"
+                  aria-selected={
+                    activeStatusPanelTab === "emotion-descriptions"
+                  }
+                  className={getManagerTabClassName(
+                    activeStatusPanelTab === "emotion-descriptions",
+                  )}
+                  id="status-panel-emotion-descriptions-tab"
+                  onClick={() => {
+                    setActiveStatusPanelTab("emotion-descriptions");
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  감정 설명
+                </button>
+              </div>
 
-          <section
-            aria-labelledby="emotion-descriptions-tab"
-            hidden={activeTab !== "emotion-descriptions"}
-            id="emotion-descriptions-panel"
-            role="tabpanel"
-          >
-            <EmotionDescriptionsSection
-              catalog={catalog}
-              onSetEmotionDescription={onSetEmotionDescription}
-            />
+              <section
+                aria-labelledby="status-panel-assets-tab"
+                hidden={activeStatusPanelTab !== "assets"}
+                id="status-panel-assets-panel"
+                role="tabpanel"
+              >
+                <EmotionSection
+                  catalog={catalog}
+                  onDropFiles={onDropFiles}
+                  onPickFiles={onPickFiles}
+                  onRemoveAsset={onRemoveAsset}
+                  onSetDefaultAsset={onSetDefaultAsset}
+                  onToggleEmotion={onToggleEmotion}
+                  onToggleState={onToggleState}
+                  onToggleStateEmotion={onToggleStateEmotion}
+                />
+              </section>
+
+              <section
+                aria-labelledby="status-panel-messages-tab"
+                hidden={activeStatusPanelTab !== "messages"}
+                id="status-panel-messages-panel"
+                role="tabpanel"
+              >
+                <StatusLinesSection
+                  catalog={catalog}
+                  onSetStateLine={onSetStateLine}
+                />
+              </section>
+
+              <section
+                aria-labelledby="status-panel-emotion-descriptions-tab"
+                hidden={activeStatusPanelTab !== "emotion-descriptions"}
+                id="status-panel-emotion-descriptions-panel"
+                role="tabpanel"
+              >
+                <EmotionDescriptionsSection
+                  catalog={catalog}
+                  onSetEmotionDescription={onSetEmotionDescription}
+                />
+              </section>
+            </div>
           </section>
         </div>
       </div>

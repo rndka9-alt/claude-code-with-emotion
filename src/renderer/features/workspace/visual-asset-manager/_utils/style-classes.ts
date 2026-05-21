@@ -2,9 +2,6 @@
 
 export const managerIconClassName = "h-3.5 w-3.5";
 
-export const managerActionButtonClassName =
-  "inline-flex items-center justify-center gap-2 border border-border-muted bg-surface-elevated px-2.5 py-2 text-text-strong transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight";
-
 export const managerIconButtonClassName =
   "inline-flex h-[34px] w-[34px] items-center justify-center border border-border-muted bg-surface-elevated text-text-strong transition-colors duration-150 hover:bg-surface-hover hover:text-text-highlight";
 

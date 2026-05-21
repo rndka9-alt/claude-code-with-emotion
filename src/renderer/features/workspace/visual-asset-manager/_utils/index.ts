@@ -1,6 +1,5 @@
 export {
   getManagerTabClassName,
-  managerActionButtonClassName,
   managerChipClassName,
   managerIconButtonClassName,
   managerIconClassName,
