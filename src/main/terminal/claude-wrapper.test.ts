@@ -137,6 +137,20 @@ function readFlagValue(args: string[], flag: string): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function readFlagValues(args: string[], flag: string): string[] {
+  const values: string[] = [];
+
+  for (const [index, entry] of args.entries()) {
+    const value = args[index + 1];
+
+    if (entry === flag && typeof value === "string") {
+      values.push(value);
+    }
+  }
+
+  return values;
+}
+
 describe("claude wrapper", () => {
   it("publishes disconnected after a clean Claude exit", () => {
     const { binDir, statusCallsFilePath } = createFakeCommandBin();
@@ -267,8 +281,18 @@ describe("codex wrapper", () => {
 
     const codexCalls = readJsonLines(argsFilePath);
     const launchArgs = codexCalls.at(-1) ?? [];
+    const configOverrides = readFlagValues(launchArgs, "-c");
 
     expect(launchArgs.join("\n")).not.toContain("hooks.SessionStart=");
+    expect(
+      configOverrides.some((entry) => {
+        return (
+          entry.startsWith("developer_instructions=") &&
+          entry.includes("Visual status tools are available in this session.") &&
+          entry.includes("set_visual_overlay")
+        );
+      }),
+    ).toBe(true);
 
     const statusCalls = readStatusCalls(statusCallsFilePath);
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 const { runAssistantCliWrapper } = require("./lib/assistant-cli-wrapper");
+const { createVisualToolUsagePrompt } = require("./lib/claude-session-prompts");
 const { createCodexHookRuntime } = require("./lib/codex-hook-preflight");
 
 function main() {
   let hookRuntimeDescription = "hooks=not-checked";
+  const visualToolUsagePrompt = createVisualToolUsagePrompt();
 
   runAssistantCliWrapper({
     binaryName: "codex",
@@ -19,10 +21,22 @@ function main() {
 
       hookRuntimeDescription = hookRuntime.description;
 
-      return hookRuntime.runtimeArgs;
+      if (visualToolUsagePrompt.trim().length === 0) {
+        return hookRuntime.runtimeArgs;
+      }
+
+      return [
+        ...hookRuntime.runtimeArgs,
+        "-c",
+        `developer_instructions=${JSON.stringify(visualToolUsagePrompt)}`,
+      ];
     },
-    describeRuntime: () =>
-      `${hookRuntimeDescription} visualMcp=user-scope visualPrompt=none`,
+    describeRuntime: () => {
+      const visualPrompt =
+        visualToolUsagePrompt.trim().length > 0 ? "present" : "none";
+
+      return `${hookRuntimeDescription} visualMcp=user-scope visualPrompt=${visualPrompt}`;
+    },
     status: {
       starting: {
         state: "working",
