@@ -225,7 +225,16 @@ describe("codex wrapper", () => {
     expect(launchArgs).toContain("-c");
     expect(launchArgs.join("\n")).toContain("hooks.SessionStart=");
     expect(launchArgs.join("\n")).toContain("hooks.UserPromptSubmit=");
+    expect(launchArgs.join("\n")).toContain("hooks.PermissionRequest=");
+    expect(launchArgs.join("\n")).toContain("hooks.PreCompact=");
+    expect(launchArgs.join("\n")).toContain("hooks.PostCompact=");
     expect(launchArgs.join("\n")).toContain("codex-hook");
+    expect(launchArgs.join("\n")).toContain(
+      "--source claude-code-with-emotion",
+    );
+    expect(launchArgs.join("\n")).toContain(
+      "Syncing claude-code-with-emotion status",
+    );
 
     const statusCalls = readStatusCalls(statusCallsFilePath);
 
@@ -299,5 +308,51 @@ describe("codex wrapper", () => {
     expect(readFlagValue(finalCall ?? [], "--task")).toBe(
       "Codex tool use is starting: Bash",
     );
+  });
+
+  it("maps Codex permission and compaction events to existing visual states", () => {
+    const { binDir, statusCallsFilePath } = createFakeCommandBin("codex");
+    const hookEvents = [
+      {
+        eventName: "PermissionRequest",
+        expectedState: "permission_wait",
+      },
+      {
+        eventName: "PreCompact",
+        expectedState: "compacting",
+      },
+      {
+        eventName: "PostCompact",
+        expectedState: "completed",
+      },
+    ];
+
+    for (const hookEvent of hookEvents) {
+      const result = spawnSync("node", ["./bin/codex-hook"], {
+        cwd: process.cwd(),
+        input: JSON.stringify({
+          hook_event_name: hookEvent.eventName,
+        }),
+        env: {
+          ...process.env,
+          CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
+          PATH: `${binDir}:${process.env.PATH ?? ""}`,
+        },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+    }
+
+    const statusCalls = readStatusCalls(statusCallsFilePath);
+
+    for (const hookEvent of hookEvents) {
+      expect(
+        statusCalls.some((call) => {
+          return readFlagValue(call, "--state") === hookEvent.expectedState;
+        }),
+      ).toBe(true);
+    }
   });
 });

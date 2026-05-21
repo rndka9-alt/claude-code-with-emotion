@@ -4,8 +4,11 @@ const { spawnSync } = require("node:child_process");
 const HOOK_EVENTS = [
   { event: "SessionStart", matcher: "startup|resume|clear" },
   { event: "UserPromptSubmit" },
+  { event: "PermissionRequest" },
   { event: "PreToolUse", matcher: "Bash|apply_patch|mcp__.*" },
   { event: "PostToolUse", matcher: "Bash|apply_patch|mcp__.*" },
+  { event: "PreCompact" },
+  { event: "PostCompact" },
   { event: "Stop" },
 ];
 
@@ -40,14 +43,20 @@ function quoteShellPath(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-function createHookCommand() {
+function createHookCommand(eventName) {
   const hookPath = path.join(__dirname, "..", "codex-hook");
 
-  return `${quoteShellPath(process.execPath)} ${quoteShellPath(hookPath)}`;
+  return [
+    quoteShellPath(process.execPath),
+    quoteShellPath(hookPath),
+    "--source",
+    "claude-code-with-emotion",
+  ].join(" ");
 }
 
-function createHookConfigValue(eventConfig, hookCommand) {
+function createHookConfigValue(eventConfig) {
   const fields = [];
+  const hookCommand = createHookCommand(eventConfig.event);
 
   if (typeof eventConfig.matcher === "string") {
     fields.push(`matcher=${quoteTomlString(eventConfig.matcher)}`);
@@ -63,16 +72,12 @@ function createHookConfigValue(eventConfig, hookCommand) {
 }
 
 function createHookRuntimeArgs() {
-  const hookCommand = createHookCommand();
   const args = [];
 
   for (const eventConfig of HOOK_EVENTS) {
     args.push(
       "-c",
-      `hooks.${eventConfig.event}=${createHookConfigValue(
-        eventConfig,
-        hookCommand,
-      )}`,
+      `hooks.${eventConfig.event}=${createHookConfigValue(eventConfig)}`,
     );
   }
 

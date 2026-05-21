@@ -58,6 +58,16 @@ function resolveStatusForEvent(hookInput) {
     };
   }
 
+  if (eventName === "PermissionRequest") {
+    return {
+      state: "permission_wait",
+      line: "Codex CLI가 권한 확인을 기다리고 있어요...!",
+      activity: "권한 확인 대기",
+      task: "Codex permission request received",
+      intensity: "high",
+    };
+  }
+
   if (eventName === "PreToolUse") {
     return {
       state: "working",
@@ -87,6 +97,26 @@ function resolveStatusForEvent(hookInput) {
           ? "Codex tool use completed"
           : `Codex tool use completed: ${toolName}`,
       intensity: "medium",
+    };
+  }
+
+  if (eventName === "PreCompact") {
+    return {
+      state: "compacting",
+      line: "Codex CLI가 대화 맥락을 압축하는 중이에요...!",
+      activity: "컨텍스트 압축 중",
+      task: "Codex context compaction started",
+      intensity: "medium",
+    };
+  }
+
+  if (eventName === "PostCompact") {
+    return {
+      state: "completed",
+      line: "Codex CLI가 대화 맥락 압축을 마쳣어요...!",
+      activity: "컨텍스트 압축 완료",
+      task: "Codex context compaction completed",
+      intensity: "low",
     };
   }
 
