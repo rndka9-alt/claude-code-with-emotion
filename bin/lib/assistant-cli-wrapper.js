@@ -67,12 +67,17 @@ function runAssistantCliWrapper(config) {
   );
   publishStatusUpdate(config.status.starting);
 
-  const runtimeArgs = config.createRuntimeArgs();
+  const runtimeContext = {
+    originalPath,
+    publishStatusUpdate,
+    realBinary,
+  };
+  const runtimeArgs = config.createRuntimeArgs(runtimeContext);
   const cliArgs = [...runtimeArgs, ...process.argv.slice(2)];
 
   appendTrace(
     config.traceLabel,
-    `starting ${config.displayName} with ${cliArgs.length} argv entries ${config.describeRuntime(runtimeArgs)}`,
+    `starting ${config.displayName} with ${cliArgs.length} argv entries ${config.describeRuntime(runtimeArgs, runtimeContext)}`,
   );
 
   const child = spawnSync(realBinary, cliArgs, {

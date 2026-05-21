@@ -1,14 +1,28 @@
 #!/usr/bin/env node
 
 const { runAssistantCliWrapper } = require("./lib/assistant-cli-wrapper");
+const { createCodexHookRuntime } = require("./lib/codex-hook-preflight");
 
 function main() {
+  let hookRuntimeDescription = "hooks=not-checked";
+
   runAssistantCliWrapper({
     binaryName: "codex",
     displayName: "Codex CLI",
     traceLabel: "codex-wrapper",
-    createRuntimeArgs: () => [],
-    describeRuntime: () => "hooks=none visualMcp=none visualPrompt=none",
+    createRuntimeArgs: ({ realBinary, originalPath, publishStatusUpdate }) => {
+      const hookRuntime = createCodexHookRuntime(
+        realBinary,
+        originalPath,
+        publishStatusUpdate,
+      );
+
+      hookRuntimeDescription = hookRuntime.description;
+
+      return hookRuntime.runtimeArgs;
+    },
+    describeRuntime: () =>
+      `${hookRuntimeDescription} visualMcp=user-scope visualPrompt=none`,
     status: {
       starting: {
         state: "working",
