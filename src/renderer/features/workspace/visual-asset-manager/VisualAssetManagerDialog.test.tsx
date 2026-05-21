@@ -1,5 +1,30 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { VisualMcpSetupOverview } from "../../../../shared/mcp-setup-bridge";
 import { VisualAssetManagerDialog } from "./VisualAssetManagerDialog";
+
+function createMcpSetupStatus(
+  claudeInstalled = false,
+  codexInstalled = false,
+): VisualMcpSetupOverview {
+  return {
+    installed: claudeInstalled,
+    stateFilePath: "/tmp/assistant-visual-mcp.json",
+    targets: {
+      claude: {
+        displayName: "Claude Code",
+        installed: claudeInstalled,
+        stateFilePath: "/tmp/assistant-visual-mcp.json",
+        targetId: "claude",
+      },
+      codex: {
+        displayName: "Codex CLI",
+        installed: codexInstalled,
+        stateFilePath: "/tmp/assistant-visual-mcp.json",
+        targetId: "codex",
+      },
+    },
+  };
+}
 
 describe("VisualAssetManagerDialog", () => {
   it("switches between general, theme, asset, and message tabs", () => {
@@ -17,9 +42,9 @@ describe("VisualAssetManagerDialog", () => {
           emotionDescriptions: [],
         }}
         currentThemeId="current-dark"
-        isInstallingVisualMcp={false}
-        mcpSetupError={null}
-        mcpSetupInstalled={false}
+        installingVisualMcpTargetId={null}
+        mcpSetupErrorsByTargetId={{}}
+        mcpSetupStatus={createMcpSetupStatus()}
         onClose={() => {}}
         onDropFiles={() => {}}
         onInstallVisualMcp={() => {}}
@@ -36,7 +61,10 @@ describe("VisualAssetManagerDialog", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Visual MCP 설치" }),
+      screen.getByRole("button", { name: "Claude Code MCP 설치" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Codex CLI MCP 설치" }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "테마" }));
@@ -85,9 +113,9 @@ describe("VisualAssetManagerDialog", () => {
           emotionDescriptions: [],
         }}
         currentThemeId="current-dark"
-        isInstallingVisualMcp={false}
-        mcpSetupError={null}
-        mcpSetupInstalled={false}
+        installingVisualMcpTargetId={null}
+        mcpSetupErrorsByTargetId={{}}
+        mcpSetupStatus={createMcpSetupStatus()}
         onClose={() => {}}
         onDropFiles={onDropFiles}
         onInstallVisualMcp={() => {}}
@@ -111,6 +139,43 @@ describe("VisualAssetManagerDialog", () => {
     });
 
     expect(onDropFiles).toHaveBeenCalledWith([droppedFile]);
+  });
+
+  it("installs the selected Visual MCP target from general settings", () => {
+    const onInstallVisualMcp = vi.fn();
+
+    render(
+      <VisualAssetManagerDialog
+        availableThemes={[{ id: "current-dark", label: "Current Dark" }]}
+        catalog={{
+          version: 1,
+          assets: [],
+          mappings: [],
+          stateLines: [],
+          emotionDescriptions: [],
+        }}
+        currentThemeId="current-dark"
+        installingVisualMcpTargetId={null}
+        mcpSetupErrorsByTargetId={{}}
+        mcpSetupStatus={createMcpSetupStatus()}
+        onClose={() => {}}
+        onDropFiles={() => {}}
+        onInstallVisualMcp={onInstallVisualMcp}
+        onPickFiles={() => {}}
+        onRemoveAsset={() => {}}
+        onSelectTheme={() => {}}
+        onSetDefaultAsset={() => {}}
+        onSetEmotionDescription={() => {}}
+        onSetStateLine={() => {}}
+        onToggleEmotion={() => {}}
+        onToggleState={() => {}}
+        onToggleStateEmotion={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Codex CLI MCP 설치" }));
+
+    expect(onInstallVisualMcp).toHaveBeenCalledWith("codex");
   });
 
   it("shows the current owner hint on emotion chips owned by another asset", () => {
@@ -138,9 +203,9 @@ describe("VisualAssetManagerDialog", () => {
           emotionDescriptions: [],
         }}
         currentThemeId="current-dark"
-        isInstallingVisualMcp={false}
-        mcpSetupError={null}
-        mcpSetupInstalled={false}
+        installingVisualMcpTargetId={null}
+        mcpSetupErrorsByTargetId={{}}
+        mcpSetupStatus={createMcpSetupStatus()}
         onClose={() => {}}
         onDropFiles={() => {}}
         onInstallVisualMcp={() => {}}
@@ -198,9 +263,9 @@ describe("VisualAssetManagerDialog", () => {
           emotionDescriptions: [],
         }}
         currentThemeId="current-dark"
-        isInstallingVisualMcp={false}
-        mcpSetupError={null}
-        mcpSetupInstalled={false}
+        installingVisualMcpTargetId={null}
+        mcpSetupErrorsByTargetId={{}}
+        mcpSetupStatus={createMcpSetupStatus()}
         onClose={onClose}
         onDropFiles={() => {}}
         onInstallVisualMcp={() => {}}

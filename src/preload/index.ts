@@ -49,8 +49,9 @@ const initialWorkspaceState: WorkspaceState | undefined =
   parseInitialWorkspaceStateFromArguments(process.argv);
 const initialAssistantSnapshotsBySessionId =
   parseInitialAssistantSnapshotsBySessionIdFromArguments(process.argv);
-const assistantProvider =
-  parseInitialAssistantProviderMetadataFromArguments(process.argv);
+const assistantProvider = parseInitialAssistantProviderMetadataFromArguments(
+  process.argv,
+);
 
 if (assistantProvider === undefined) {
   throw new Error("Assistant provider metadata argument is required.");
@@ -138,11 +139,11 @@ const claudeAppApi: ClaudeAppApi = {
     getStatus: () => {
       return ipcRenderer.invoke(MCP_SETUP_CHANNELS.getStatus);
     },
-    install: () => {
-      return ipcRenderer.invoke(MCP_SETUP_CHANNELS.install);
+    install: (request) => {
+      return ipcRenderer.invoke(MCP_SETUP_CHANNELS.install, request);
     },
-    remove: () => {
-      return ipcRenderer.invoke(MCP_SETUP_CHANNELS.remove);
+    remove: (request) => {
+      return ipcRenderer.invoke(MCP_SETUP_CHANNELS.remove, request);
     },
   },
   terminals: {

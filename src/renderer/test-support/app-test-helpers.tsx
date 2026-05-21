@@ -16,6 +16,25 @@ const defaultAssistantProvider: AssistantProviderMetadata = {
   launchCommand: "claude",
 };
 
+const mcpSetupStatus = {
+  installed: false,
+  stateFilePath: "/tmp/assistant-visual-mcp.json",
+  targets: {
+    claude: {
+      displayName: "Claude Code",
+      installed: false,
+      stateFilePath: "/tmp/assistant-visual-mcp.json",
+      targetId: "claude",
+    },
+    codex: {
+      displayName: "Codex CLI",
+      installed: false,
+      stateFilePath: "/tmp/assistant-visual-mcp.json",
+      targetId: "codex",
+    },
+  },
+} as const;
+
 export function installDisconnectedClaudeApp(
   sendInput: Mock = vi.fn(),
   assistantProvider: AssistantProviderMetadata = defaultAssistantProvider,
@@ -52,18 +71,19 @@ export function installDisconnectedClaudeApp(
         openExternal: vi.fn().mockResolvedValue(undefined),
       },
       mcpSetup: {
-        getStatus: vi.fn().mockResolvedValue({
-          installed: false,
-          stateFilePath: "/tmp/assistant-visual-mcp.json",
-        }),
+        getStatus: vi.fn().mockResolvedValue(mcpSetupStatus),
         install: vi.fn().mockResolvedValue({
+          ...mcpSetupStatus,
           installed: true,
-          stateFilePath: "/tmp/assistant-visual-mcp.json",
+          targets: {
+            ...mcpSetupStatus.targets,
+            claude: {
+              ...mcpSetupStatus.targets.claude,
+              installed: true,
+            },
+          },
         }),
-        remove: vi.fn().mockResolvedValue({
-          installed: false,
-          stateFilePath: "/tmp/assistant-visual-mcp.json",
-        }),
+        remove: vi.fn().mockResolvedValue(mcpSetupStatus),
       },
       terminals: {
         bootstrapSession: vi.fn().mockResolvedValue({

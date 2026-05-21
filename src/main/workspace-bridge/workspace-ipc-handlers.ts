@@ -13,7 +13,10 @@ import {
   type AssistantStatusSnapshotRequest,
 } from "../../shared/assistant-status";
 import { LINKS_CHANNELS } from "../../shared/links-bridge";
-import { MCP_SETUP_CHANNELS } from "../../shared/mcp-setup-bridge";
+import {
+  MCP_SETUP_CHANNELS,
+  parseVisualMcpSetupRequest,
+} from "../../shared/mcp-setup-bridge";
 import {
   TERMINAL_CHANNELS,
   type TerminalBootstrapRequest,
@@ -122,11 +125,19 @@ export function registerWorkspaceIpcHandlers({
   ipcMain.handle(MCP_SETUP_CHANNELS.getStatus, () => {
     return terminalSessionService.getVisualMcpSetupStatus();
   });
-  ipcMain.handle(MCP_SETUP_CHANNELS.install, () => {
-    return terminalSessionService.installVisualMcpUserSetup();
+  ipcMain.handle(MCP_SETUP_CHANNELS.install, (_event, request: unknown) => {
+    const setupRequest = parseVisualMcpSetupRequest(request);
+
+    return terminalSessionService.installVisualMcpUserSetup(
+      setupRequest.targetId,
+    );
   });
-  ipcMain.handle(MCP_SETUP_CHANNELS.remove, () => {
-    return terminalSessionService.removeVisualMcpUserSetup();
+  ipcMain.handle(MCP_SETUP_CHANNELS.remove, (_event, request: unknown) => {
+    const setupRequest = parseVisualMcpSetupRequest(request);
+
+    return terminalSessionService.removeVisualMcpUserSetup(
+      setupRequest.targetId,
+    );
   });
   ipcMain.handle(VISUAL_ASSET_CHANNELS.getCatalog, () => {
     return visualAssetStore.getCatalog();

@@ -2,7 +2,7 @@ export {
   getVisualMcpSetupStatus,
   installVisualMcpUserSetup,
   removeVisualMcpUserSetup,
-} from "./assistant-provider";
+} from "./visual-mcp-setup";
 export { getDefaultAssistantProvider } from "./assistant-provider";
 export { ensureNodePtySpawnHelpersExecutable } from "./runtime";
 export { createTerminalSessionManager } from "./session";

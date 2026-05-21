@@ -18,7 +18,8 @@ import {
   getVisualMcpSetupStatus,
   installVisualMcpUserSetup,
   removeVisualMcpUserSetup,
-} from "../assistant-provider";
+} from "../visual-mcp-setup";
+import type { VisualMcpSetupTargetId } from "../../../shared/mcp-setup-bridge";
 import { createTerminalSessionManager } from "../session";
 import { AssistantSessionStatusBridgeRegistry } from "./assistant-session-status-bridge-registry";
 import { writeVisualMcpState } from "./visual-mcp-state";
@@ -93,15 +94,23 @@ export class TerminalSessionService {
     return getVisualMcpSetupStatus(this.options.visualMcpStateFilePath);
   }
 
-  installVisualMcpUserSetup(): ReturnType<typeof installVisualMcpUserSetup> {
+  installVisualMcpUserSetup(
+    targetId?: VisualMcpSetupTargetId,
+  ): ReturnType<typeof installVisualMcpUserSetup> {
     return installVisualMcpUserSetup(
       this.options.assistantStatusHelperBinDir,
       this.options.visualMcpStateFilePath,
+      targetId,
     );
   }
 
-  removeVisualMcpUserSetup(): ReturnType<typeof removeVisualMcpUserSetup> {
-    return removeVisualMcpUserSetup(this.options.visualMcpStateFilePath);
+  removeVisualMcpUserSetup(
+    targetId?: VisualMcpSetupTargetId,
+  ): ReturnType<typeof removeVisualMcpUserSetup> {
+    return removeVisualMcpUserSetup(
+      this.options.visualMcpStateFilePath,
+      targetId,
+    );
   }
 
   bootstrapSession(

@@ -39,9 +39,11 @@ function AppContent(): ReactElement {
     handleLaunchAssistant,
     isMcpSetupPromptDismissed,
     isInstallingVisualMcp,
+    installingVisualMcpTargetId,
     isSettingsDialogOpen,
     installVisualMcp,
     mcpSetupError,
+    mcpSetupErrorsByTargetId,
     mcpSetupStatus,
     notifiedTabIds,
     openSettingsDialog,
@@ -140,7 +142,9 @@ function AppContent(): ReactElement {
               isInstallingVisualMcp={isInstallingVisualMcp}
               isMcpSetupPromptDismissed={isMcpSetupPromptDismissed}
               mcpSetupError={mcpSetupError}
-              mcpSetupInstalled={mcpSetupStatus?.installed ?? true}
+              mcpSetupInstalled={
+                mcpSetupStatus?.targets.claude.installed ?? true
+              }
               onDismissMcpSetupPrompt={dismissMcpSetupPrompt}
               onInstallVisualMcp={installVisualMcp}
               onLaunchAssistant={handleLaunchAssistant}
@@ -156,9 +160,9 @@ function AppContent(): ReactElement {
           availableThemes={availableThemes}
           catalog={visualAssetCatalog}
           currentThemeId={currentThemeId}
-          isInstallingVisualMcp={isInstallingVisualMcp}
-          mcpSetupError={mcpSetupError}
-          mcpSetupInstalled={mcpSetupStatus?.installed ?? true}
+          installingVisualMcpTargetId={installingVisualMcpTargetId}
+          mcpSetupErrorsByTargetId={mcpSetupErrorsByTargetId}
+          mcpSetupStatus={mcpSetupStatus}
           onClose={closeSettingsDialog}
           onDropFiles={dropVisualAssets}
           onInstallVisualMcp={installVisualMcp}

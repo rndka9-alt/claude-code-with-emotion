@@ -2,6 +2,10 @@ import { useEffect, useState, type ReactElement } from "react";
 import { ImagePlus, X } from "lucide-react";
 import type { VisualAssetCatalog } from "../../../../shared/visual-assets";
 import type {
+  VisualMcpSetupOverview,
+  VisualMcpSetupTargetId,
+} from "../../../../shared/mcp-setup-bridge";
+import type {
   VisualEmotionPresetId,
   VisualStatePresetId,
 } from "../../../../shared/visual-presets";
@@ -25,12 +29,12 @@ interface VisualAssetManagerDialogProps {
   availableThemes: AppThemeOption[];
   catalog: VisualAssetCatalog;
   currentThemeId: AppThemeId;
-  isInstallingVisualMcp: boolean;
-  mcpSetupError: string | null;
-  mcpSetupInstalled: boolean;
+  installingVisualMcpTargetId: VisualMcpSetupTargetId | null;
+  mcpSetupErrorsByTargetId: Partial<Record<VisualMcpSetupTargetId, string>>;
+  mcpSetupStatus: VisualMcpSetupOverview | null;
   onClose: () => void;
   onDropFiles: (files: ReadonlyArray<File>) => void;
-  onInstallVisualMcp: () => void;
+  onInstallVisualMcp: (targetId?: VisualMcpSetupTargetId) => void;
   onPickFiles: () => void;
   onRemoveAsset: (assetId: string) => void;
   onSelectTheme: (themeId: AppThemeId) => void;
@@ -69,9 +73,9 @@ export function VisualAssetManagerDialog({
   availableThemes,
   catalog,
   currentThemeId,
-  isInstallingVisualMcp,
-  mcpSetupError,
-  mcpSetupInstalled,
+  installingVisualMcpTargetId,
+  mcpSetupErrorsByTargetId,
+  mcpSetupStatus,
   onClose,
   onDropFiles,
   onInstallVisualMcp,
@@ -236,9 +240,9 @@ export function VisualAssetManagerDialog({
             role="tabpanel"
           >
             <GeneralSection
-              isInstallingVisualMcp={isInstallingVisualMcp}
-              mcpSetupError={mcpSetupError}
-              mcpSetupInstalled={mcpSetupInstalled}
+              installingVisualMcpTargetId={installingVisualMcpTargetId}
+              mcpSetupErrorsByTargetId={mcpSetupErrorsByTargetId}
+              mcpSetupStatus={mcpSetupStatus}
               onInstallVisualMcp={onInstallVisualMcp}
             />
           </section>

@@ -6,7 +6,10 @@ import {
 } from "../../../../shared/assistant-status";
 import type { AssistantProviderMetadata } from "../../../../shared/assistant-provider";
 import type { AppThemeId, AppThemeOption } from "../../../../shared/theme";
-import type { VisualMcpSetupStatus } from "../../../../shared/mcp-setup-bridge";
+import type {
+  VisualMcpSetupOverview,
+  VisualMcpSetupTargetId,
+} from "../../../../shared/mcp-setup-bridge";
 import {
   EMOTION_PRESETS,
   getDefaultVisualStateLine,
@@ -254,11 +257,13 @@ export interface WorkspaceScreenViewModel {
   handleLaunchAssistant: () => void;
   isMcpSetupPromptDismissed: boolean;
   isInstallingVisualMcp: boolean;
+  installingVisualMcpTargetId: VisualMcpSetupTargetId | null;
   isSettingsDialogOpen: boolean;
   mcpSetupError: string | null;
-  mcpSetupStatus: VisualMcpSetupStatus | null;
+  mcpSetupErrorsByTargetId: Partial<Record<VisualMcpSetupTargetId, string>>;
+  mcpSetupStatus: VisualMcpSetupOverview | null;
   notifiedTabIds: ReadonlySet<string>;
-  installVisualMcp: () => void;
+  installVisualMcp: (targetId?: VisualMcpSetupTargetId) => void;
   openSettingsDialog: () => void;
   pickVisualAssets: () => void;
   activeTab:
@@ -346,10 +351,13 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
       return readMcpSetupPromptDismissedPreference();
     },
   );
-  const [isInstallingVisualMcp, setIsInstallingVisualMcp] = useState(false);
-  const [mcpSetupError, setMcpSetupError] = useState<string | null>(null);
+  const [installingVisualMcpTargetId, setInstallingVisualMcpTargetId] =
+    useState<VisualMcpSetupTargetId | null>(null);
+  const [mcpSetupErrorsByTargetId, setMcpSetupErrorsByTargetId] = useState<
+    Partial<Record<VisualMcpSetupTargetId, string>>
+  >({});
   const [mcpSetupStatus, setMcpSetupStatus] =
-    useState<VisualMcpSetupStatus | null>(null);
+    useState<VisualMcpSetupOverview | null>(null);
   const [terminalFocusRequestKey, setTerminalFocusRequestKey] = useState(0);
   const activeTab = getActiveTab(state);
   const activeSession = getFocusedSession(state);
@@ -522,29 +530,39 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     setTerminalFocusRequestKey((current) => current + 1);
   };
 
-  const installVisualMcp = (): void => {
+  const installVisualMcp = (
+    targetId: VisualMcpSetupTargetId = "claude",
+  ): void => {
     const bridge = window.claudeApp?.mcpSetup;
 
     if (bridge === undefined) {
       return;
     }
 
-    setIsInstallingVisualMcp(true);
-    setMcpSetupError(null);
+    setInstallingVisualMcpTargetId(targetId);
+    setMcpSetupErrorsByTargetId((current) => {
+      const nextErrors = { ...current };
+
+      delete nextErrors[targetId];
+
+      return nextErrors;
+    });
     void bridge
-      .install()
+      .install({ targetId })
       .then((status) => {
         setMcpSetupStatus(status);
       })
       .catch((error: unknown) => {
-        setMcpSetupError(
-          error instanceof Error
-            ? error.message
-            : "Visual MCP 설치에 실패했습니다.",
-        );
+        setMcpSetupErrorsByTargetId((current) => ({
+          ...current,
+          [targetId]:
+            error instanceof Error
+              ? error.message
+              : "Visual MCP 설치에 실패했습니다.",
+        }));
       })
       .finally(() => {
-        setIsInstallingVisualMcp(false);
+        setInstallingVisualMcpTargetId(null);
       });
   };
 
@@ -617,10 +635,12 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
     },
     handleLaunchAssistant,
     isMcpSetupPromptDismissed,
-    isInstallingVisualMcp,
+    isInstallingVisualMcp: installingVisualMcpTargetId === "claude",
+    installingVisualMcpTargetId,
     isSettingsDialogOpen,
     installVisualMcp,
-    mcpSetupError,
+    mcpSetupError: mcpSetupErrorsByTargetId.claude ?? null,
+    mcpSetupErrorsByTargetId,
     mcpSetupStatus,
     notifiedTabIds,
     openSettingsDialog: () => {
