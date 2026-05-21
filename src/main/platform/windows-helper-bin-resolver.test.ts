@@ -148,6 +148,7 @@ describe("findWindowsExecutableInPath", () => {
 
 describe("getWindowsHelperBinFilename", () => {
   it("appends .cmd to the base name for shim lookup", () => {
+    expect(getWindowsHelperBinFilename("codex")).toBe("codex.cmd");
     expect(getWindowsHelperBinFilename("claude-status")).toBe(
       "claude-status.cmd",
     );

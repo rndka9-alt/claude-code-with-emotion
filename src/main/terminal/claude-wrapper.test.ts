@@ -9,7 +9,7 @@ function writeExecutable(filePath: string, contents: string): void {
   fs.chmodSync(filePath, 0o755);
 }
 
-function createFakeCommandBin(): {
+function createFakeCommandBin(binaryName: "claude" | "codex" = "claude"): {
   binDir: string;
   statusCallsFilePath: string;
 } {
@@ -17,7 +17,7 @@ function createFakeCommandBin(): {
   const statusCallsFilePath = path.join(binDir, "claude-status-calls.jsonl");
 
   writeExecutable(
-    path.join(binDir, "claude"),
+    path.join(binDir, binaryName),
     `#!/usr/bin/env node
 process.exit(0);
 `,
@@ -95,6 +95,41 @@ describe("claude wrapper", () => {
     );
     expect(readFlagValue(finalCall ?? [], "--line")).toBe(
       "Claude 세션이 종료돼서 지금은 미연결 상태예요...!",
+    );
+  });
+});
+
+describe("codex wrapper", () => {
+  it("publishes disconnected after a clean Codex CLI exit", () => {
+    const { binDir, statusCallsFilePath } = createFakeCommandBin("codex");
+    const result = spawnSync("node", ["./bin/codex"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
+        [ENV_KEYS.ORIGINAL_PATH]: `${binDir}:${process.env.PATH ?? ""}`,
+        PATH: `${binDir}:${process.env.PATH ?? ""}`,
+      },
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+
+    const statusCalls = readStatusCalls(statusCallsFilePath);
+    const firstCall = statusCalls.at(0);
+    const finalCall = statusCalls.at(-1);
+
+    expect(firstCall).toBeDefined();
+    expect(readFlagValue(firstCall ?? [], "--task")).toBe(
+      "Running Codex CLI in the active terminal",
+    );
+    expect(finalCall).toBeDefined();
+    expect(readFlagValue(finalCall ?? [], "--state")).toBe("disconnected");
+    expect(readFlagValue(finalCall ?? [], "--task")).toBe(
+      "Waiting for Codex CLI to start",
+    );
+    expect(readFlagValue(finalCall ?? [], "--line")).toBe(
+      "Codex CLI 세션이 종료돼서 지금은 미연결 상태예요...!",
     );
   });
 });

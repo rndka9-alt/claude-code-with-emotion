@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+const { runAssistantCliWrapper } = require("./lib/assistant-cli-wrapper");
+
+function main() {
+  runAssistantCliWrapper({
+    binaryName: "codex",
+    displayName: "Codex CLI",
+    traceLabel: "codex-wrapper",
+    createRuntimeArgs: () => [],
+    describeRuntime: () => "hooks=none visualMcp=none visualPrompt=none",
+    status: {
+      starting: {
+        state: "working",
+        line: "Codex CLI 세션 실행 중이에요...!",
+        activity: "Codex CLI 세션 시작하는 중",
+        task: "Running Codex CLI in the active terminal",
+        intensity: "medium",
+      },
+      disconnected: {
+        state: "disconnected",
+        line: "Codex CLI 세션이 종료돼서 지금은 미연결 상태예요...!",
+        activity: "연결 대기 중",
+        task: "Waiting for Codex CLI to start",
+        intensity: "low",
+      },
+      error: {
+        state: "error",
+        line: "Codex CLI 세션이 에러로 끝낫어요...!",
+        activity: "세션 복구가 필요한 상태",
+        task: "Codex CLI command exited with an error",
+        intensity: "high",
+      },
+    },
+  });
+}
+
+main();

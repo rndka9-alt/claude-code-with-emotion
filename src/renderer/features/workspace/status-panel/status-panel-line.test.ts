@@ -56,4 +56,17 @@ describe("formatStatusPanelLine", () => {
       }),
     ).toBe("상황 파악중...!\n(자료를 찾는 중)");
   });
+
+  it("uses a command-provided disconnected line before the Claude default line", () => {
+    expect(
+      formatStatusPanelLine({
+        ...baseSnapshot,
+        activityLabel: "연결 대기 중",
+        currentTask: "Waiting for Codex CLI to start",
+        line: "Codex CLI 세션이 종료돼서 지금은 미연결 상태예요...!",
+        source: "assistant-command",
+        state: "disconnected",
+      }),
+    ).toBe("Codex CLI 세션이 종료돼서 지금은 미연결 상태예요...!");
+  });
 });

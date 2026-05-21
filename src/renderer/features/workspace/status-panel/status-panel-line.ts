@@ -44,6 +44,15 @@ export function formatStatusPanelLine(
     return customStateLine;
   }
 
+  if (
+    normalizedSelection.state === "disconnected" &&
+    assistantStatus.source !== "app" &&
+    assistantStatus.line.trim().length > 0 &&
+    assistantStatus.line.trim() !== defaultStateLine
+  ) {
+    return assistantStatus.line.trim();
+  }
+
   if (defaultStateLine.length > 0 && activityLabel.length > 0) {
     return `(${defaultStateLine})`;
   }

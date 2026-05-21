@@ -72,6 +72,7 @@ describe("findPosixExecutableInPath", () => {
 
 describe("getPosixHelperBinFilename", () => {
   it("returns the base name unchanged on POSIX", () => {
+    expect(getPosixHelperBinFilename("codex")).toBe("codex");
     expect(getPosixHelperBinFilename("claude-status")).toBe("claude-status");
     expect(getPosixHelperBinFilename("claude-session-hook")).toBe(
       "claude-session-hook",
