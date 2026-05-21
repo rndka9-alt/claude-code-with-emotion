@@ -310,6 +310,61 @@ describe("codex wrapper", () => {
     );
   });
 
+  it("aligns Codex shared hook lifecycle events with Claude status semantics", () => {
+    const { binDir, statusCallsFilePath } = createFakeCommandBin("codex");
+    const hookEvents = [
+      {
+        eventName: "SessionStart",
+        expectedState: "waiting",
+        expectedTask: "Waiting for the next prompt",
+      },
+      {
+        eventName: "PostToolUse",
+        toolName: "Bash",
+        expectedState: "thinking",
+        expectedTask: "Reviewing Codex tool output: Bash",
+      },
+      {
+        eventName: "Stop",
+        expectedState: "waiting",
+        expectedTask: "Waiting for the next prompt",
+      },
+    ];
+
+    for (const hookEvent of hookEvents) {
+      const result = spawnSync("node", ["./bin/codex-hook"], {
+        cwd: process.cwd(),
+        input: JSON.stringify({
+          hook_event_name: hookEvent.eventName,
+          tool_name: hookEvent.toolName,
+        }),
+        env: {
+          ...process.env,
+          CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
+          PATH: `${binDir}:${process.env.PATH ?? ""}`,
+        },
+        encoding: "utf8",
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+    }
+
+    const statusCalls = readStatusCalls(statusCallsFilePath);
+
+    for (const [index, hookEvent] of hookEvents.entries()) {
+      const statusCall = statusCalls[index];
+
+      expect(statusCall).toBeDefined();
+      expect(readFlagValue(statusCall ?? [], "--state")).toBe(
+        hookEvent.expectedState,
+      );
+      expect(readFlagValue(statusCall ?? [], "--task")).toBe(
+        hookEvent.expectedTask,
+      );
+    }
+  });
+
   it("maps Codex permission and compaction events to existing visual states", () => {
     const { binDir, statusCallsFilePath } = createFakeCommandBin("codex");
     const hookEvents = [

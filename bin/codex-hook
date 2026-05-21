@@ -40,11 +40,11 @@ function resolveStatusForEvent(hookInput) {
 
   if (eventName === "SessionStart") {
     return {
-      state: "working",
-      line: "Codex hook 연결을 확인햇어요. 내부 이벤트를 같이 볼게요...!",
-      activity: "Codex hook 활성화됨",
-      task: "Codex hook SessionStart received",
-      intensity: "medium",
+      state: "waiting",
+      line: "Codex hook 연결 완료! 다음 입력을 기다리고 있어요...!",
+      activity: "다음 입력 기다리는 중",
+      task: "Waiting for the next prompt",
+      intensity: "low",
     };
   }
 
@@ -86,16 +86,16 @@ function resolveStatusForEvent(hookInput) {
 
   if (eventName === "PostToolUse") {
     return {
-      state: "working",
+      state: "thinking",
       line:
         toolName === null
-          ? "Codex CLI가 도구 실행 결과를 확인 중이에요...!"
-          : `Codex CLI가 ${toolName} 결과를 확인 중이에요...!`,
-      activity: "도구 결과 확인",
+          ? "Codex CLI가 방금 가져온 결과를 정리 중이에요...!"
+          : `Codex CLI가 ${toolName} 결과를 정리 중이에요...!`,
+      activity: "결과를 정리하는 중",
       task:
         toolName === null
-          ? "Codex tool use completed"
-          : `Codex tool use completed: ${toolName}`,
+          ? "Reviewing Codex tool output"
+          : `Reviewing Codex tool output: ${toolName}`,
       intensity: "medium",
     };
   }
@@ -122,10 +122,10 @@ function resolveStatusForEvent(hookInput) {
 
   if (eventName === "Stop") {
     return {
-      state: "completed",
-      line: "Codex CLI 응답이 멈췃어요. 다음 입력을 기다리는 중이에요...!",
-      activity: "응답 완료",
-      task: "Codex turn stopped",
+      state: "waiting",
+      line: "Codex CLI 응답을 마치고 다음 입력을 기다리고 있어요...!",
+      activity: "다음 입력 기다리는 중",
+      task: "Waiting for the next prompt",
       intensity: "low",
     };
   }
