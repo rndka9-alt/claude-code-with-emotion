@@ -11,6 +11,22 @@ const HOOK_EVENTS = [
   { event: "PostCompact" },
   { event: "Stop" },
 ];
+const ENV_KEYS = {
+  ASSISTANT_PROVIDER_ID: "CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID",
+  EVENT_QUEUE_DIR: "CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR",
+  HELPER_BIN_DIR: "CLAUDE_WITH_EMOTION_HELPER_BIN_DIR",
+  HOOK_STATE_FILE: "CLAUDE_WITH_EMOTION_HOOK_STATE_FILE",
+  TRACE_FILE: "CLAUDE_WITH_EMOTION_TRACE_FILE",
+  VISUAL_ASSET_CATALOG_FILE: "CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE",
+};
+const RUNTIME_FLAG_BY_ENV_KEY = {
+  [ENV_KEYS.ASSISTANT_PROVIDER_ID]: "--assistant-provider-id",
+  [ENV_KEYS.EVENT_QUEUE_DIR]: "--event-queue-dir",
+  [ENV_KEYS.HELPER_BIN_DIR]: "--helper-bin-dir",
+  [ENV_KEYS.HOOK_STATE_FILE]: "--hook-state-file",
+  [ENV_KEYS.TRACE_FILE]: "--trace-file",
+  [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: "--visual-asset-catalog-file",
+};
 
 function readOutput(value) {
   if (typeof value === "string") {
@@ -43,20 +59,47 @@ function quoteShellPath(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-function createHookCommand(eventName) {
-  const hookPath = path.join(__dirname, "..", "codex-hook");
+function appendRuntimeFlag(parts, flag, value) {
+  if (typeof value !== "string" || value.length === 0) {
+    return;
+  }
 
-  return [
+  parts.push(flag, quoteShellPath(value));
+}
+
+function createHookCommand(eventName, env = process.env) {
+  const hookPath = path.join(__dirname, "..", "codex-hook");
+  const parts = [
     quoteShellPath(process.execPath),
     quoteShellPath(hookPath),
     "--source",
     "claude-code-with-emotion",
-  ].join(" ");
+    "--hook-event",
+    eventName,
+  ];
+
+  appendRuntimeFlag(
+    parts,
+    RUNTIME_FLAG_BY_ENV_KEY[ENV_KEYS.ASSISTANT_PROVIDER_ID],
+    "codex",
+  );
+
+  for (const envKey of [
+    ENV_KEYS.EVENT_QUEUE_DIR,
+    ENV_KEYS.HELPER_BIN_DIR,
+    ENV_KEYS.HOOK_STATE_FILE,
+    ENV_KEYS.TRACE_FILE,
+    ENV_KEYS.VISUAL_ASSET_CATALOG_FILE,
+  ]) {
+    appendRuntimeFlag(parts, RUNTIME_FLAG_BY_ENV_KEY[envKey], env[envKey]);
+  }
+
+  return parts.join(" ");
 }
 
-function createHookConfigValue(eventConfig) {
+function createHookConfigValue(eventConfig, env = process.env) {
   const fields = [];
-  const hookCommand = createHookCommand(eventConfig.event);
+  const hookCommand = createHookCommand(eventConfig.event, env);
 
   if (typeof eventConfig.matcher === "string") {
     fields.push(`matcher=${quoteTomlString(eventConfig.matcher)}`);
@@ -77,7 +120,10 @@ function createHookRuntimeArgs() {
   for (const eventConfig of HOOK_EVENTS) {
     args.push(
       "-c",
-      `hooks.${eventConfig.event}=${createHookConfigValue(eventConfig)}`,
+      `hooks.${eventConfig.event}=${createHookConfigValue(
+        eventConfig,
+        process.env,
+      )}`,
     );
   }
 
@@ -96,21 +142,7 @@ function parseHooksFeatureState(stdout) {
   return false;
 }
 
-function publishPreflightStatus(publishStatusUpdate, status) {
-  if (typeof publishStatusUpdate !== "function") {
-    return;
-  }
-
-  publishStatusUpdate({
-    state: "working",
-    activity: "Codex hook preflight",
-    line: status.line,
-    task: status.task,
-    intensity: status.intensity,
-  });
-}
-
-function createCodexHookRuntime(realBinary, originalPath, publishStatusUpdate) {
+function createCodexHookRuntime(realBinary, originalPath) {
   const env = createCodexEnv(originalPath);
   const versionCheck = spawnSync(realBinary, ["--version"], {
     encoding: "utf8",
@@ -118,19 +150,6 @@ function createCodexHookRuntime(realBinary, originalPath, publishStatusUpdate) {
   });
 
   if (versionCheck.status !== 0) {
-    const output =
-      readOutput(versionCheck.stderr).trim() ||
-      readOutput(versionCheck.stdout).trim();
-
-    publishPreflightStatus(publishStatusUpdate, {
-      line:
-        output.length > 0
-          ? `Codex hook preflight가 실패햇어요. codex --version 출력: ${output}`
-          : "Codex hook preflight가 실패햇어요. codex --version을 실행하지 못햇어요.",
-      task: "Codex hook preflight failed before launch",
-      intensity: "medium",
-    });
-
     return {
       description: "hooks=preflight-failed",
       runtimeArgs: [],
@@ -143,12 +162,6 @@ function createCodexHookRuntime(realBinary, originalPath, publishStatusUpdate) {
   });
 
   if (featuresCheck.status !== 0) {
-    publishPreflightStatus(publishStatusUpdate, {
-      line: "Codex hook 상태를 확인하지 못해서 내부 이벤트 보강 없이 실행해요.",
-      task: "Codex hooks feature check failed",
-      intensity: "medium",
-    });
-
     return {
       description: "hooks=feature-check-failed",
       runtimeArgs: [],
@@ -156,23 +169,11 @@ function createCodexHookRuntime(realBinary, originalPath, publishStatusUpdate) {
   }
 
   if (!parseHooksFeatureState(readOutput(featuresCheck.stdout))) {
-    publishPreflightStatus(publishStatusUpdate, {
-      line: "Codex hook 기능이 꺼져 있어서 내부 이벤트 보강 없이 실행해요.",
-      task: "Codex hooks feature is disabled",
-      intensity: "medium",
-    });
-
     return {
       description: "hooks=disabled",
       runtimeArgs: [],
     };
   }
-
-  publishPreflightStatus(publishStatusUpdate, {
-    line: "Codex hook 보강을 실행 인자에 주입햇어요. /hooks 신뢰 확인이 필요할 수 있어요.",
-    task: "Codex hook runtime config injected",
-    intensity: "medium",
-  });
 
   return {
     description: "hooks=runtime-injected",

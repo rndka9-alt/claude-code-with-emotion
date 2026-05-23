@@ -252,6 +252,15 @@ describe("codex wrapper", () => {
       "--source claude-code-with-emotion",
     );
     expect(launchArgs.join("\n")).toContain(
+      "--event-queue-dir '/tmp/session-event-queue'",
+    );
+    expect(launchArgs.join("\n")).toContain(
+      "--helper-bin-dir '/tmp/helper-bin'",
+    );
+    expect(launchArgs.join("\n")).toContain(
+      "--trace-file '/tmp/session-trace.log'",
+    );
+    expect(launchArgs.join("\n")).toContain(
       "Syncing claude-code-with-emotion status",
     );
     expect(configOverrides).toContain(
@@ -276,14 +285,11 @@ describe("codex wrapper", () => {
     );
 
     const statusCalls = readStatusCalls(statusCallsFilePath);
+    const firstCall = statusCalls.at(0);
 
-    expect(
-      statusCalls.some((call) => {
-        return (
-          readFlagValue(call, "--task") === "Codex hook runtime config injected"
-        );
-      }),
-    ).toBe(true);
+    expect(readFlagValue(firstCall ?? [], "--task")).toBe(
+      "Running Codex CLI in the active terminal",
+    );
   });
 
   it("keeps launching Codex without hook config when hooks are disabled", () => {
@@ -320,14 +326,90 @@ describe("codex wrapper", () => {
     ).toBe(true);
 
     const statusCalls = readStatusCalls(statusCallsFilePath);
+    const firstCall = statusCalls.at(0);
 
-    expect(
-      statusCalls.some((call) => {
-        return (
-          readFlagValue(call, "--task") === "Codex hooks feature is disabled"
-        );
-      }),
-    ).toBe(true);
+    expect(readFlagValue(firstCall ?? [], "--task")).toBe(
+      "Running Codex CLI in the active terminal",
+    );
+  });
+
+  it("binds Codex hook status writes to the runtime queue args", () => {
+    const helperBinDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "codex-hook-helper-"),
+    );
+    const statusCallFilePath = path.join(helperBinDir, "status-call.json");
+
+    writeExecutable(
+      path.join(helperBinDir, "claude-status"),
+      `#!/usr/bin/env node
+const fs = require("node:fs");
+fs.writeFileSync(
+  ${JSON.stringify(statusCallFilePath)},
+  JSON.stringify({
+    args: process.argv.slice(2),
+    eventQueueDir: process.env.${ENV_KEYS.EVENT_QUEUE_DIR},
+    helperBinDir: process.env.${ENV_KEYS.HELPER_BIN_DIR},
+    providerId: process.env.${ENV_KEYS.ASSISTANT_PROVIDER_ID},
+    traceFile: process.env.${ENV_KEYS.TRACE_FILE},
+  }),
+  "utf8",
+);
+process.exit(0);
+`,
+    );
+
+    const result = spawnSync(
+      "node",
+      [
+        "./bin/codex-hook",
+        "--source",
+        "claude-code-with-emotion",
+        "--event-queue-dir",
+        "/tmp/runtime-queue",
+        "--helper-bin-dir",
+        helperBinDir,
+        "--trace-file",
+        "/tmp/runtime-trace.log",
+        "--assistant-provider-id",
+        "codex",
+      ],
+      {
+        cwd: process.cwd(),
+        input: JSON.stringify({
+          hook_event_name: "UserPromptSubmit",
+        }),
+        env: {
+          ...process.env,
+          [ENV_KEYS.EVENT_QUEUE_DIR]: "/tmp/stale-queue",
+          [ENV_KEYS.HELPER_BIN_DIR]: "",
+          PATH: process.env.PATH ?? "",
+        },
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+
+    const statusCall: unknown = JSON.parse(
+      fs.readFileSync(statusCallFilePath, "utf8"),
+    );
+
+    if (
+      typeof statusCall !== "object" ||
+      statusCall === null ||
+      !("eventQueueDir" in statusCall) ||
+      !("helperBinDir" in statusCall) ||
+      !("providerId" in statusCall) ||
+      !("traceFile" in statusCall)
+    ) {
+      throw new Error("Expected status helper call to include runtime env");
+    }
+
+    expect(statusCall.eventQueueDir).toBe("/tmp/runtime-queue");
+    expect(statusCall.helperBinDir).toBe(helperBinDir);
+    expect(statusCall.providerId).toBe("codex");
+    expect(statusCall.traceFile).toBe("/tmp/runtime-trace.log");
   });
 
   it("publishes hook event status updates without writing hook stdout", () => {
@@ -341,6 +423,7 @@ describe("codex wrapper", () => {
       env: {
         ...process.env,
         CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
+        [ENV_KEYS.HELPER_BIN_DIR]: "",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
       },
       encoding: "utf8",
@@ -390,6 +473,7 @@ describe("codex wrapper", () => {
         env: {
           ...process.env,
           CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
+          [ENV_KEYS.HELPER_BIN_DIR]: "",
           PATH: `${binDir}:${process.env.PATH ?? ""}`,
         },
         encoding: "utf8",
@@ -440,6 +524,7 @@ describe("codex wrapper", () => {
         env: {
           ...process.env,
           CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
+          [ENV_KEYS.HELPER_BIN_DIR]: "",
           PATH: `${binDir}:${process.env.PATH ?? ""}`,
         },
         encoding: "utf8",

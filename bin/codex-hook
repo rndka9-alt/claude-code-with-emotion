@@ -1,6 +1,24 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require("node:child_process");
+const path = require("node:path");
+
+const ENV_KEYS = {
+  ASSISTANT_PROVIDER_ID: "CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID",
+  EVENT_QUEUE_DIR: "CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR",
+  HELPER_BIN_DIR: "CLAUDE_WITH_EMOTION_HELPER_BIN_DIR",
+  HOOK_STATE_FILE: "CLAUDE_WITH_EMOTION_HOOK_STATE_FILE",
+  TRACE_FILE: "CLAUDE_WITH_EMOTION_TRACE_FILE",
+  VISUAL_ASSET_CATALOG_FILE: "CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE",
+};
+const ENV_KEY_BY_RUNTIME_FLAG = {
+  "--assistant-provider-id": ENV_KEYS.ASSISTANT_PROVIDER_ID,
+  "--event-queue-dir": ENV_KEYS.EVENT_QUEUE_DIR,
+  "--helper-bin-dir": ENV_KEYS.HELPER_BIN_DIR,
+  "--hook-state-file": ENV_KEYS.HOOK_STATE_FILE,
+  "--trace-file": ENV_KEYS.TRACE_FILE,
+  "--visual-asset-catalog-file": ENV_KEYS.VISUAL_ASSET_CATALOG_FILE,
+};
 
 function readStdin() {
   try {
@@ -24,10 +42,46 @@ function parseHookInput() {
   }
 }
 
+function applyRuntimeArgs(argv) {
+  for (let index = 0; index < argv.length; index += 1) {
+    const key = argv[index];
+    const envKey =
+      typeof key === "string" ? ENV_KEY_BY_RUNTIME_FLAG[key] : undefined;
+
+    if (envKey === undefined) {
+      if (key === "--source" || key === "--hook-event") {
+        index += 1;
+      }
+
+      continue;
+    }
+
+    const value = argv[index + 1];
+
+    if (typeof value !== "string" || value.length === 0) {
+      throw new Error(`${key} requires a non-empty value.`);
+    }
+
+    process.env[envKey] = value;
+    index += 1;
+  }
+}
+
 function publishStatus(args) {
-  spawnSync("claude-status", args, {
-    stdio: "ignore",
-  });
+  const helperBinDir = process.env[ENV_KEYS.HELPER_BIN_DIR];
+
+  if (typeof helperBinDir === "string" && helperBinDir.length > 0) {
+    spawnSync(
+      process.execPath,
+      [path.join(helperBinDir, "claude-status"), ...args],
+      {
+        stdio: "ignore",
+      },
+    );
+    return;
+  }
+
+  spawnSync("claude-status", args, { stdio: "ignore" });
 }
 
 function resolveStatusForEvent(hookInput) {
@@ -134,6 +188,8 @@ function resolveStatusForEvent(hookInput) {
 }
 
 function main() {
+  applyRuntimeArgs(process.argv.slice(2));
+
   const status = resolveStatusForEvent(parseHookInput());
 
   if (status !== null) {
