@@ -56,17 +56,23 @@ export class AssistantSessionStatusBridgeRegistry {
   }
 
   disposeSession(sessionId: string): void {
+    const eventQueueDir = this.resolveEventQueueDir(sessionId);
+
+    this.options.runtimeLog.write(
+      "assistant-event-queue",
+      `dispose session=${sessionId} queue=${eventQueueDir}`,
+    );
     this.sessionEventQueueBridges.get(sessionId)?.stop();
     this.sessionStatusUnsubscribes.get(sessionId)?.();
     this.sessionStatusStores.get(sessionId)?.dispose();
     this.sessionEventQueueBridges.delete(sessionId);
     this.sessionStatusUnsubscribes.delete(sessionId);
     this.sessionStatusStores.delete(sessionId);
-    removeSessionArtifact(this.resolveEventQueueDir(sessionId), (message) => {
+    removeSessionArtifact(eventQueueDir, (message) => {
       this.options.runtimeLog.write("assistant-event-queue", message);
     });
     removeSessionArtifact(
-      `${this.resolveEventQueueDir(sessionId)}.hook-state.json`,
+      `${eventQueueDir}.hook-state.json`,
       (message) => {
         this.options.runtimeLog.write("assistant-event-queue", message);
       },
@@ -91,6 +97,10 @@ export class AssistantSessionStatusBridgeRegistry {
       );
     });
     const eventQueueDir = this.resolveEventQueueDir(sessionId);
+    this.options.runtimeLog.write(
+      "assistant-event-queue",
+      `ensure session=${sessionId} queue=${eventQueueDir}`,
+    );
     const eventQueueBridge = new AssistantEventQueueBridge(
       eventQueueDir,
       statusStore,

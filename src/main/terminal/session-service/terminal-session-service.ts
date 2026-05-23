@@ -91,7 +91,10 @@ export class TerminalSessionService {
   }
 
   getVisualMcpSetupStatus(): ReturnType<typeof getVisualMcpSetupStatus> {
-    return getVisualMcpSetupStatus(this.options.visualMcpStateFilePath);
+    return getVisualMcpSetupStatus(
+      this.options.assistantStatusHelperBinDir,
+      this.options.visualMcpStateFilePath,
+    );
   }
 
   installVisualMcpUserSetup(
@@ -108,6 +111,7 @@ export class TerminalSessionService {
     targetId?: VisualMcpSetupTargetId,
   ): ReturnType<typeof removeVisualMcpUserSetup> {
     return removeVisualMcpUserSetup(
+      this.options.assistantStatusHelperBinDir,
       this.options.visualMcpStateFilePath,
       targetId,
     );
@@ -129,6 +133,10 @@ export class TerminalSessionService {
       visualAssetCatalogFilePath: this.options.visualAssetCatalogFilePath,
       visualMcpStateFilePath: this.options.visualMcpStateFilePath,
     });
+    this.options.runtimeLog.write(
+      "visual-mcp-state",
+      `write session=${request.sessionId} queue=${sessionEventQueueDir} stateFile=${this.options.visualMcpStateFilePath} trace=${this.options.assistantStatusTraceFilePath} catalog=${this.options.visualAssetCatalogFilePath}`,
+    );
 
     try {
       return this.terminalSessionManager.bootstrapSession(

@@ -3,6 +3,9 @@
 const { runAssistantCliWrapper } = require("./lib/assistant-cli-wrapper");
 const { createVisualToolUsagePrompt } = require("./lib/claude-session-prompts");
 const { createCodexHookRuntime } = require("./lib/codex-hook-preflight");
+const {
+  createCodexVisualMcpRuntimeArgs,
+} = require("./lib/codex-visual-mcp-runtime");
 
 function main() {
   let hookRuntimeDescription = "hooks=not-checked";
@@ -20,13 +23,15 @@ function main() {
       );
 
       hookRuntimeDescription = hookRuntime.description;
+      const visualMcpRuntimeArgs = createCodexVisualMcpRuntimeArgs();
 
       if (visualToolUsagePrompt.trim().length === 0) {
-        return hookRuntime.runtimeArgs;
+        return [...hookRuntime.runtimeArgs, ...visualMcpRuntimeArgs];
       }
 
       return [
         ...hookRuntime.runtimeArgs,
+        ...visualMcpRuntimeArgs,
         "-c",
         `developer_instructions=${JSON.stringify(visualToolUsagePrompt)}`,
       ];
@@ -34,8 +39,12 @@ function main() {
     describeRuntime: () => {
       const visualPrompt =
         visualToolUsagePrompt.trim().length > 0 ? "present" : "none";
+      const visualMcp =
+        createCodexVisualMcpRuntimeArgs().length > 0
+          ? "session-scoped"
+          : "user-scope";
 
-      return `${hookRuntimeDescription} visualMcp=user-scope visualPrompt=${visualPrompt}`;
+      return `${hookRuntimeDescription} visualMcp=${visualMcp} visualPrompt=${visualPrompt}`;
     },
     status: {
       starting: {

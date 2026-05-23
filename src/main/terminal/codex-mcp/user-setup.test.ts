@@ -73,6 +73,62 @@ process.exit(0);
     }).toThrow("Codex CLI는 찾앗지만 `codex --version` 실행에 실패햇어요.");
   });
 
+  it("reports installed only when Codex MCP points at the current helper", async () => {
+    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-mcp-bin-"));
+    writeExecutable(
+      path.join(binDir, "codex"),
+      `#!/usr/bin/env node
+if (process.argv.includes("--version")) {
+  process.exit(0);
+}
+if (process.argv.includes("get")) {
+  process.stdout.write("claude-code-with-emotion-visuals\\n  command: /tmp/helper-bin/claude-visual-mcp\\n");
+  process.exit(0);
+}
+process.exit(1);
+`,
+    );
+    process.env.SHELL = createFakeLoginShell(
+      `${binDir}${path.delimiter}${originalEnv.PATH ?? ""}`,
+    );
+    process.env.PATH = `${binDir}${path.delimiter}${originalEnv.PATH ?? ""}`;
+
+    const { getCodexVisualMcpSetupStatus } = await importUserSetupModule();
+
+    expect(
+      getCodexVisualMcpSetupStatus("/tmp/helper-bin", "/tmp/state.json")
+        .installed,
+    ).toBe(true);
+  });
+
+  it("treats stale Codex MCP command paths as not installed", async () => {
+    const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-mcp-bin-"));
+    writeExecutable(
+      path.join(binDir, "codex"),
+      `#!/usr/bin/env node
+if (process.argv.includes("--version")) {
+  process.exit(0);
+}
+if (process.argv.includes("get")) {
+  process.stdout.write("claude-code-with-emotion-visuals\\n  command: /Applications/Claude Code With Emotion.app/Contents/Resources/bin/claude-visual-mcp\\n");
+  process.exit(0);
+}
+process.exit(1);
+`,
+    );
+    process.env.SHELL = createFakeLoginShell(
+      `${binDir}${path.delimiter}${originalEnv.PATH ?? ""}`,
+    );
+    process.env.PATH = `${binDir}${path.delimiter}${originalEnv.PATH ?? ""}`;
+
+    const { getCodexVisualMcpSetupStatus } = await importUserSetupModule();
+
+    expect(
+      getCodexVisualMcpSetupStatus("/tmp/helper-bin", "/tmp/state.json")
+        .installed,
+    ).toBe(false);
+  });
+
   it("includes Codex mcp command output when registration fails", async () => {
     const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-mcp-bin-"));
     writeExecutable(
@@ -80,6 +136,10 @@ process.exit(0);
       `#!/usr/bin/env node
 if (process.argv.includes("--version")) {
   process.exit(0);
+}
+if (process.argv.includes("remove")) {
+  console.error("No MCP server found");
+  process.exit(1);
 }
 if (process.argv.includes("add")) {
   console.error("permission denied for codex config");

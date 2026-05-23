@@ -64,6 +64,37 @@ function resolveVisualMcpRuntime(env = process.env) {
   };
 }
 
+function describeVisualMcpRuntimeSources(env = process.env) {
+  const stateFilePath = readStateFilePath(env);
+  const state = readVisualMcpState(env);
+
+  return {
+    assistantProviderIdSource:
+      typeof env.CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID === "string"
+        ? "env"
+        : typeof state?.assistantProviderId === "string"
+          ? "state"
+          : "missing",
+    eventQueueDirSource:
+      typeof env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR === "string"
+        ? "env"
+        : "missing",
+    stateFilePath: stateFilePath ?? "",
+    traceFilePathSource:
+      typeof env.CLAUDE_WITH_EMOTION_TRACE_FILE === "string"
+        ? "env"
+        : typeof state?.traceFilePath === "string"
+          ? "state"
+          : "missing",
+    visualAssetCatalogFilePathSource:
+      typeof env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE === "string"
+        ? "env"
+        : typeof state?.visualAssetCatalogFilePath === "string"
+          ? "state"
+          : "missing",
+  };
+}
+
 function createVisualMcpChildEnv(env = process.env) {
   const runtime = resolveVisualMcpRuntime(env);
 
@@ -94,6 +125,7 @@ function createVisualMcpChildEnv(env = process.env) {
 
 module.exports = {
   createVisualMcpChildEnv,
+  describeVisualMcpRuntimeSources,
   readVisualMcpState,
   resolveVisualMcpRuntime,
 };

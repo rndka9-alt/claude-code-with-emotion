@@ -225,7 +225,11 @@ describe("codex wrapper", () => {
         ...process.env,
         CLAUDE_STATUS_CALLS_FILE: statusCallsFilePath,
         CODEX_ARGS_FILE: argsFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: "/tmp/session-event-queue",
+        [ENV_KEYS.HELPER_BIN_DIR]: "/tmp/helper-bin",
         [ENV_KEYS.ORIGINAL_PATH]: `${binDir}:${process.env.PATH ?? ""}`,
+        [ENV_KEYS.TRACE_FILE]: "/tmp/session-trace.log",
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: "/tmp/visual-assets.json",
         PATH: `${binDir}:${process.env.PATH ?? ""}`,
       },
       encoding: "utf8",
@@ -235,6 +239,7 @@ describe("codex wrapper", () => {
 
     const codexCalls = readJsonLines(argsFilePath);
     const launchArgs = codexCalls.at(-1) ?? [];
+    const configOverrides = readFlagValues(launchArgs, "-c");
 
     expect(launchArgs).toContain("-c");
     expect(launchArgs.join("\n")).toContain("hooks.SessionStart=");
@@ -248,6 +253,26 @@ describe("codex wrapper", () => {
     );
     expect(launchArgs.join("\n")).toContain(
       "Syncing claude-code-with-emotion status",
+    );
+    expect(configOverrides).toContain(
+      `mcp_servers.claude-code-with-emotion-visuals.command=${JSON.stringify(
+        path.join("/tmp/helper-bin", "claude-visual-mcp"),
+      )}`,
+    );
+    expect(configOverrides).toContain(
+      "mcp_servers.claude-code-with-emotion-visuals.args=[]",
+    );
+    expect(configOverrides).toContain(
+      `mcp_servers.claude-code-with-emotion-visuals.env.${ENV_KEYS.ASSISTANT_PROVIDER_ID}="codex"`,
+    );
+    expect(configOverrides).toContain(
+      `mcp_servers.claude-code-with-emotion-visuals.env.${ENV_KEYS.EVENT_QUEUE_DIR}="/tmp/session-event-queue"`,
+    );
+    expect(configOverrides).toContain(
+      `mcp_servers.claude-code-with-emotion-visuals.env.${ENV_KEYS.TRACE_FILE}="/tmp/session-trace.log"`,
+    );
+    expect(configOverrides).toContain(
+      `mcp_servers.claude-code-with-emotion-visuals.env.${ENV_KEYS.VISUAL_ASSET_CATALOG_FILE}="/tmp/visual-assets.json"`,
     );
 
     const statusCalls = readStatusCalls(statusCallsFilePath);

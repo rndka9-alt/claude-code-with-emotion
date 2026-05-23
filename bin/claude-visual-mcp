@@ -6,6 +6,7 @@ const path = require("node:path");
 const { createVisualPromptHints } = require("./lib/claude-visual-mcp-prompts");
 const {
   createVisualMcpChildEnv,
+  describeVisualMcpRuntimeSources,
   resolveVisualMcpRuntime,
 } = require("./lib/claude-visual-mcp-state");
 
@@ -77,6 +78,7 @@ function readAvailableVisualOptions() {
   const runtime = resolveVisualMcpRuntime();
 
   if (runtime.visualAssetCatalogFilePath.length === 0) {
+    appendTrace("visual options unavailable catalogPath=missing");
     return {
       states: [],
       emotions: [],
@@ -95,6 +97,9 @@ function readAvailableVisualOptions() {
   );
 
   if (result.status !== 0) {
+    appendTrace(
+      `visual options helper failed status=${result.status ?? "null"} stderr=${JSON.stringify(result.stderr ?? "")}`,
+    );
     return {
       states: [],
       emotions: [],
@@ -139,6 +144,11 @@ function createToolsListResult() {
   const runtime = resolveVisualMcpRuntime();
 
   if (runtime.eventQueueDir.length === 0) {
+    const sources = describeVisualMcpRuntimeSources();
+
+    appendTrace(
+      `tools/list hiding visual tools eventQueueDir=missing source=${sources.eventQueueDirSource} stateFile=${sources.stateFilePath}`,
+    );
     return {
       tools: [],
     };
@@ -187,6 +197,13 @@ function createToolsListResult() {
 }
 
 function callVisualOverlayTool(argumentsObject) {
+  const runtime = resolveVisualMcpRuntime();
+  const sources = describeVisualMcpRuntimeSources();
+
+  appendTrace(
+    `set_visual_overlay requested eventQueueDir=${runtime.eventQueueDir || "<missing>"} eventQueueDirSource=${sources.eventQueueDirSource} stateFile=${sources.stateFilePath} provider=${runtime.assistantProviderId || "<missing>"}`,
+  );
+
   if (typeof argumentsObject !== "object" || argumentsObject === null) {
     return {
       isError: true,
@@ -295,6 +312,9 @@ function callVisualOverlayTool(argumentsObject) {
   );
 
   if (result.status !== 0) {
+    appendTrace(
+      `set_visual_overlay helper failed status=${result.status ?? "null"} stderr=${JSON.stringify(result.stderr ?? "")} stdout=${JSON.stringify(result.stdout ?? "")}`,
+    );
     return {
       isError: true,
       content: [
@@ -527,6 +547,14 @@ function processInputBuffer() {
 }
 
 appendTrace(`server start pid=${process.pid} cwd=${process.cwd()}`);
+{
+  const runtime = resolveVisualMcpRuntime();
+  const sources = describeVisualMcpRuntimeSources();
+
+  appendTrace(
+    `runtime resolved provider=${runtime.assistantProviderId || "<missing>"} providerSource=${sources.assistantProviderIdSource} eventQueueDir=${runtime.eventQueueDir || "<missing>"} eventQueueDirSource=${sources.eventQueueDirSource} traceSource=${sources.traceFilePathSource} catalog=${runtime.visualAssetCatalogFilePath || "<missing>"} catalogSource=${sources.visualAssetCatalogFilePathSource} stateFile=${sources.stateFilePath}`,
+  );
+}
 process.stdin.on("data", (chunk) => {
   appendTrace(`stdin chunk bytes=${chunk.length}`);
   appendTrace(`stdin chunk preview=${JSON.stringify(chunk.toString("utf8"))}`);

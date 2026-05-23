@@ -1,4 +1,5 @@
 const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
 const { findExecutableInPath } = require("./helper-bin-resolver");
 
 function appendTrace(traceLabel, message) {
@@ -55,6 +56,11 @@ function publishStatusUpdate(status) {
 function runAssistantCliWrapper(config) {
   const originalPath = process.env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH;
   const realBinary = findExecutableInPath(config.binaryName, originalPath);
+  const eventQueueDir = process.env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR;
+  const queueExists =
+    typeof eventQueueDir === "string" &&
+    eventQueueDir.length > 0 &&
+    fs.existsSync(eventQueueDir);
 
   if (realBinary === null) {
     appendTrace(
@@ -70,6 +76,10 @@ function runAssistantCliWrapper(config) {
   appendTrace(
     config.traceLabel,
     `launching ${config.displayName} binary ${realBinary}`,
+  );
+  appendTrace(
+    config.traceLabel,
+    `wrapper env eventQueueDir=${eventQueueDir || "<missing>"} queueExists=${queueExists} trace=${process.env.CLAUDE_WITH_EMOTION_TRACE_FILE || "<missing>"} catalog=${process.env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE || "<missing>"} hookState=${process.env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE || "<missing>"} helperBin=${process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR || "<missing>"}`,
   );
   publishStatusUpdate(config.status.starting);
 
@@ -98,7 +108,7 @@ function runAssistantCliWrapper(config) {
     config.traceLabel,
     `${config.displayName} finished status=${child.status ?? "null"} signal=${child.signal ?? "null"} error=${
       child.error instanceof Error ? child.error.message : "none"
-    }`,
+    } queueExistsAfter=${typeof eventQueueDir === "string" && eventQueueDir.length > 0 && fs.existsSync(eventQueueDir)}`,
   );
 
   if (child.status === 0) {

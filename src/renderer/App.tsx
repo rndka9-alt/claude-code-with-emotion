@@ -38,11 +38,9 @@ function AppContent(): ReactElement {
     dropVisualAssets,
     handleLaunchAssistant,
     isMcpSetupPromptDismissed,
-    isInstallingVisualMcp,
     installingVisualMcpTargetId,
     isSettingsDialogOpen,
     installVisualMcp,
-    mcpSetupError,
     mcpSetupErrorsByTargetId,
     mcpSetupStatus,
     notifiedTabIds,
@@ -69,6 +67,10 @@ function AppContent(): ReactElement {
   } = useWorkspaceScreenViewModel();
   const panelId =
     activeTabId.length > 0 ? `panel-${activeTabId}` : "panel-stack";
+  const activeMcpSetupTargetId =
+    assistantPresentation.snapshot.assistantProviderId === "codex"
+      ? "codex"
+      : "claude";
   const statusPanelToggleLabel = isStatusPanelCollapsed
     ? "Expand assistant status panel"
     : "Collapse assistant status panel";
@@ -140,14 +142,21 @@ function AppContent(): ReactElement {
 
           <div hidden={isStatusPanelCollapsed} id="assistant-status-panel">
             <StatusPanel
-              isInstallingVisualMcp={isInstallingVisualMcp}
+              isInstallingVisualMcp={
+                installingVisualMcpTargetId === activeMcpSetupTargetId
+              }
               isMcpSetupPromptDismissed={isMcpSetupPromptDismissed}
-              mcpSetupError={mcpSetupError}
+              mcpSetupError={
+                mcpSetupErrorsByTargetId[activeMcpSetupTargetId] ?? null
+              }
               mcpSetupInstalled={
-                mcpSetupStatus?.targets.claude.installed ?? true
+                mcpSetupStatus?.targets[activeMcpSetupTargetId].installed ??
+                true
               }
               onDismissMcpSetupPrompt={dismissMcpSetupPrompt}
-              onInstallVisualMcp={installVisualMcp}
+              onInstallVisualMcp={() => {
+                installVisualMcp(activeMcpSetupTargetId);
+              }}
               onLaunchAssistant={handleLaunchAssistant}
               onOpenSettings={openSettingsDialog}
               presentation={assistantPresentation}

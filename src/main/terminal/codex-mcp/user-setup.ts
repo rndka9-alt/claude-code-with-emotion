@@ -136,6 +136,32 @@ function createBaseStatus(stateFilePath: string): VisualMcpSetupTargetStatus {
   };
 }
 
+function createExpectedVisualMcpCommand(helperBinDir: string): string {
+  const resolver = getPlatformHelperBinResolver();
+
+  return path.join(
+    helperBinDir,
+    resolver.getHelperBinFilename("claude-visual-mcp"),
+  );
+}
+
+function parseCodexMcpGetCommand(stdout: string): string | null {
+  for (const line of stdout.split(/\r?\n/)) {
+    const trimmedLine = line.trim();
+    const prefix = "command:";
+
+    if (!trimmedLine.startsWith(prefix)) {
+      continue;
+    }
+
+    const command = trimmedLine.slice(prefix.length).trim();
+
+    return command.length > 0 ? command : null;
+  }
+
+  return null;
+}
+
 function runCodexMcpCommand(args: string[]): {
   errorMessage: string | null;
   result: ReturnType<typeof spawnSync> | null;
@@ -160,6 +186,7 @@ function runCodexMcpCommand(args: string[]): {
 }
 
 export function getCodexVisualMcpSetupStatus(
+  helperBinDir: string,
   stateFilePath: string,
 ): VisualMcpSetupTargetStatus {
   const status = createBaseStatus(stateFilePath);
@@ -169,7 +196,14 @@ export function getCodexVisualMcpSetupStatus(
     return status;
   }
 
-  if (result.status === 0) {
+  const installedCommand = parseCodexMcpGetCommand(
+    readSpawnOutput(result.stdout),
+  );
+
+  if (
+    result.status === 0 &&
+    installedCommand === createExpectedVisualMcpCommand(helperBinDir)
+  ) {
     return {
       ...status,
       installed: true,
@@ -179,12 +213,45 @@ export function getCodexVisualMcpSetupStatus(
   return status;
 }
 
+function removeCodexVisualMcpServerIfPresent(): void {
+  const { errorMessage, result } = runCodexMcpCommand([
+    "mcp",
+    "remove",
+    VISUAL_MCP_SERVER_NAME,
+  ]);
+
+  if (result === null) {
+    throw new Error(
+      errorMessage ?? "Codex Visual MCP 제거 명령을 실행하지 못햇어요.",
+    );
+  }
+
+  if (result.status === 0) {
+    return;
+  }
+
+  const output = `${readSpawnOutput(result.stdout)}${readSpawnOutput(result.stderr)}`;
+
+  if (output.includes("No MCP server found")) {
+    return;
+  }
+
+  throw new Error(
+    output.trim().length > 0
+      ? `Codex Visual MCP 기존 설정 제거가 실패햇어요. \`codex mcp remove ${VISUAL_MCP_SERVER_NAME}\` 출력: ${output.trim()}`
+      : `Codex Visual MCP 기존 설정 제거가 실패햇어요. \`codex mcp remove ${VISUAL_MCP_SERVER_NAME}\`를 터미널에서 직접 실행해 보면 추가 단서가 나올 수 있어요.`,
+  );
+}
+
 export function installCodexVisualMcpUserSetup(
   helperBinDir: string,
   stateFilePath: string,
 ): VisualMcpSetupTargetStatus {
-  const resolver = getPlatformHelperBinResolver();
   const effectivePath = getEffectivePath();
+  const command = createExpectedVisualMcpCommand(helperBinDir);
+
+  removeCodexVisualMcpServerIfPresent();
+
   const { errorMessage, result } = runCodexMcpCommand([
     "mcp",
     "add",
@@ -196,7 +263,7 @@ export function installCodexVisualMcpUserSetup(
     "--env",
     `${ENV_KEYS.VISUAL_MCP_STATE_FILE}=${stateFilePath}`,
     "--",
-    path.join(helperBinDir, resolver.getHelperBinFilename("claude-visual-mcp")),
+    command,
   ]);
 
   if (result === null || result.status !== 0) {
@@ -212,7 +279,7 @@ export function installCodexVisualMcpUserSetup(
     );
   }
 
-  return getCodexVisualMcpSetupStatus(stateFilePath);
+  return getCodexVisualMcpSetupStatus(helperBinDir, stateFilePath);
 }
 
 export function removeCodexVisualMcpUserSetup(
@@ -239,5 +306,5 @@ export function removeCodexVisualMcpUserSetup(
     );
   }
 
-  return getCodexVisualMcpSetupStatus(stateFilePath);
+  return createBaseStatus(stateFilePath);
 }

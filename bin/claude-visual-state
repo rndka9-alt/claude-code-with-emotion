@@ -2,7 +2,10 @@
 
 const fs = require("node:fs");
 const { writeQueueEvent } = require("./lib/event-queue-writer");
-const { resolveVisualMcpRuntime } = require("./lib/claude-visual-mcp-state");
+const {
+  describeVisualMcpRuntimeSources,
+  resolveVisualMcpRuntime,
+} = require("./lib/claude-visual-mcp-state");
 
 function appendTrace(message) {
   const traceFilePath = resolveVisualMcpRuntime().traceFilePath;
@@ -64,9 +67,20 @@ function parseArgs(argv) {
 }
 
 async function main() {
-  const eventQueueDir = resolveVisualMcpRuntime().eventQueueDir;
+  const runtime = resolveVisualMcpRuntime();
+  const sources = describeVisualMcpRuntimeSources();
+  const eventQueueDir = runtime.eventQueueDir;
+  const queueExists =
+    typeof eventQueueDir === "string" &&
+    eventQueueDir.length > 0 &&
+    fs.existsSync(eventQueueDir);
+
+  appendTrace(
+    `resolved runtime provider=${runtime.assistantProviderId || "<missing>"} providerSource=${sources.assistantProviderIdSource} eventQueueDir=${eventQueueDir || "<missing>"} eventQueueDirSource=${sources.eventQueueDirSource} queueExists=${queueExists} stateFile=${sources.stateFilePath}`,
+  );
 
   if (typeof eventQueueDir !== "string" || eventQueueDir.length === 0) {
+    appendTrace("missing event queue dir; refusing visual overlay write");
     console.error("Event queue directory must be set.");
     process.exit(1);
   }
@@ -89,6 +103,7 @@ async function main() {
   );
 
   writeQueueEvent(eventQueueDir, { type: "overlay", ...payload });
+  appendTrace(`wrote visual overlay queue=${eventQueueDir}`);
 }
 
 void main().catch((error) => {

@@ -40,11 +40,12 @@ function createVisualMcpSetupStatus(
 }
 
 export function getVisualMcpSetupStatus(
+  helperBinDir: string,
   stateFilePath: string,
 ): VisualMcpSetupOverview {
   return createVisualMcpSetupStatus(
     toClaudeTargetStatus(getClaudeVisualMcpSetupStatus(stateFilePath)),
-    getCodexVisualMcpSetupStatus(stateFilePath),
+    getCodexVisualMcpSetupStatus(helperBinDir, stateFilePath),
   );
 }
 
@@ -59,10 +60,11 @@ export function installVisualMcpUserSetup(
     installClaudeVisualMcpUserSetup(helperBinDir, stateFilePath);
   }
 
-  return getVisualMcpSetupStatus(stateFilePath);
+  return getVisualMcpSetupStatus(helperBinDir, stateFilePath);
 }
 
 export function removeVisualMcpUserSetup(
+  helperBinDir: string,
   stateFilePath: string,
   targetId: VisualMcpSetupTargetId = "claude",
 ): VisualMcpSetupOverview {
@@ -72,5 +74,5 @@ export function removeVisualMcpUserSetup(
     removeClaudeVisualMcpUserSetup(stateFilePath);
   }
 
-  return getVisualMcpSetupStatus(stateFilePath);
+  return getVisualMcpSetupStatus(helperBinDir, stateFilePath);
 }

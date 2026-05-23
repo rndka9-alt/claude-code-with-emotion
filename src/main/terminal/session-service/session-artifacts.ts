@@ -49,8 +49,11 @@ export function removeSessionArtifact(
   artifactPath: string,
   logEvent: LogEvent,
 ): void {
+  const existed = fs.existsSync(artifactPath);
+
   try {
     fs.rmSync(artifactPath, { force: true, recursive: true });
+    logEvent(`removed session artifact path=${artifactPath} existed=${existed}`);
   } catch (error) {
     logEvent(
       `failed to remove session artifact path=${artifactPath} error=${error instanceof Error ? error.message : String(error)}`,
