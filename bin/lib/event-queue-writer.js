@@ -4,7 +4,7 @@ const path = require("node:path");
 
 function writeQueueEvent(queueDir, payload) {
   if (!fs.existsSync(queueDir)) {
-    return;
+    throw new Error(`Event queue directory does not exist: ${queueDir}`);
   }
 
   const timestamp = Date.now();

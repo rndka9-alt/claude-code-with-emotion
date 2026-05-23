@@ -47,8 +47,9 @@ function resolveVisualMcpRuntime(env = process.env) {
       ? state.visualAssetCatalogFilePath
       : "");
   const eventQueueDir =
-    env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR ||
-    (typeof state?.eventQueueDir === "string" ? state.eventQueueDir : "");
+    typeof env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR === "string"
+      ? env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR
+      : "";
   const assistantProviderId =
     env.CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID ||
     (typeof state?.assistantProviderId === "string"

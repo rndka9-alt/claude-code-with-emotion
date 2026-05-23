@@ -101,6 +101,40 @@ function readToolNames(response: JsonRpcMessage): string[] {
   });
 }
 
+function readToolCallText(response: JsonRpcMessage): string {
+  if (!isObjectRecord(response.result)) {
+    throw new Error("Expected MCP tools/call result to be an object");
+  }
+
+  const content = response.result.content;
+
+  if (!Array.isArray(content)) {
+    throw new Error("Expected MCP tools/call result to contain content");
+  }
+
+  return content
+    .flatMap((item) => {
+      if (
+        isObjectRecord(item) &&
+        item.type === "text" &&
+        typeof item.text === "string"
+      ) {
+        return [item.text];
+      }
+
+      return [];
+    })
+    .join("\n");
+}
+
+function readToolCallIsError(response: JsonRpcMessage): boolean {
+  if (!isObjectRecord(response.result)) {
+    throw new Error("Expected MCP tools/call result to be an object");
+  }
+
+  return response.result.isError === true;
+}
+
 function encodeMessage(message: object): string {
   const json = JSON.stringify(message);
 
@@ -509,6 +543,177 @@ describe("claude-visual-mcp", () => {
     expect(event.type).toBe("overlay");
     expect(event.emotion).toBe("happy");
     expect(event.line).toBe("둘 다 간다!");
+  });
+
+  it("does not use the state file event queue when the session env is missing", async () => {
+    const stateDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "claude-visual-mcp-state-"),
+    );
+    const catalogFilePath = path.join(stateDir, "visual-assets.json");
+    const stateFilePath = path.join(stateDir, "assistant-visual-mcp.json");
+    const staleEventQueueDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "claude-visual-mcp-stale-queue-"),
+    );
+
+    fs.writeFileSync(
+      catalogFilePath,
+      JSON.stringify({
+        version: 1,
+        assets: [
+          {
+            id: "asset-happy",
+            kind: "image",
+            label: "Happy Fox",
+            path: "/tmp/happy.png",
+          },
+        ],
+        mappings: [
+          {
+            assetId: "asset-happy",
+            emotion: "happy",
+          },
+        ],
+        stateLines: [],
+      }),
+      "utf8",
+    );
+    fs.writeFileSync(
+      stateFilePath,
+      JSON.stringify({
+        traceFilePath: "",
+        visualAssetCatalogFilePath: catalogFilePath,
+        eventQueueDir: staleEventQueueDir,
+      }),
+      "utf8",
+    );
+
+    const responses = await invokeMcpServer(
+      [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2024-11-05",
+            capabilities: {},
+            clientInfo: {
+              name: "test",
+              version: "0.0.0",
+            },
+          },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "set_visual_overlay",
+            arguments: {
+              emotion: "happy",
+            },
+          },
+        },
+      ],
+      {
+        ...process.env,
+        [ENV_KEYS.VISUAL_MCP_STATE_FILE]: stateFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: undefined,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: undefined,
+      },
+    );
+    const toolCallResponse = responses.find((response) => response.id === 2);
+
+    if (toolCallResponse === undefined) {
+      throw new Error("Expected a tools/call response");
+    }
+
+    expect(readToolCallIsError(toolCallResponse)).toBe(true);
+    expect(readToolCallText(toolCallResponse)).toContain(
+      "Event queue directory must be set.",
+    );
+    expect(
+      fs.readdirSync(staleEventQueueDir).filter((fileName) => {
+        return fileName.endsWith(".json");
+      }),
+    ).toEqual([]);
+  });
+
+  it("reports a missing session event queue as a tool error", async () => {
+    const catalogFilePath = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "claude-visual-mcp-catalog-")),
+      "visual-assets.json",
+    );
+    const missingEventQueueDir = path.join(
+      os.tmpdir(),
+      `claude-visual-mcp-missing-${Date.now()}`,
+    );
+
+    fs.writeFileSync(
+      catalogFilePath,
+      JSON.stringify({
+        version: 1,
+        assets: [
+          {
+            id: "asset-happy",
+            kind: "image",
+            label: "Happy Fox",
+            path: "/tmp/happy.png",
+          },
+        ],
+        mappings: [
+          {
+            assetId: "asset-happy",
+            emotion: "happy",
+          },
+        ],
+        stateLines: [],
+      }),
+      "utf8",
+    );
+
+    const responses = await invokeMcpServer(
+      [
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2024-11-05",
+            capabilities: {},
+            clientInfo: {
+              name: "test",
+              version: "0.0.0",
+            },
+          },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "set_visual_overlay",
+            arguments: {
+              emotion: "happy",
+            },
+          },
+        },
+      ],
+      {
+        ...process.env,
+        [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: catalogFilePath,
+        [ENV_KEYS.EVENT_QUEUE_DIR]: missingEventQueueDir,
+      },
+    );
+    const toolCallResponse = responses.find((response) => response.id === 2);
+
+    if (toolCallResponse === undefined) {
+      throw new Error("Expected a tools/call response");
+    }
+
+    expect(readToolCallIsError(toolCallResponse)).toBe(true);
+    expect(readToolCallText(toolCallResponse)).toContain(
+      `Event queue directory does not exist: ${missingEventQueueDir}`,
+    );
   });
 
   it("creates separate queue events when fields are updated independently", async () => {
