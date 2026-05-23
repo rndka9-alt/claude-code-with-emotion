@@ -197,4 +197,16 @@ cpSync(path.join(projectRoot, "bin"), path.join(resourcesPath, "bin"), {
   force: true,
 });
 
+// 외부 Node 프로세스로 실행대는 bin/ 스크립트는 Electron 의 asar require 패치를 못 쓰므로,
+// bin/lib 에서 참조하는 공유 런타임 모듈은 asar 밖 상대 경로에도 있어야 한다.
+cpSync(
+  path.join(projectRoot, "dist", "shared"),
+  path.join(resourcesPath, "dist", "shared"),
+  {
+    recursive: true,
+    force: true,
+    filter: (src) => !isTestArtifact(src),
+  },
+);
+
 console.log(`Packaged unsigned macOS app at ${bundlePath}`);
