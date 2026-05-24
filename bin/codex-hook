@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const fs = require("node:fs");
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
@@ -22,7 +23,7 @@ const ENV_KEY_BY_RUNTIME_FLAG = {
 
 function readStdin() {
   try {
-    return require("node:fs").readFileSync(0, "utf8");
+    return fs.readFileSync(0, "utf8");
   } catch {
     return "";
   }
@@ -65,6 +66,85 @@ function applyRuntimeArgs(argv) {
     process.env[envKey] = value;
     index += 1;
   }
+}
+
+function appendTrace(message) {
+  const traceFilePath = process.env[ENV_KEYS.TRACE_FILE];
+
+  if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
+    return;
+  }
+
+  const line = `[${new Date().toISOString()}] [codex-hook] ${message}\n`;
+
+  try {
+    fs.appendFileSync(traceFilePath, line, "utf8");
+  } catch {
+    // Trace failures must not block Codex hook delivery.
+  }
+}
+
+function collectPayloadIdentityCandidates(value, pathParts = []) {
+  if (pathParts.length > 6 || value === null || typeof value !== "object") {
+    return [];
+  }
+
+  const candidates = [];
+
+  for (const [key, nestedValue] of Object.entries(value)) {
+    const nextPathParts = [...pathParts, key];
+    const pathText = nextPathParts.join(".");
+
+    if (
+      /(session|thread|conversation|turn|id)$/i.test(key) &&
+      typeof nestedValue === "string" &&
+      nestedValue.length > 0
+    ) {
+      candidates.push(`${pathText}=${nestedValue.slice(0, 120)}`);
+    }
+
+    if (
+      nestedValue !== null &&
+      typeof nestedValue === "object" &&
+      candidates.length < 24
+    ) {
+      candidates.push(
+        ...collectPayloadIdentityCandidates(nestedValue, nextPathParts),
+      );
+    }
+
+    if (candidates.length >= 24) {
+      return candidates.slice(0, 24);
+    }
+  }
+
+  return candidates;
+}
+
+function traceHookInput(hookInput) {
+  const topLevelKeys =
+    hookInput !== null && typeof hookInput === "object"
+      ? Object.keys(hookInput)
+      : [];
+  const eventName =
+    typeof hookInput.hook_event_name === "string"
+      ? hookInput.hook_event_name
+      : "unknown";
+  const candidates = collectPayloadIdentityCandidates(hookInput);
+  const eventQueueDir = process.env[ENV_KEYS.EVENT_QUEUE_DIR];
+  const helperBinDir = process.env[ENV_KEYS.HELPER_BIN_DIR];
+  const traceFilePath = process.env[ENV_KEYS.TRACE_FILE];
+
+  appendTrace(
+    [
+      `payload event=${eventName}`,
+      `topKeys=${topLevelKeys.join(",") || "none"}`,
+      `eventQueueDir=${eventQueueDir || "<missing>"}`,
+      `helperBin=${helperBinDir || "<missing>"}`,
+      `trace=${traceFilePath || "<missing>"}`,
+      `identityCandidates=${JSON.stringify(candidates)}`,
+    ].join(" "),
+  );
 }
 
 function publishStatus(args) {
@@ -190,7 +270,11 @@ function resolveStatusForEvent(hookInput) {
 function main() {
   applyRuntimeArgs(process.argv.slice(2));
 
-  const status = resolveStatusForEvent(parseHookInput());
+  const hookInput = parseHookInput();
+
+  traceHookInput(hookInput);
+
+  const status = resolveStatusForEvent(hookInput);
 
   if (status !== null) {
     publishStatus([

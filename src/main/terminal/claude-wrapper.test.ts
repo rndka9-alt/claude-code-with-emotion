@@ -240,27 +240,25 @@ describe("codex wrapper", () => {
     const codexCalls = readJsonLines(argsFilePath);
     const launchArgs = codexCalls.at(-1) ?? [];
     const configOverrides = readFlagValues(launchArgs, "-c");
+    const hookConfigText = configOverrides
+      .filter((entry) => entry.startsWith("hooks."))
+      .join("\n");
 
     expect(launchArgs).toContain("-c");
-    expect(launchArgs.join("\n")).toContain("hooks.SessionStart=");
-    expect(launchArgs.join("\n")).toContain("hooks.UserPromptSubmit=");
-    expect(launchArgs.join("\n")).toContain("hooks.PermissionRequest=");
-    expect(launchArgs.join("\n")).toContain("hooks.PreCompact=");
-    expect(launchArgs.join("\n")).toContain("hooks.PostCompact=");
-    expect(launchArgs.join("\n")).toContain("codex-hook");
-    expect(launchArgs.join("\n")).toContain(
-      "--source claude-code-with-emotion",
+    expect(configOverrides).toContain(
+      'shell_environment_policy.inherit="all"',
     );
-    expect(launchArgs.join("\n")).toContain(
-      "--event-queue-dir '/tmp/session-event-queue'",
-    );
-    expect(launchArgs.join("\n")).toContain(
-      "--helper-bin-dir '/tmp/helper-bin'",
-    );
-    expect(launchArgs.join("\n")).toContain(
-      "--trace-file '/tmp/session-trace.log'",
-    );
-    expect(launchArgs.join("\n")).toContain(
+    expect(hookConfigText).toContain("hooks.SessionStart=");
+    expect(hookConfigText).toContain("hooks.UserPromptSubmit=");
+    expect(hookConfigText).toContain("hooks.PermissionRequest=");
+    expect(hookConfigText).toContain("hooks.PreCompact=");
+    expect(hookConfigText).toContain("hooks.PostCompact=");
+    expect(hookConfigText).toContain("codex-hook");
+    expect(hookConfigText).toContain("--source claude-code-with-emotion");
+    expect(hookConfigText).not.toContain("--event-queue-dir");
+    expect(hookConfigText).not.toContain("--helper-bin-dir");
+    expect(hookConfigText).not.toContain("--trace-file");
+    expect(hookConfigText).toContain(
       "Syncing claude-code-with-emotion status",
     );
     expect(configOverrides).toContain(
