@@ -11,6 +11,21 @@ const HOOK_EVENTS = [
   { event: "PostCompact" },
   { event: "Stop" },
 ];
+const ENV_KEYS = {
+  ASSISTANT_PROVIDER_ID: "CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID",
+  EVENT_QUEUE_DIR: "CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR",
+  HELPER_BIN_DIR: "CLAUDE_WITH_EMOTION_HELPER_BIN_DIR",
+  HOOK_STATE_FILE: "CLAUDE_WITH_EMOTION_HOOK_STATE_FILE",
+  TRACE_FILE: "CLAUDE_WITH_EMOTION_TRACE_FILE",
+  VISUAL_ASSET_CATALOG_FILE: "CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE",
+};
+const RUNTIME_FLAG_BY_ENV_KEY = [
+  [ENV_KEYS.EVENT_QUEUE_DIR, "--event-queue-dir"],
+  [ENV_KEYS.HELPER_BIN_DIR, "--helper-bin-dir"],
+  [ENV_KEYS.HOOK_STATE_FILE, "--hook-state-file"],
+  [ENV_KEYS.TRACE_FILE, "--trace-file"],
+  [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE, "--visual-asset-catalog-file"],
+];
 
 function readOutput(value) {
   if (typeof value === "string") {
@@ -43,20 +58,39 @@ function quoteShellPath(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-function createHookCommand() {
-  const hookPath = path.join(__dirname, "..", "codex-hook");
+function appendRuntimeFlag(commandParts, flag, value) {
+  if (typeof value !== "string" || value.length === 0) {
+    return;
+  }
 
-  return [
+  commandParts.push(flag, quoteShellPath(value));
+}
+
+function createHookCommand(env = process.env) {
+  const hookPath = path.join(__dirname, "..", "codex-hook");
+  const commandParts = [
     quoteShellPath(process.execPath),
     quoteShellPath(hookPath),
     "--source",
     "claude-code-with-emotion",
-  ].join(" ");
+  ];
+
+  for (const [envKey, flag] of RUNTIME_FLAG_BY_ENV_KEY) {
+    appendRuntimeFlag(commandParts, flag, env[envKey]);
+  }
+
+  appendRuntimeFlag(
+    commandParts,
+    "--assistant-provider-id",
+    env[ENV_KEYS.ASSISTANT_PROVIDER_ID] || "codex",
+  );
+
+  return commandParts.join(" ");
 }
 
-function createHookConfigValue(eventConfig) {
+function createHookConfigValue(eventConfig, env = process.env) {
   const fields = [];
-  const hookCommand = createHookCommand();
+  const hookCommand = createHookCommand(env);
 
   if (typeof eventConfig.matcher === "string") {
     fields.push(`matcher=${quoteTomlString(eventConfig.matcher)}`);
@@ -71,14 +105,13 @@ function createHookConfigValue(eventConfig) {
   return `[{${fields.join(", ")}}]`;
 }
 
-function createHookRuntimeArgs() {
-  // Keep the hook command stable so Codex hook trust does not churn per session.
-  const args = ["-c", 'shell_environment_policy.inherit="all"'];
+function createHookRuntimeArgs(env = process.env) {
+  const args = [];
 
   for (const eventConfig of HOOK_EVENTS) {
     args.push(
       "-c",
-      `hooks.${eventConfig.event}=${createHookConfigValue(eventConfig)}`,
+      `hooks.${eventConfig.event}=${createHookConfigValue(eventConfig, env)}`,
     );
   }
 
@@ -131,8 +164,8 @@ function createCodexHookRuntime(realBinary, originalPath) {
   }
 
   return {
-    description: "hooks=runtime-injected",
-    runtimeArgs: createHookRuntimeArgs(),
+    description: "hooks=runtime-injected-session-command",
+    runtimeArgs: createHookRuntimeArgs(process.env),
   };
 }
 

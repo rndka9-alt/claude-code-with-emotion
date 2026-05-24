@@ -227,6 +227,7 @@ describe("codex wrapper", () => {
         CODEX_ARGS_FILE: argsFilePath,
         [ENV_KEYS.EVENT_QUEUE_DIR]: "/tmp/session-event-queue",
         [ENV_KEYS.HELPER_BIN_DIR]: "/tmp/helper-bin",
+        [ENV_KEYS.HOOK_STATE_FILE]: "/tmp/session-hook-state.json",
         [ENV_KEYS.ORIGINAL_PATH]: `${binDir}:${process.env.PATH ?? ""}`,
         [ENV_KEYS.TRACE_FILE]: "/tmp/session-trace.log",
         [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: "/tmp/visual-assets.json",
@@ -245,7 +246,7 @@ describe("codex wrapper", () => {
       .join("\n");
 
     expect(launchArgs).toContain("-c");
-    expect(configOverrides).toContain(
+    expect(configOverrides).not.toContain(
       'shell_environment_policy.inherit="all"',
     );
     expect(hookConfigText).toContain("hooks.SessionStart=");
@@ -255,9 +256,18 @@ describe("codex wrapper", () => {
     expect(hookConfigText).toContain("hooks.PostCompact=");
     expect(hookConfigText).toContain("codex-hook");
     expect(hookConfigText).toContain("--source claude-code-with-emotion");
-    expect(hookConfigText).not.toContain("--event-queue-dir");
-    expect(hookConfigText).not.toContain("--helper-bin-dir");
-    expect(hookConfigText).not.toContain("--trace-file");
+    expect(hookConfigText).toContain(
+      "--event-queue-dir '/tmp/session-event-queue'",
+    );
+    expect(hookConfigText).toContain("--helper-bin-dir '/tmp/helper-bin'");
+    expect(hookConfigText).toContain(
+      "--hook-state-file '/tmp/session-hook-state.json'",
+    );
+    expect(hookConfigText).toContain("--trace-file '/tmp/session-trace.log'");
+    expect(hookConfigText).toContain(
+      "--visual-asset-catalog-file '/tmp/visual-assets.json'",
+    );
+    expect(hookConfigText).toContain("--assistant-provider-id 'codex'");
     expect(hookConfigText).toContain(
       "Syncing claude-code-with-emotion status",
     );
