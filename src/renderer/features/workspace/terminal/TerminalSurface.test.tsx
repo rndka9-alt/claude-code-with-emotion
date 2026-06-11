@@ -730,6 +730,198 @@ describe("TerminalSurface", () => {
     expect(terminalInstances[0]?.open).toHaveBeenCalledTimes(1);
   });
 
+  it("buffers live output while detached and flushes it on remount", async () => {
+    const outputListeners: Array<(event: TerminalOutputEvent) => void> = [];
+    const bootstrapSession = vi.fn().mockResolvedValue({
+      outputSnapshot: "",
+      outputVersion: 0,
+    });
+    const session = {
+      id: "session-1",
+      title: "new session 1 · claude-code-with-emotion",
+      cwd: "/tmp",
+      command: "",
+      lifecycle: "bootstrapping" as const,
+      createdAtMs: Date.now(),
+    };
+
+    Object.defineProperty(window, "claudeApp", {
+      configurable: true,
+      value: {
+        terminals: {
+          bootstrapSession,
+          sendInput: vi.fn().mockResolvedValue(undefined),
+          resizeSession: vi.fn().mockResolvedValue(undefined),
+          closeSession: vi.fn().mockResolvedValue(undefined),
+          onOutput: vi.fn((listener) => {
+            outputListeners.push(listener);
+            return () => {};
+          }),
+          onExit: vi.fn(() => () => {}),
+        },
+      },
+    });
+
+    const firstRender = render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={null}
+        session={session}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(bootstrapSession).toHaveBeenCalledTimes(1);
+    });
+
+    const terminal = terminalInstances[0];
+    const emitOutput = outputListeners[0];
+
+    if (terminal === undefined || emitOutput === undefined) {
+      throw new Error("Expected terminal and output listener to exist.");
+    }
+
+    firstRender.unmount();
+
+    emitOutput({
+      sessionId: "session-1",
+      data: "hidden approval prompt",
+      outputVersion: 1,
+    });
+
+    expect(terminal.write).not.toHaveBeenCalledWith(
+      "hidden approval prompt",
+      expect.any(Function),
+    );
+
+    render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={null}
+        session={session}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(terminal.write).toHaveBeenCalledWith(
+        "hidden approval prompt",
+        expect.any(Function),
+      );
+    });
+
+    expect(
+      terminal.write.mock.calls.filter(
+        ([value]) => value === "hidden approval prompt",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("waits for xterm to finish consuming a stored output chunk before writing the next one", async () => {
+    const outputListeners: Array<(event: TerminalOutputEvent) => void> = [];
+    const bootstrapSession = vi.fn().mockResolvedValue({
+      outputSnapshot: "",
+      outputVersion: 0,
+    });
+
+    Object.defineProperty(window, "claudeApp", {
+      configurable: true,
+      value: {
+        terminals: {
+          bootstrapSession,
+          sendInput: vi.fn().mockResolvedValue(undefined),
+          resizeSession: vi.fn().mockResolvedValue(undefined),
+          closeSession: vi.fn().mockResolvedValue(undefined),
+          onOutput: vi.fn((listener) => {
+            outputListeners.push(listener);
+            return () => {};
+          }),
+          onExit: vi.fn(() => () => {}),
+        },
+      },
+    });
+
+    render(
+      <TerminalSurface
+        focusRequestKey={0}
+        isActive={true}
+        onFocusPane={vi.fn()}
+        onSearchResultsChange={vi.fn()}
+        onTitleChange={vi.fn()}
+        paneId="pane-1"
+        searchRequest={null}
+        session={{
+          id: "session-1",
+          title: "new session 1 · claude-code-with-emotion",
+          cwd: "/tmp",
+          command: "",
+          lifecycle: "bootstrapping",
+          createdAtMs: Date.now(),
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(bootstrapSession).toHaveBeenCalledTimes(1);
+    });
+
+    const terminal = terminalInstances[0];
+    const emitOutput = outputListeners[0];
+    const writeCallbacks: Array<() => void> = [];
+
+    if (terminal === undefined || emitOutput === undefined) {
+      throw new Error("Expected terminal and output listener to exist.");
+    }
+
+    terminal.write.mockImplementation((_data: string, callback?: () => void) => {
+      if (callback !== undefined) {
+        writeCallbacks.push(callback);
+      }
+    });
+
+    emitOutput({
+      sessionId: "session-1",
+      data: "first chunk",
+      outputVersion: 1,
+    });
+    emitOutput({
+      sessionId: "session-1",
+      data: "second chunk",
+      outputVersion: 2,
+    });
+
+    expect(terminal.write).toHaveBeenCalledWith(
+      "first chunk",
+      expect.any(Function),
+    );
+    expect(terminal.write).not.toHaveBeenCalledWith(
+      "second chunk",
+      expect.any(Function),
+    );
+
+    const completeFirstWrite = writeCallbacks[0];
+
+    if (completeFirstWrite === undefined) {
+      throw new Error("Expected the first write callback to exist.");
+    }
+
+    completeFirstWrite();
+
+    expect(terminal.write).toHaveBeenCalledWith(
+      "second chunk",
+      expect.any(Function),
+    );
+  });
+
   it("shows a pin suggestion after typing while manually scrolled away", () => {
     vi.useFakeTimers();
 

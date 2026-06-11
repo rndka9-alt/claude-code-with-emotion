@@ -75,6 +75,7 @@ interface TerminalMirrorControllerRecord extends TerminalMirrorController {
 }
 
 interface WriteTerminalOutputOptions {
+  onWriteComplete?: () => void;
   scrollToBottomAfterWrite?: boolean;
 }
 
@@ -152,6 +153,7 @@ export function createTerminalSessionController(
 
   const container = createTerminalContainer();
   const bufferedOutputEvents: TerminalOutputEvent[] = [];
+  const outputEventStore: TerminalOutputEvent[] = [];
   const mirrorControllers = new Set<TerminalMirrorControllerRecord>();
   const pinnedViewportListeners = new Set<
     (snapshot: TerminalPinnedViewportSnapshot) => void
@@ -167,7 +169,8 @@ export function createTerminalSessionController(
   let manualViewportInteractionAtMs = 0;
   let pinSuggestionVersion = 0;
   let pinnedViewportMetrics: TerminalPinnedViewportMetrics | null = null;
-  let restoredOutputVersion = 0;
+  let consumedOutputVersion = 0;
+  let isConsumingOutputStore = false;
   let searchResultsChangeHandler:
     | ((results: TerminalSearchResults) => void)
     | null = null;
@@ -303,6 +306,8 @@ export function createTerminalSessionController(
       for (const mirrorController of mirrorControllers) {
         mirrorController.writeOutput(data);
       }
+
+      options.onWriteComplete?.();
     });
   };
 
@@ -413,12 +418,20 @@ export function createTerminalSessionController(
   }
 
   function applyOutputEvent(event: TerminalOutputEvent): void {
-    if (event.outputVersion <= restoredOutputVersion) {
+    if (event.outputVersion <= consumedOutputVersion) {
       return;
     }
 
-    restoredOutputVersion = event.outputVersion;
-    writeTerminalOutput(event.data);
+    if (
+      outputEventStore.some((storedEvent) => {
+        return storedEvent.outputVersion === event.outputVersion;
+      })
+    ) {
+      return;
+    }
+
+    outputEventStore.push(event);
+    consumeOutputStore();
   }
 
   function flushBufferedOutput(): void {
@@ -428,6 +441,47 @@ export function createTerminalSessionController(
         applyOutputEvent(event);
       });
     bufferedOutputEvents.length = 0;
+  }
+
+  function pruneConsumedOutputStore(): void {
+    const firstPendingEventIndex = outputEventStore.findIndex((event) => {
+      return event.outputVersion > consumedOutputVersion;
+    });
+
+    if (firstPendingEventIndex === -1) {
+      outputEventStore.length = 0;
+      return;
+    }
+
+    if (firstPendingEventIndex > 0) {
+      outputEventStore.splice(0, firstPendingEventIndex);
+    }
+  }
+
+  function consumeOutputStore(): void {
+    if (host === null || isConsumingOutputStore) {
+      return;
+    }
+
+    const nextOutputEvent = outputEventStore
+      .sort((left, right) => left.outputVersion - right.outputVersion)
+      .find((event) => {
+        return event.outputVersion === consumedOutputVersion + 1;
+      });
+
+    if (nextOutputEvent === undefined) {
+      return;
+    }
+
+    isConsumingOutputStore = true;
+    writeTerminalOutput(nextOutputEvent.data, {
+      onWriteComplete: () => {
+        consumedOutputVersion = nextOutputEvent.outputVersion;
+        isConsumingOutputStore = false;
+        pruneConsumedOutputStore();
+        consumeOutputStore();
+      },
+    });
   }
 
   function syncTerminalSize(): void {
@@ -465,15 +519,21 @@ export function createTerminalSessionController(
           return;
         }
 
+        const completeBootstrap = (): void => {
+          consumedOutputVersion = response.outputVersion;
+          bootstrapCompleted = true;
+          flushBufferedOutput();
+        };
+
         if (response.outputSnapshot.length > 0) {
           writeTerminalOutput(response.outputSnapshot, {
+            onWriteComplete: completeBootstrap,
             scrollToBottomAfterWrite: true,
           });
+          return;
         }
 
-        restoredOutputVersion = response.outputVersion;
-        bootstrapCompleted = true;
-        flushBufferedOutput();
+        completeBootstrap();
       })
       .catch((error: unknown) => {
         const message =
@@ -719,6 +779,7 @@ export function createTerminalSessionController(
       host.addEventListener("wheel", markManualViewportInteraction, {
         passive: true,
       });
+      consumeOutputStore();
       requestFit("attach");
       updatePinnedViewportMetrics();
 
