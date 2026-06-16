@@ -27,6 +27,7 @@
   --color-surface-chip: #121723;
   --color-surface-preview: #0a0d14;
   --color-surface-tooltip: #0d121a;
+  --color-surface-dim: rgba(0, 0, 0, 0.05);
   --color-surface-empty: rgba(20, 24, 32, 0.72);
   --color-surface-overlay: rgba(7, 9, 14, 0.72);
   --color-surface-frost: rgba(11, 15, 23, 0.72);

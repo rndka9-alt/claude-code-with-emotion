@@ -45,27 +45,30 @@ function findFocusedSessionId(
 }
 
 function PaneTitleBar({
-  isActive,
   isVisible,
   onClosePane,
   onFocusPane,
   paneId,
   session,
 }: {
-  isActive: boolean;
   isVisible: boolean;
   onClosePane: (paneId: string, sessionId: string) => void;
   onFocusPane: (paneId: string) => void;
   paneId: string;
   session: TerminalSession;
 }): ReactElement {
-  if (!isActive || !isVisible) {
+  if (!isVisible) {
     return <></>;
   }
 
+  const titleBarClassName = [
+    `flex ${PANE_TITLE_BAR_HEIGHT_CLASS} flex-none items-center border-b px-2`,
+    "border-border-subtle bg-surface-panel text-text-subtle",
+  ].join(" ");
+
   return (
     <div
-      className={`absolute inset-x-0 top-0 z-10 flex ${PANE_TITLE_BAR_HEIGHT_CLASS} border-border-subtle bg-surface-panel items-center border-b px-2`}
+      className={titleBarClassName}
       data-pane-title-bar="true"
       onPointerDown={() => {
         onFocusPane(paneId);
@@ -172,12 +175,11 @@ export function TerminalLayout({
       }
 
       const isActive = node.id === focusedPaneId;
-      const shouldShowTitleBar = hasMultiplePanes && isActive;
+      const shouldShowTitleBar = hasMultiplePanes;
       const activeSearchRequest =
         isActive && searchRequest?.sessionId === session.id
           ? searchRequest
           : null;
-
       return (
         <article
           aria-label={session.title}
@@ -186,33 +188,32 @@ export function TerminalLayout({
           key={node.id}
         >
           <PaneTitleBar
-            isActive={isActive}
             isVisible={shouldShowTitleBar}
             onClosePane={onClosePane}
             onFocusPane={onFocusPane}
             paneId={node.id}
             session={session}
           />
-          {isActive && isSearchVisible ? (
-            <div className="pointer-events-none absolute top-2 right-2 z-20">
-              <div className="pointer-events-auto">
-                <TerminalSearchBar
-                  focusRequestKey={focusRequestKey}
-                  onChangeQuery={setQuery}
-                  onClose={closeSearch}
-                  onFindNext={findNext}
-                  onFindPrevious={findPrevious}
-                  query={searchQuery}
-                  resultCount={resultCount}
-                  resultIndex={resultIndex}
-                />
-              </div>
-            </div>
-          ) : null}
           <div
-            className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden"
+            className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
             data-pane-content="true"
           >
+            {isActive && isSearchVisible ? (
+              <div className="pointer-events-none absolute top-2 right-2 z-20">
+                <div className="pointer-events-auto">
+                  <TerminalSearchBar
+                    focusRequestKey={focusRequestKey}
+                    onChangeQuery={setQuery}
+                    onClose={closeSearch}
+                    onFindNext={findNext}
+                    onFindPrevious={findPrevious}
+                    query={searchQuery}
+                    resultCount={resultCount}
+                    resultIndex={resultIndex}
+                  />
+                </div>
+              </div>
+            ) : null}
             <TerminalSurface
               focusRequestKey={terminalFocusRequestKey}
               isActive={isActive}
@@ -224,6 +225,13 @@ export function TerminalLayout({
               session={session}
             />
           </div>
+          {!isActive ? (
+            <div
+              aria-hidden="true"
+              className="bg-surface-dim pointer-events-none absolute inset-0 z-30"
+              data-pane-dim-overlay="true"
+            />
+          ) : null}
         </article>
       );
     }

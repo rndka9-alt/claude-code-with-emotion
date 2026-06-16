@@ -56,7 +56,7 @@ describe("TerminalLayout", () => {
     "session-2": createSession("session-2", "Session 2"),
   };
 
-  it("renders the focused pane title bar as an overlay in split layouts", () => {
+  it("renders pane title bars for every pane in split layouts", () => {
     const { container } = render(
       <TerminalLayout
         focusedPaneId="pane-1"
@@ -73,6 +73,9 @@ describe("TerminalLayout", () => {
     expect(screen.getAllByTestId(/terminal-surface-/)).toHaveLength(2);
     expect(
       container.querySelectorAll('[data-pane-title-bar="true"]'),
+    ).toHaveLength(2);
+    expect(
+      container.querySelectorAll('[data-pane-dim-overlay="true"]'),
     ).toHaveLength(1);
   });
 
@@ -128,7 +131,7 @@ describe("TerminalLayout", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps the focused pane title bar visible when search opens in split layouts", () => {
+  it("keeps pane title bars visible when search opens in split layouts", () => {
     const { container } = render(
       <TerminalLayout
         focusedPaneId="pane-1"
@@ -152,6 +155,6 @@ describe("TerminalLayout", () => {
     ).toBeInTheDocument();
     expect(
       container.querySelectorAll('[data-pane-title-bar="true"]'),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 });

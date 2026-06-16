@@ -330,10 +330,10 @@ describe("App tab actions", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", {
+      screen.getByRole("button", {
         name: "Close pane new session 1 · claude-code-with-emotion",
       }),
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
   });
 
   it("splits the active pane vertically when cmd+shift+d is pressed", () => {
@@ -364,15 +364,15 @@ describe("App tab actions", () => {
     });
 
     expect(
-      screen.getByRole("button", {
-        name: "Close pane new session 1 · claude-code-with-emotion",
+      screen.getByRole("article", {
+        name: "new session 1 · claude-code-with-emotion",
       }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("data-active", "true");
     expect(
-      screen.queryByRole("button", {
-        name: "Close pane new session 2 · claude-code-with-emotion",
+      screen.getByRole("article", {
+        name: "new session 2 · claude-code-with-emotion",
       }),
-    ).not.toBeInTheDocument();
+    ).toHaveAttribute("data-active", "false");
   });
 
   it("moves focus to the previous tab when cmd+left is pressed", () => {

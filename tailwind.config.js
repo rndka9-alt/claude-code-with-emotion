@@ -44,6 +44,7 @@ module.exports = {
         "surface-chip": "#121723",
         "surface-preview": "#0a0d14",
         "surface-tooltip": "#0d121a",
+        "surface-dim": "rgba(0, 0, 0, 0.05)",
         "surface-empty": "rgba(20, 24, 32, 0.72)",
         "surface-overlay": "rgba(7, 9, 14, 0.72)",
         "surface-frost": "rgba(11, 15, 23, 0.72)",
