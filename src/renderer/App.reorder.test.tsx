@@ -285,6 +285,110 @@ describe("App tab reordering", () => {
     }
   });
 
+  it("keeps a dragged tab attached when the mouse is released back inside the tab strip", async () => {
+    const {
+      hideTabDragPreview,
+      openDetachedWorkspaceWindow,
+      showTabDragPreview,
+    } = installDetachedWorkspaceWindowBridge();
+
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+
+    const firstTab = screen.getByRole("tab", {
+      name: "new session 1 · claude-code-with-emotion",
+    });
+    const secondTab = screen.getByRole("tab", {
+      name: "new session 2 · claude-code-with-emotion",
+    });
+    const firstTabContainer = requireParentElement(firstTab);
+    const secondTabContainer = requireParentElement(secondTab);
+    const strip = screen.getByRole("tablist", {
+      name: "Terminal sessions",
+    });
+    const stripRect = new DOMRect(0, 0, 420, 32);
+    const tabRects = new Map<HTMLElement, DOMRect>([
+      [firstTabContainer, new DOMRect(0, 0, 180, 28)],
+      [secondTabContainer, new DOMRect(182, 0, 180, 28)],
+    ]);
+    const originalGetBoundingClientRect =
+      HTMLElement.prototype.getBoundingClientRect;
+
+    HTMLElement.prototype.getBoundingClientRect =
+      function getBoundingClientRect(): DOMRect {
+        if (!(this instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        if (this === strip) {
+          return stripRect;
+        }
+
+        const container =
+          this.getAttribute("role") === "presentation"
+            ? this
+            : this.closest('[role="presentation"]');
+
+        if (!(container instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        return tabRects.get(container) ?? new DOMRect(0, 0, 0, 0);
+      };
+
+    try {
+      act(() => {
+        fireEvent.mouseDown(firstTab, {
+          button: 0,
+          buttons: 1,
+          clientX: 40,
+          clientY: 12,
+          screenX: 440,
+          screenY: 112,
+        });
+      });
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 80,
+          clientY: 150,
+          screenX: 480,
+          screenY: 250,
+        });
+      });
+      act(() => {
+        fireEvent.mouseUp(document, {
+          clientX: 80,
+          clientY: 20,
+          screenX: 480,
+          screenY: 120,
+        });
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(showTabDragPreview).toHaveBeenCalledWith({
+        screenPoint: {
+          x: 480,
+          y: 250,
+        },
+        title: "new session 1 · claude-code-with-emotion",
+      });
+      expect(hideTabDragPreview).toHaveBeenCalledTimes(1);
+      expect(openDetachedWorkspaceWindow).not.toHaveBeenCalled();
+      expect(screen.getAllByRole("tab")).toHaveLength(2);
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect =
+        originalGetBoundingClientRect;
+      Reflect.deleteProperty(window, "claudeApp");
+    }
+  });
+
   it.skip("activates a reordered tab on the next click", async () => {
     render(<App />);
 

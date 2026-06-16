@@ -42,6 +42,7 @@ export function useTabDragReorder(
   const activeDragTabIdRef = useRef<string | null>(null);
   const edgeClientXRef = useRef<number | null>(null);
   const pointerPositionRef = useRef<PointerClientPosition | null>(null);
+  const releasePointerPositionRef = useRef<PointerClientPosition | null>(null);
   const lastOverTabIdRef = useRef<string | null>(null);
   const onReorderTabRef = useRef(onReorderTab);
   const onDetachTabRef = useRef(onDetachTab);
@@ -91,13 +92,24 @@ export function useTabDragReorder(
       });
     }
 
+    function handleMouseUp(event: MouseEvent): void {
+      if (activeDragTabIdRef.current === null) {
+        return;
+      }
+
+      releasePointerPositionRef.current = resolvePointerClientPosition(event);
+    }
+
     window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp, true);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp, true);
       autoScrollController.stop();
       edgeClientXRef.current = null;
       pointerPositionRef.current = null;
+      releasePointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
       lastOverTabIdRef.current = null;
       hideTabDragPreview(isTabDragPreviewVisibleRef);
@@ -120,6 +132,7 @@ export function useTabDragReorder(
       hideTabDragPreview(isTabDragPreviewVisibleRef);
       edgeClientXRef.current = null;
       pointerPositionRef.current = null;
+      releasePointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
       lastOverTabIdRef.current = null;
       setActiveDragTabId(null);
@@ -132,6 +145,7 @@ export function useTabDragReorder(
           : resolveTabId(event.over.id);
       const pointerPosition = resolveDragEndPointerPosition(
         event,
+        releasePointerPositionRef.current,
         pointerPositionRef.current,
       );
       const shouldDetachTab = shouldDetachActiveTab(
@@ -144,6 +158,7 @@ export function useTabDragReorder(
       hideTabDragPreview(isTabDragPreviewVisibleRef);
       edgeClientXRef.current = null;
       pointerPositionRef.current = null;
+      releasePointerPositionRef.current = null;
       activeDragTabIdRef.current = null;
       lastOverTabIdRef.current = null;
       setActiveDragTabId(null);
@@ -186,6 +201,7 @@ export function useTabDragReorder(
 
       suppressClickTabIdRef.current = null;
       lastOverTabIdRef.current = tabId;
+      releasePointerPositionRef.current = null;
       pointerPositionRef.current = resolvePointerClientPosition(
         event.activatorEvent,
       );
@@ -298,8 +314,13 @@ function resolveScreenPoint(
 
 function resolveDragEndPointerPosition(
   event: DragEndEvent,
+  releasePointerPosition: PointerClientPosition | null,
   fallbackPointerPosition: PointerClientPosition | null,
 ): PointerClientPosition | null {
+  if (releasePointerPosition !== null) {
+    return releasePointerPosition;
+  }
+
   const activatorPosition = resolvePointerClientPosition(event.activatorEvent);
 
   if (activatorPosition === null) {
