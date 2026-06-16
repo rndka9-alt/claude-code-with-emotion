@@ -86,7 +86,7 @@ describe("createRuntimeEnv", () => {
 });
 
 describe("TerminalSessionManager", () => {
-  it("bootstraps a runtime and auto-launches the requested command", () => {
+  it("bootstraps a runtime and auto-launches the requested command", async () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputEvents: string[] = [];
     const outputRootDir = fs.mkdtempSync(
@@ -163,7 +163,7 @@ describe("TerminalSessionManager", () => {
       "/tmp/user-data",
     );
     try {
-      const response = manager.bootstrapSession(
+      const response = await manager.bootstrapSession(
         createBootstrapRequest(),
         "/tmp/event-queue",
       );
@@ -186,7 +186,10 @@ describe("TerminalSessionManager", () => {
 
       expect(outputEvents).toContain("session-1:1:pong");
       expect(
-        manager.bootstrapSession(createBootstrapRequest(), "/tmp/event-queue"),
+        await manager.bootstrapSession(
+          createBootstrapRequest(),
+          "/tmp/event-queue",
+        ),
       ).toEqual({
         outputSnapshot: "pong",
         outputVersion: 1,
@@ -214,7 +217,7 @@ describe("TerminalSessionManager", () => {
     }
   });
 
-  it("lets an assistant provider add session-specific environment", () => {
+  it("lets an assistant provider add session-specific environment", async () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputRootDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "assistant-provider-session-output-"),
@@ -289,7 +292,7 @@ describe("TerminalSessionManager", () => {
       assistantProvider,
     );
     try {
-      manager.bootstrapSession(
+      await manager.bootstrapSession(
         createBootstrapRequest(),
         "/tmp/provider-event-queue",
       );
@@ -303,7 +306,7 @@ describe("TerminalSessionManager", () => {
     }
   });
 
-  it("closes a specific session runtime when asked explicitly", () => {
+  it("closes a specific session runtime when asked explicitly", async () => {
     const createdRuntimes: FakeRuntimeRecord[] = [];
     const outputRootDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "claude-terminal-session-output-"),
@@ -366,7 +369,10 @@ describe("TerminalSessionManager", () => {
       "/tmp/user-data",
     );
     try {
-      manager.bootstrapSession(createBootstrapRequest(), "/tmp/event-queue");
+      await manager.bootstrapSession(
+        createBootstrapRequest(),
+        "/tmp/event-queue",
+      );
       manager.closeSession({ sessionId: "session-1" });
 
       expect(createdRuntimes[0]?.killed).toBe(true);

@@ -16,6 +16,7 @@ import type {
   TerminalInputRequest,
   TerminalResizeRequest,
 } from "../../../shared/terminal-bridge";
+import { TerminalEmulatorState } from "./terminal-emulator-state";
 
 interface TerminalDisposable {
   dispose: () => void;
@@ -32,6 +33,7 @@ interface TerminalSessionRuntime {
 }
 
 interface TerminalSessionRecord {
+  emulatorState: TerminalEmulatorState;
   outputStore: TerminalOutputStore;
   runtime: TerminalSessionRuntime;
   disposables: TerminalDisposable[];
@@ -177,21 +179,22 @@ export class TerminalSessionManager {
     private readonly assistantProvider: AssistantProvider = getDefaultAssistantProvider(),
   ) {}
 
-  bootstrapSession(
+  async bootstrapSession(
     request: TerminalBootstrapRequest,
     eventQueueDir: string,
-  ): TerminalBootstrapResponse {
+  ): Promise<TerminalBootstrapResponse> {
     const existingSession = this.sessions.get(request.sessionId);
 
     if (existingSession !== undefined) {
       const size = normalizeTerminalDimensions(request.cols, request.rows);
 
       existingSession.runtime.resize(size.cols, size.rows);
+      existingSession.emulatorState.resize(size.cols, size.rows);
 
       const snapshot = existingSession.outputStore.getSnapshot();
 
       return {
-        outputSnapshot: snapshot.output,
+        outputSnapshot: await existingSession.emulatorState.getSnapshot(),
         outputVersion: snapshot.version,
       };
     }
@@ -231,6 +234,7 @@ export class TerminalSessionManager {
     const outputStore = new TerminalOutputStore(
       path.join(this.outputRootDir, `${request.sessionId}.log`),
     );
+    const emulatorState = new TerminalEmulatorState(size.cols, size.rows);
 
     outputStore.reset();
 
@@ -238,6 +242,7 @@ export class TerminalSessionManager {
       const filtered = stripScreenHardstatus(data);
       const outputVersion = outputStore.append(filtered);
 
+      emulatorState.write(filtered);
       this.emitOutput(request.sessionId, {
         data: filtered,
         outputVersion,
@@ -247,6 +252,7 @@ export class TerminalSessionManager {
       const exitMessage = `\r\n[session exited: code ${event.exitCode}, signal ${event.signal ?? 0}]\r\n`;
       const outputVersion = outputStore.append(exitMessage);
 
+      emulatorState.write(exitMessage);
       this.emitOutput(request.sessionId, {
         data: exitMessage,
         outputVersion,
@@ -259,6 +265,7 @@ export class TerminalSessionManager {
     });
 
     this.sessions.set(request.sessionId, {
+      emulatorState,
       outputStore,
       runtime,
       disposables: [dataSubscription, exitSubscription],
@@ -273,7 +280,7 @@ export class TerminalSessionManager {
     const snapshot = outputStore.getSnapshot();
 
     return {
-      outputSnapshot: snapshot.output,
+      outputSnapshot: await emulatorState.getSnapshot(),
       outputVersion: snapshot.version,
     };
   }
@@ -320,6 +327,7 @@ export class TerminalSessionManager {
 
     this.sessions.delete(sessionId);
     session.outputStore.dispose();
+    session.emulatorState.dispose();
     session.runtime.kill();
   }
 }

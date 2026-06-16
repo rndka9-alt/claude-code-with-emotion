@@ -117,9 +117,9 @@ export class TerminalSessionService {
     );
   }
 
-  bootstrapSession(
+  async bootstrapSession(
     request: TerminalBootstrapRequest,
-  ): TerminalBootstrapResponse {
+  ): Promise<TerminalBootstrapResponse> {
     this.options.runtimeLog.write(
       "terminal",
       `bootstrap session=${request.sessionId} cwd=${request.cwd} command=${request.command} cols=${request.cols} rows=${request.rows}`,
@@ -139,7 +139,7 @@ export class TerminalSessionService {
     );
 
     try {
-      return this.terminalSessionManager.bootstrapSession(
+      return await this.terminalSessionManager.bootstrapSession(
         request,
         sessionEventQueueDir,
       );
