@@ -1,3 +1,4 @@
+import { SerializeAddon } from "@xterm/addon-serialize";
 import { SearchAddon } from "@xterm/addon-search";
 import { Terminal } from "@xterm/xterm";
 import type { TerminalOutputEvent } from "../../../../../shared/terminal-bridge";
@@ -104,8 +105,10 @@ export function createTerminalSessionController(
     },
   });
   const searchAddon = new SearchAddon();
+  const serializeAddon = new SerializeAddon();
 
   terminal.loadAddon(searchAddon);
+  terminal.loadAddon(serializeAddon);
 
   // 터미널 텍스트에서 URL을 감지해 Cmd+클릭으로 열 수 잇게 하는 링크 프로바이더
   const LINKABLE_URL_REGEX = /https?:\/\/[^\s)>\]"']+|vscode:\/\/[^\s)>\]"']+/g;
@@ -159,8 +162,6 @@ export function createTerminalSessionController(
     (snapshot: TerminalPinnedViewportSnapshot) => void
   >();
   let pinnedViewportLineTexts = ["", "", "", "", ""];
-  const replayOutputSegments: string[] = [];
-  let replayNewlineCount = 0;
   const pendingFitTasks = new Set<ScheduledTask>();
   let bootstrapCompleted = false;
   let bootstrapStarted = false;
@@ -261,41 +262,10 @@ export function createTerminalSessionController(
     manualViewportInteractionAtMs = Date.now();
   };
 
-  const countNewlines = (text: string): number => {
-    let count = 0;
-
-    for (let i = 0; i < text.length; i += 1) {
-      if (text.charCodeAt(i) === 10) {
-        count += 1;
-      }
-    }
-
-    return count;
-  };
-
-  const appendReplayOutput = (data: string): void => {
-    replayOutputSegments.push(data);
-    replayNewlineCount += countNewlines(data);
-
-    while (
-      replayNewlineCount > DEFAULT_TERMINAL_HISTORY_LINES &&
-      replayOutputSegments.length > 1
-    ) {
-      const removed = replayOutputSegments.shift();
-
-      if (removed === undefined) {
-        throw new Error("Expected replay output segment to exist.");
-      }
-
-      replayNewlineCount -= countNewlines(removed);
-    }
-  };
-
   const writeTerminalOutput = (
     data: string,
     options: WriteTerminalOutputOptions = {},
   ): void => {
-    appendReplayOutput(data);
     terminal.write(data, () => {
       if (options.scrollToBottomAfterWrite === true) {
         terminal.scrollToBottom();
@@ -316,6 +286,11 @@ export function createTerminalSessionController(
   };
   const handleTerminalLinkClick = (event: MouseEvent): void => {
     handleTerminalExternalBrowserClick(event, linksBridge?.openExternal);
+  };
+  const serializeTerminalSnapshot = (): string => {
+    return serializeAddon.serialize({
+      scrollback: DEFAULT_TERMINAL_HISTORY_LINES,
+    });
   };
   const syncTheme = (): void => {
     terminal.options.theme = createTerminalTheme();
@@ -692,10 +667,10 @@ export function createTerminalSessionController(
         });
 
         if (!mirrorHasReplayedOutput) {
-          const replayOutput = replayOutputSegments.join("");
+          const terminalSnapshot = serializeTerminalSnapshot();
 
-          if (replayOutput.length > 0) {
-            mirrorTerminal.write(replayOutput);
+          if (terminalSnapshot.length > 0) {
+            mirrorTerminal.write(terminalSnapshot);
           }
 
           mirrorHasReplayedOutput = true;

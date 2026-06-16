@@ -11,7 +11,9 @@ import { TerminalSurface } from "./TerminalSurface";
 import { handleTerminalExternalBrowserClick } from "./terminal-dom";
 
 const {
+  MockSerializeAddon,
   MockSearchAddon,
+  serializeAddonInstances,
   searchAddonInstances,
   MockTerminal,
   terminalInstances,
@@ -75,6 +77,20 @@ const {
     findPrevious: ReturnType<typeof vi.fn>;
     onDidChangeResults: ReturnType<typeof vi.fn>;
   }> = [];
+
+  const hoistedSerializeAddonInstances: Array<{
+    dispose: ReturnType<typeof vi.fn>;
+    serialize: ReturnType<typeof vi.fn>;
+  }> = [];
+
+  class HoistedMockSerializeAddon {
+    dispose = vi.fn();
+    serialize = vi.fn(() => "serialized mirror snapshot");
+
+    constructor() {
+      hoistedSerializeAddonInstances.push(this);
+    }
+  }
 
   class HoistedMockSearchAddon {
     clearActiveDecoration = vi.fn();
@@ -174,7 +190,9 @@ const {
   }
 
   return {
+    MockSerializeAddon: HoistedMockSerializeAddon,
     MockSearchAddon: HoistedMockSearchAddon,
+    serializeAddonInstances: hoistedSerializeAddonInstances,
     searchAddonInstances: hoistedSearchAddonInstances,
     MockTerminal: HoistedMockTerminal,
     terminalInstances: hoistedTerminalInstances,
@@ -184,6 +202,12 @@ const {
 vi.mock("@xterm/xterm", () => {
   return {
     Terminal: MockTerminal,
+  };
+});
+
+vi.mock("@xterm/addon-serialize", () => {
+  return {
+    SerializeAddon: MockSerializeAddon,
   };
 });
 
@@ -208,6 +232,7 @@ describe("TerminalSurface", () => {
   let openExternal: Mock<(url: string) => Promise<void>>;
 
   beforeEach(() => {
+    serializeAddonInstances.length = 0;
     searchAddonInstances.length = 0;
     terminalInstances.length = 0;
     openExternal = vi
@@ -1128,6 +1153,19 @@ describe("TerminalSurface", () => {
       if (mirrorTerminal === undefined) {
         throw new Error("Expected the pinned mirror terminal to exist.");
       }
+
+      const serializeAddon = serializeAddonInstances[0];
+
+      if (serializeAddon === undefined) {
+        throw new Error("Expected the serialize addon to exist.");
+      }
+
+      expect(serializeAddon.serialize).toHaveBeenCalledWith({
+        scrollback: 3000,
+      });
+      expect(mirrorTerminal.write).toHaveBeenCalledWith(
+        "serialized mirror snapshot",
+      );
 
       const mirrorFocusCount = mirrorTerminal.focus.mock.calls.length;
       const originalTerminalFocusCount = terminal.focus.mock.calls.length;

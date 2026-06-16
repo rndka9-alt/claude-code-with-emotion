@@ -11,7 +11,12 @@ import {
   workspaceReducer,
 } from "./features/workspace/model";
 
-const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
+const {
+  MockSerializeAddon,
+  MockSearchAddon,
+  MockTerminal,
+  terminalInstances,
+} = vi.hoisted(() => {
   const hoistedTerminalInstances: Array<{
     _core: {
       _renderService: {
@@ -63,6 +68,11 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
     findNext = vi.fn(() => true);
     findPrevious = vi.fn(() => true);
     onDidChangeResults = vi.fn(() => ({ dispose: vi.fn() }));
+  }
+
+  class HoistedMockSerializeAddon {
+    dispose = vi.fn();
+    serialize = vi.fn(() => "");
   }
 
   class HoistedMockTerminal {
@@ -129,6 +139,7 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
   }
 
   return {
+    MockSerializeAddon: HoistedMockSerializeAddon,
     MockSearchAddon: HoistedMockSearchAddon,
     MockTerminal: HoistedMockTerminal,
     terminalInstances: hoistedTerminalInstances,
@@ -138,6 +149,12 @@ const { MockSearchAddon, MockTerminal, terminalInstances } = vi.hoisted(() => {
 vi.mock("@xterm/xterm", () => {
   return {
     Terminal: MockTerminal,
+  };
+});
+
+vi.mock("@xterm/addon-serialize", () => {
+  return {
+    SerializeAddon: MockSerializeAddon,
   };
 });
 
