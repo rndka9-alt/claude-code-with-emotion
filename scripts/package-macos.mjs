@@ -100,7 +100,7 @@ if (existsSync(customIconPath)) {
 // --- asar 아카이브용 staging 디렉터리 구성 ---
 // 런타임에 실제로 필요한 파일만 모아서 asar 로 패키징한다.
 // renderer 측 의존성(react, xterm, lucide-react)은 vite 가 dist/renderer 번들에 흡수햇기 때문에
-// node_modules 에 남겨둘 외부 패키지는 main 이 require 하는 node-pty, zod 뿐이다.
+// node_modules 에 남겨둘 외부 패키지는 main 이 런타임에 require 하는 패키지뿐이다.
 rmSync(stagingDir, { recursive: true, force: true });
 mkdirSync(stagingDir, { recursive: true });
 
@@ -140,6 +140,17 @@ copyDistSubdir("preload");
 copyDistSubdir("renderer");
 copyDistSubdir("shared");
 
+function copyRuntimeDependency(packageName) {
+  const destination = path.join(stagingDir, "node_modules", packageName);
+
+  mkdirSync(path.dirname(destination), { recursive: true });
+  cpSync(
+    path.join(projectRoot, "node_modules", packageName),
+    destination,
+    { recursive: true, force: true, dereference: true },
+  );
+}
+
 // node-pty 네이티브 바이너리를 Electron 헤더 기준으로 재컴파일한다.
 // npm 배포 prebuild 는 일반 Node.js 용이라, Electron 의 수정된 V8/GC 와
 // 미묘한 ABI 불일치가 생겨 런타임에 V8 CHECK 실패(SIGTRAP)를 일으킬 수 잇다.
@@ -149,13 +160,11 @@ execSync(
   { stdio: "inherit", cwd: projectRoot },
 );
 
-// zod 는 main 프로세스(assistant-event-queue-bridge)가 런타임에 require 하므로
-// node-pty 와 마찬가지로 staging 에 복사해야 한다.
-cpSync(
-  path.join(projectRoot, "node_modules", "zod"),
-  path.join(stagingDir, "node_modules", "zod"),
-  { recursive: true, force: true, dereference: true },
-);
+// TypeScript 로 컴파일된 main 프로세스는 외부 dependency 를 require 하므로
+// asar 안 node_modules 에 실제 파일을 함께 넣어야 한다.
+copyRuntimeDependency("zod");
+copyRuntimeDependency("@xterm/headless");
+copyRuntimeDependency("@xterm/addon-serialize");
 
 // node-pty 는 pnpm 심볼릭 링크 너머 .pnpm/node-pty@x.x.x/node_modules/node-pty/ 에 실존하므로
 // dereference 로 링크를 따라가 실제 파일을 staging 안에 복사한다.
