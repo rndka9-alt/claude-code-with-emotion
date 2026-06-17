@@ -62,6 +62,7 @@ const {
     open: ReturnType<typeof vi.fn>;
     options: { scrollback: number };
     registerLinkProvider: ReturnType<typeof vi.fn>;
+    reset: ReturnType<typeof vi.fn>;
     resize: ReturnType<typeof vi.fn>;
     rows: number;
     scrollToBottom: ReturnType<typeof vi.fn>;
@@ -182,6 +183,7 @@ const {
     onScroll = vi.fn(() => ({ dispose: vi.fn() }));
     onTitleChange = vi.fn(() => ({ dispose: vi.fn() }));
     registerLinkProvider = vi.fn(() => ({ dispose: vi.fn() }));
+    reset = vi.fn();
 
     constructor(input: { convertEol: boolean }) {
       this.constructorOptions = input;
@@ -755,12 +757,18 @@ describe("TerminalSurface", () => {
     expect(terminalInstances[0]?.open).toHaveBeenCalledTimes(1);
   });
 
-  it("buffers live output while detached and flushes it on remount", async () => {
+  it("refreshes from a snapshot instead of replaying detached output on remount", async () => {
     const outputListeners: Array<(event: TerminalOutputEvent) => void> = [];
-    const bootstrapSession = vi.fn().mockResolvedValue({
-      outputSnapshot: "",
-      outputVersion: 0,
-    });
+    const bootstrapSession = vi
+      .fn()
+      .mockResolvedValueOnce({
+        outputSnapshot: "",
+        outputVersion: 0,
+      })
+      .mockResolvedValue({
+        outputSnapshot: "snapshot with hidden approval prompt",
+        outputVersion: 1,
+      });
     const session = {
       id: "session-1",
       title: "new session 1 · claude-code-with-emotion",
@@ -839,14 +847,20 @@ describe("TerminalSurface", () => {
 
     await waitFor(() => {
       expect(terminal.write).toHaveBeenCalledWith(
-        "hidden approval prompt",
+        "snapshot with hidden approval prompt",
         expect.any(Function),
       );
     });
 
+    expect(terminal.reset).toHaveBeenCalled();
     expect(
       terminal.write.mock.calls.filter(
         ([value]) => value === "hidden approval prompt",
+      ),
+    ).toHaveLength(0);
+    expect(
+      terminal.write.mock.calls.filter(
+        ([value]) => value === "snapshot with hidden approval prompt",
       ),
     ).toHaveLength(1);
   });

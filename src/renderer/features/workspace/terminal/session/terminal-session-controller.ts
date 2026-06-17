@@ -72,6 +72,7 @@ export interface TerminalSessionControllerRecord extends TerminalSessionControll
 }
 
 interface TerminalMirrorControllerRecord extends TerminalMirrorController {
+  resetForSnapshot: () => void;
   writeOutput: (data: string) => void;
 }
 
@@ -166,7 +167,9 @@ export function createTerminalSessionController(
   let bootstrapCompleted = false;
   let bootstrapStarted = false;
   let disposed = false;
+  let hasDetachedOutputGap = false;
   let host: HTMLDivElement | null = null;
+  let isSnapshotRefreshPending = false;
   let manualViewportInteractionAtMs = 0;
   let pinSuggestionVersion = 0;
   let pinnedViewportMetrics: TerminalPinnedViewportMetrics | null = null;
@@ -405,6 +408,13 @@ export function createTerminalSessionController(
       return;
     }
 
+    if (host === null) {
+      // Full-screen TUIs emit viewport-relative cursor updates. Replaying those
+      // after reattach corrupts the screen, so resync from the main snapshot.
+      hasDetachedOutputGap = true;
+      return;
+    }
+
     outputEventStore.push(event);
     consumeOutputStore();
   }
@@ -434,7 +444,15 @@ export function createTerminalSessionController(
   }
 
   function consumeOutputStore(): void {
-    if (host === null || isConsumingOutputStore) {
+    if (host === null) {
+      return;
+    }
+
+    if (hasDetachedOutputGap) {
+      return;
+    }
+
+    if (isConsumingOutputStore) {
       return;
     }
 
@@ -457,6 +475,98 @@ export function createTerminalSessionController(
         consumeOutputStore();
       },
     });
+  }
+
+  function resetTerminalsForSnapshot(): void {
+    terminal.reset();
+
+    for (const mirrorController of mirrorControllers) {
+      mirrorController.resetForSnapshot();
+    }
+  }
+
+  function refreshFromSessionSnapshot(size: TerminalSize): void {
+    if (bridge === undefined || disposed) {
+      return;
+    }
+
+    if (isSnapshotRefreshPending) {
+      return;
+    }
+
+    isSnapshotRefreshPending = true;
+    isConsumingOutputStore = true;
+
+    void bridge
+      .bootstrapSession({
+        sessionId: session.id,
+        title: session.title,
+        cwd: session.cwd,
+        command: session.command,
+        cols: size.cols,
+        rows: size.rows,
+      })
+      .then((response) => {
+        if (disposed) {
+          isSnapshotRefreshPending = false;
+          isConsumingOutputStore = false;
+          return;
+        }
+
+        if (host === null) {
+          hasDetachedOutputGap = true;
+          isSnapshotRefreshPending = false;
+          isConsumingOutputStore = false;
+          return;
+        }
+
+        resetTerminalsForSnapshot();
+        bufferedOutputEvents.length = 0;
+        consumedOutputVersion = response.outputVersion;
+        hasDetachedOutputGap = false;
+        pruneConsumedOutputStore();
+
+        const completeSnapshotRefresh = (): void => {
+          isSnapshotRefreshPending = false;
+          isConsumingOutputStore = false;
+          consumeOutputStore();
+        };
+
+        if (response.outputSnapshot.length > 0) {
+          writeTerminalOutput(response.outputSnapshot, {
+            onWriteComplete: completeSnapshotRefresh,
+            scrollToBottomAfterWrite: true,
+          });
+          return;
+        }
+
+        completeSnapshotRefresh();
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unknown snapshot refresh error";
+
+        isSnapshotRefreshPending = false;
+        isConsumingOutputStore = false;
+        console.error(
+          `Failed to refresh terminal snapshot for ${session.id}: ${message}`,
+        );
+        consumeOutputStore();
+      });
+  }
+
+  function syncAfterFit(size: TerminalSize): void {
+    syncTerminalSize();
+    bootstrapSession(size);
+
+    if (bootstrapCompleted && hasDetachedOutputGap) {
+      refreshFromSessionSnapshot(size);
+      return;
+    }
+
+    consumeOutputStore();
   }
 
   function syncTerminalSize(): void {
@@ -542,8 +652,7 @@ export function createTerminalSessionController(
       const nextSize = fitTerminalViewport(terminal, host, session.id, reason);
 
       if (nextSize !== null) {
-        syncTerminalSize();
-        bootstrapSession(nextSize);
+        syncAfterFit(nextSize);
         updatePinnedViewportMetrics();
         return;
       }
@@ -565,8 +674,7 @@ export function createTerminalSessionController(
           session.id,
           `${reason}-retry`,
         );
-        syncTerminalSize();
-        bootstrapSession(retrySize ?? getTerminalSize(terminal));
+        syncAfterFit(retrySize ?? getTerminalSize(terminal));
         updatePinnedViewportMetrics();
       }, 32);
     }, 0);
@@ -714,6 +822,10 @@ export function createTerminalSessionController(
       syncPinnedViewport(metrics) {
         syncMirrorViewport(metrics);
       },
+      resetForSnapshot() {
+        mirrorTerminal.reset();
+        mirrorHasReplayedOutput = true;
+      },
       updateTheme() {
         mirrorTerminal.options.theme = createTerminalTheme();
       },
@@ -754,7 +866,11 @@ export function createTerminalSessionController(
       host.addEventListener("wheel", markManualViewportInteraction, {
         passive: true,
       });
-      consumeOutputStore();
+
+      if (!hasDetachedOutputGap) {
+        consumeOutputStore();
+      }
+
       requestFit("attach");
       updatePinnedViewportMetrics();
 
