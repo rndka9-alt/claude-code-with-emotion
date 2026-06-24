@@ -235,7 +235,6 @@ function callVisualOverlayTool(argumentsObject) {
   }
 
   const payload = {};
-  const messages = [];
 
   if (hasEmotion) {
     const availableOptions = readAvailableVisualOptions();
@@ -258,11 +257,6 @@ function callVisualOverlayTool(argumentsObject) {
 
     // "neutral" 은 클라이언트가 emotion overlay 를 끄고 싶다는 뜻이므로 null 로 저장.
     payload.emotion = emotion === "neutral" ? null : emotion;
-    messages.push(
-      emotion === "neutral"
-        ? "Cleared the visual emotion overlay."
-        : `Set the visual emotion overlay to ${emotion}.`,
-    );
   }
 
   if (hasLine) {
@@ -270,7 +264,6 @@ function callVisualOverlayTool(argumentsObject) {
 
     if (line === null) {
       payload.line = null;
-      messages.push("Cleared the visual line.");
     } else if (typeof line === "string") {
       const trimmed = line.trim();
 
@@ -287,7 +280,6 @@ function callVisualOverlayTool(argumentsObject) {
       }
 
       payload.line = trimmed;
-      messages.push(`Set the visual line to "${trimmed}".`);
     } else {
       return {
         isError: true,
@@ -327,24 +319,15 @@ function callVisualOverlayTool(argumentsObject) {
     };
   }
 
-  const structuredContent = {};
-
-  if (hasEmotion) {
-    structuredContent.emotion = payload.emotion;
-  }
-
-  if (hasLine) {
-    structuredContent.line = payload.line;
-  }
-
+  // 매 턴 호출되는 도구라 응답 페이로드를 최소화한다. 실제 overlay 변경은 이벤트 큐로 전달되므로
+  // 도구 응답에는 성공 여부만 싣는다.
   return {
     content: [
       {
         type: "text",
-        text: messages.join(" "),
+        text: '{"ok":true}',
       },
     ],
-    structuredContent,
   };
 }
 
