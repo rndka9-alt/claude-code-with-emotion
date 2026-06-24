@@ -1,6 +1,7 @@
 Choose only from the currently mapped emotion presets that the app exposes.
 Do not invent new emotion names.
 Use `neutral` when the emotional coloring should clear and the base activity state should show by itself again.
+Call `get_available_visual_options` to see the available emotions and what each one means.
 
 Trigger hints for emotions that are easy to overlook — pick them when they genuinely fit, not mechanically:
 

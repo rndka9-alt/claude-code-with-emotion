@@ -156,10 +156,7 @@ function createToolsListResult() {
 
   const availableOptions = readAvailableVisualOptions();
   const emotionEnum = ["neutral", ...availableOptions.emotions];
-  const promptHints = createVisualPromptHints(
-    availableOptions.emotions,
-    availableOptions.emotionDescriptions,
-  );
+  const promptHints = createVisualPromptHints();
 
   return {
     tools: [
@@ -399,22 +396,17 @@ function handleRequest(message) {
 
     if (toolName === "get_available_visual_options") {
       const availableOptions = readAvailableVisualOptions();
-      const promptHints = createVisualPromptHints();
 
+      // emotion 카탈로그(설명)는 동적이라 이 도구로 조회한다. 응답 페이로드를 줄이려고
+      // content 한 곳에만 싣고, set_visual_overlay description 과 중복되는 promptHints 와
+      // content 를 그대로 복제하던 structuredContent 는 싣지 않는다.
       sendSuccess(id, {
         content: [
           {
             type: "text",
-            text: JSON.stringify({
-              ...availableOptions,
-              promptHints,
-            }),
+            text: JSON.stringify(availableOptions),
           },
         ],
-        structuredContent: {
-          ...availableOptions,
-          promptHints,
-        },
       });
       return;
     }
