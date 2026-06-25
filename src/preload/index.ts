@@ -17,9 +17,15 @@ import {
 } from "../shared/assistant-status";
 import {
   DIAGNOSTICS_CHANNELS,
+  type FrameStallDiagnosticPayload,
   type RendererDiagnosticPayload,
   type RuntimeDiagnosticPayload,
 } from "../shared/diagnostics";
+import { FORENSICS_STALL_THRESHOLD_MS } from "../shared/forensics";
+import {
+  FORENSICS_MODE_CHANNELS,
+  type ForensicsModeState,
+} from "../shared/forensics-bridge";
 import { LINKS_CHANNELS } from "../shared/links-bridge";
 import { MCP_SETUP_CHANNELS } from "../shared/mcp-setup-bridge";
 import {
@@ -42,6 +48,10 @@ import {
   type WorkspaceTabDragPreviewMoveRequest,
   type WorkspaceTabDragPreviewRequest,
 } from "../shared/workspace-window-bridge";
+import {
+  startFrameStallWatchdog,
+  type FrameStallWatchdog,
+} from "./frame-stall-watchdog";
 
 // Finder 에서 실행한 패키지 앱은 process.cwd() 가 `/` 로 설정돼서 터미널이 루트에서 열린다.
 // 유저 홈 디렉터리를 기본 cwd 로 고정해, 개발(npm run dev) 환경과 패키징 환경 모두 홈에서 시작하도록 맞춘다.
@@ -125,6 +135,31 @@ const claudeAppApi: ClaudeAppApi = {
       return () => {
         ipcRenderer.removeListener(
           DIAGNOSTICS_CHANNELS.runtimeEvent,
+          subscription,
+        );
+      };
+    },
+  },
+  forensics: {
+    getState: () => {
+      return ipcRenderer.invoke(FORENSICS_MODE_CHANNELS.getState);
+    },
+    setState: (enabled) => {
+      return ipcRenderer.invoke(FORENSICS_MODE_CHANNELS.setState, enabled);
+    },
+    onStateChange: (listener) => {
+      const subscription = (
+        _event: IpcRendererEvent,
+        payload: ForensicsModeState,
+      ) => {
+        listener(payload);
+      };
+
+      ipcRenderer.on(FORENSICS_MODE_CHANNELS.stateChanged, subscription);
+
+      return () => {
+        ipcRenderer.removeListener(
+          FORENSICS_MODE_CHANNELS.stateChanged,
           subscription,
         );
       };
@@ -341,3 +376,39 @@ window.addEventListener(
 );
 
 contextBridge.exposeInMainWorld("claudeApp", claudeAppApi);
+
+// 감시 모드 watchdog: 렌더러 메인 스레드 stall을 감시해 메인에 신고한다.
+// 막힌 스레드는 자기 콜스택을 뜰 수 없으므로 여기서는 정지 시각·시간만 보내고,
+// 콜스택 캡처는 메인 forensics recorder가 외부 프로파일러로 수행한다.
+// on/off는 메인의 감시 모드 상태를 따른다(설정 토글 또는 FORENSICS 환경변수가 결정).
+let frameStallWatchdog: FrameStallWatchdog | null = null;
+
+function syncFrameStallWatchdog(enabled: boolean): void {
+  if (enabled && frameStallWatchdog === null) {
+    frameStallWatchdog = startFrameStallWatchdog({
+      thresholdMs: FORENSICS_STALL_THRESHOLD_MS,
+      onStall: (durationMs) => {
+        const payload: FrameStallDiagnosticPayload = {
+          durationMs,
+          detectedAt: new Date().toISOString(),
+        };
+
+        ipcRenderer.send(DIAGNOSTICS_CHANNELS.frameStall, payload);
+      },
+    });
+    return;
+  }
+
+  if (!enabled && frameStallWatchdog !== null) {
+    frameStallWatchdog.stop();
+    frameStallWatchdog = null;
+  }
+}
+
+void claudeAppApi.forensics.getState().then((state) => {
+  syncFrameStallWatchdog(state.enabled);
+});
+
+claudeAppApi.forensics.onStateChange((state) => {
+  syncFrameStallWatchdog(state.enabled);
+});

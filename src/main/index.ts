@@ -1,7 +1,14 @@
-import { Menu, app, BrowserWindow } from "electron";
+import { Menu, app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
 import { createApplicationMenuTemplate } from "./application-menu";
-import { createRuntimeLog, resolveRuntimeLogPath } from "./diagnostics";
+import {
+  createForensicsRecorder,
+  createRuntimeLog,
+  ForensicsModeStore,
+  isForensicsEnabled,
+  resolveForensicsDirectory,
+  resolveRuntimeLogPath,
+} from "./diagnostics";
 import {
   ensureNodePtySpawnHelpersExecutable,
   getDefaultAssistantProvider,
@@ -21,6 +28,7 @@ import {
   DIAGNOSTICS_CHANNELS,
   type RuntimeDiagnosticPayload,
 } from "../shared/diagnostics";
+import { FORENSICS_MODE_CHANNELS } from "../shared/forensics-bridge";
 import type { OpenDetachedWorkspaceWindowRequest } from "../shared/workspace-window-bridge";
 import { WORKSPACE_COMMAND_CHANNELS } from "../shared/workspace-command-bridge";
 
@@ -53,6 +61,66 @@ void app.whenReady().then(() => {
   );
 
   runtimeLog.write("app", `runtime log ready at ${runtimeLog.filePath}`);
+
+  // 감시 모드(stall 추적 계측)는 설정 토글 또는 FORENSICS 환경변수로 켠다.
+  // recorder는 항상 만들되, enable() 전에는 어떤 계측도 가동하지 않는다(평소 오버헤드 0).
+  const forensicsRecorder = createForensicsRecorder({
+    runtimeLog,
+    directory: resolveForensicsDirectory(
+      app.getAppPath(),
+      app.getPath("userData"),
+      app.isPackaged,
+    ),
+  });
+  const forensicsModeStore = new ForensicsModeStore(
+    path.join(app.getPath("userData"), "forensics.json"),
+    (message) => {
+      runtimeLog.write("forensics", message);
+    },
+  );
+
+  // 감시 모드를 켜고/끄고 열린 모든 창에 상태를 반영한다.
+  // ON: 메인 계측 가동 + 모든 창에 렌더러 프로파일러 attach
+  // OFF: 모든 계측 정지 + 디버거 detach
+  // 어느 쪽이든 각 창 preload watchdog이 start/stop하도록 상태 변경을 broadcast한다.
+  function applyForensicsEnabled(enabled: boolean): void {
+    if (enabled) {
+      forensicsRecorder.enable();
+
+      for (const openWindow of BrowserWindow.getAllWindows()) {
+        forensicsRecorder.attachWindow(openWindow.webContents);
+      }
+    } else {
+      forensicsRecorder.disable();
+    }
+
+    for (const openWindow of BrowserWindow.getAllWindows()) {
+      openWindow.webContents.send(FORENSICS_MODE_CHANNELS.stateChanged, {
+        enabled,
+      });
+    }
+  }
+
+  // 저장된 설정이 켜져 있거나 FORENSICS 환경변수가 켜져 있으면 시작부터 가동한다.
+  if (forensicsModeStore.isEnabled() || isForensicsEnabled()) {
+    applyForensicsEnabled(true);
+  }
+
+  ipcMain.handle(FORENSICS_MODE_CHANNELS.getState, () => {
+    return { enabled: forensicsRecorder.isEnabled() };
+  });
+  ipcMain.handle(
+    FORENSICS_MODE_CHANNELS.setState,
+    (_event, request: unknown) => {
+      const enabled = request === true;
+
+      forensicsModeStore.setEnabled(enabled);
+      applyForensicsEnabled(enabled);
+
+      return { enabled };
+    },
+  );
+
   process.on("uncaughtException", (error) => {
     runtimeLog.writeError("process", error);
   });
@@ -126,6 +194,7 @@ void app.whenReady().then(() => {
     );
 
     attachWorkspaceWindowDiagnostics(workspaceWindow, runtimeLog);
+    forensicsRecorder.attachWindow(workspaceWindow.webContents);
 
     if (workspaceBridge === null) {
       workspaceBridge = registerWorkspaceBridge({
@@ -159,6 +228,10 @@ void app.whenReady().then(() => {
         "activate: new window created + bridge re-registered",
       );
     }
+  });
+
+  app.on("before-quit", () => {
+    forensicsRecorder.dispose();
   });
 
   app.on("window-all-closed", () => {

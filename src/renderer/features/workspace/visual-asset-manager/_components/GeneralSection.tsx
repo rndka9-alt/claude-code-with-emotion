@@ -5,6 +5,7 @@ import type {
   VisualMcpSetupTargetId,
   VisualMcpSetupTargetStatus,
 } from "../../../../../shared/mcp-setup-bridge";
+import { useForensicsMode } from "../_hooks";
 import { managerSectionCopyClassName } from "../_utils";
 
 interface GeneralSectionProps {
@@ -106,6 +107,41 @@ function VisualMcpTargetCard({
   );
 }
 
+function ForensicsModeToggle(): ReactElement | null {
+  const { isAvailable, isEnabled, setEnabled } = useForensicsMode();
+
+  if (!isAvailable) {
+    return null;
+  }
+
+  return (
+    <div className="border-border-soft bg-surface-elevated mt-3 flex items-start justify-between gap-4 border px-4 py-4">
+      <div>
+        <h4 className="text-text-primary m-0 text-sm font-semibold">
+          감시 모드
+        </h4>
+        <p className="text-text-secondary m-0 mt-1 text-sm leading-6">
+          켜면 탭 전환 같은 끊김(2초 이상 멈춤)을 잡아 콜스택을 .cpuprofile로
+          저장해요. 추적할 때만 켜는 걸 권해요 — DevTools 수동 프로파일링과 충돌할
+          수 있어요.
+        </p>
+      </div>
+      <label className="text-text-secondary flex shrink-0 items-center gap-2 text-xs">
+        <input
+          aria-label="감시 모드"
+          checked={isEnabled}
+          className="accent-terminal-blue"
+          onChange={(event) => {
+            setEnabled(event.currentTarget.checked);
+          }}
+          type="checkbox"
+        />
+        {isEnabled ? "켜짐" : "꺼짐"}
+      </label>
+    </div>
+  );
+}
+
 export function GeneralSection({
   installingVisualMcpTargetId,
   mcpSetupErrorsByTargetId,
@@ -143,6 +179,8 @@ export function GeneralSection({
           status={codexStatus}
         />
       </div>
+
+      <ForensicsModeToggle />
 
       <div className="border-border-soft mt-3 border-t pt-4">
         <p className="text-text-subtle m-0 font-mono text-[11px] tracking-wide select-all">

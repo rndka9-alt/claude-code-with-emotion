@@ -5,6 +5,7 @@ import type {
   AssistantStatusBridge,
 } from "./assistant-status";
 import type { RuntimeDiagnosticPayload } from "./diagnostics";
+import type { ForensicsModeBridge } from "./forensics-bridge";
 import type { LinksBridge } from "./links-bridge";
 import type { VisualMcpSetupBridge } from "./mcp-setup-bridge";
 import type { TerminalBridge } from "./terminal-bridge";
@@ -28,6 +29,7 @@ export interface ClaudeAppApi {
   readonly appTheme: AppThemeBridge;
   readonly assistantStatus: AssistantStatusBridge;
   readonly diagnostics: DiagnosticsBridge;
+  readonly forensics: ForensicsModeBridge;
   readonly links: LinksBridge;
   readonly mcpSetup: VisualMcpSetupBridge;
   readonly terminals: TerminalBridge;
