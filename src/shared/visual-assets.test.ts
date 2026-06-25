@@ -165,7 +165,10 @@ describe("visual asset resolver", () => {
 
     expect(availableOptions.states).toEqual(["working"]);
     expect(availableOptions.emotions).toEqual(["happy"]);
-    expect(availableOptions.emotionDescriptions).toEqual({});
+    // 커스텀 설명이 없으면 EMOTION_PRESETS 기본 설명으로 폴백한다.
+    expect(availableOptions.emotionDescriptions).toEqual({
+      happy: "A positive completion or upbeat reaction.",
+    });
   });
 
   it("resolves a custom state line when one exists", () => {

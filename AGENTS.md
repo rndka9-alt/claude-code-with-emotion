@@ -7,6 +7,13 @@
 - Hide internal implementation details.
 - Refactor structure without breaking callers.
 
+## Platform Support
+
+- The primary target is macOS.
+- Windows compatibility code exists best-effort (bin `.cmd` shims, `win32` branches in `helper-bin-resolver`/shell adapters, codex-hook-preflight's Windows shell quoting) but is **not maintained or verified**.
+- Do not trust Windows behavior or spend time on it.
+- When changing or removing a Windows branch, only macOS behavior must stay intact.
+
 ## Shared Rules
 
 1. A module is a directory by default.

@@ -1,24 +1,21 @@
-const path = require("node:path");
+import path from "node:path";
+import { ENV_KEYS } from "../../shared/env-keys";
 
 const VISUAL_MCP_SERVER_NAME = "claude-code-with-emotion-visuals";
-const ENV_KEYS = {
-  ASSISTANT_PROVIDER_ID: "CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID",
-  EVENT_QUEUE_DIR: "CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR",
-  HELPER_BIN_DIR: "CLAUDE_WITH_EMOTION_HELPER_BIN_DIR",
-  TRACE_FILE: "CLAUDE_WITH_EMOTION_TRACE_FILE",
-  VISUAL_ASSET_CATALOG_FILE: "CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE",
-  VISUAL_MCP_STATE_FILE: "CLAUDE_WITH_EMOTION_VISUAL_MCP_STATE_FILE",
-};
 
-function quoteTomlValue(value) {
+function quoteTomlValue(value: string): string {
   return JSON.stringify(value);
 }
 
-function createConfigOverride(key, value) {
+function createConfigOverride(key: string, value: string): string[] {
   return ["-c", `${key}=${quoteTomlValue(value)}`];
 }
 
-function appendEnvOverride(args, envName, value) {
+function appendEnvOverride(
+  args: string[],
+  envName: string,
+  value: string | undefined,
+): void {
   if (typeof value !== "string" || value.length === 0) {
     return;
   }
@@ -31,8 +28,10 @@ function appendEnvOverride(args, envName, value) {
   );
 }
 
-function createCodexVisualMcpRuntimeArgs(env = process.env) {
-  const args = [];
+export function createCodexVisualMcpRuntimeArgs(
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
+  const args: string[] = [];
   const helperBinDir = env[ENV_KEYS.HELPER_BIN_DIR];
 
   if (typeof helperBinDir === "string" && helperBinDir.length > 0) {
@@ -46,11 +45,7 @@ function createCodexVisualMcpRuntimeArgs(env = process.env) {
     );
   }
 
-  appendEnvOverride(
-    args,
-    ENV_KEYS.EVENT_QUEUE_DIR,
-    env[ENV_KEYS.EVENT_QUEUE_DIR],
-  );
+  appendEnvOverride(args, ENV_KEYS.EVENT_QUEUE_DIR, env[ENV_KEYS.EVENT_QUEUE_DIR]);
   appendEnvOverride(args, ENV_KEYS.TRACE_FILE, env[ENV_KEYS.TRACE_FILE]);
   appendEnvOverride(
     args,
@@ -75,7 +70,3 @@ function createCodexVisualMcpRuntimeArgs(env = process.env) {
     ...args,
   ];
 }
-
-module.exports = {
-  createCodexVisualMcpRuntimeArgs,
-};

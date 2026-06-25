@@ -1,29 +1,56 @@
-#!/usr/bin/env node
-
-const { spawnSync } = require("node:child_process");
-const fs = require("node:fs");
-const path = require("node:path");
-const { createVisualPromptHints } = require("./lib/claude-visual-mcp-prompts");
-const {
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { createVisualPromptHints } from "./lib/claude-visual-mcp-prompts";
+import {
   createVisualMcpChildEnv,
   describeVisualMcpRuntimeSources,
   resolveVisualMcpRuntime,
-} = require("./lib/claude-visual-mcp-state");
+} from "./lib/claude-visual-mcp-state";
 
 const SERVER_NAME = "claude-code-with-emotion-visuals";
 const SERVER_VERSION = "0.1.0";
 const helperDir = __dirname;
 const nodeRuntimePath = process.execPath;
-// 우리 .cjs 헬퍼들은 helperDir 에 같이 놓여 잇어서 확장자 업는 이름으로 바로 찾는다.
-// getHelperBinFilename 은 PATH 노출용 shim 이름(.cmd 등)을 돌려주기 때문에 node 로는 실행 불가.
+// 번들 후 이 entry 는 bin/ 에 놓이고 형제 헬퍼(claude-status, claude-visual-state)도 같은 bin/ 에 있다.
 const statusHelperPath = path.join(helperDir, "claude-status");
 const visualStateHelperPath = path.join(helperDir, "claude-visual-state");
 
+interface AvailableVisualOptions {
+  emotionDescriptions: Record<string, unknown>;
+  emotions: string[];
+  states: string[];
+}
+
+interface ToolTextContent {
+  text: string;
+  type: "text";
+}
+
+interface ToolResult {
+  content: ToolTextContent[];
+  isError?: boolean;
+}
+
+type TransportMode = "content-length" | "jsonl";
+
 let inputBuffer = Buffer.alloc(0);
 let negotiatedProtocolVersion = "2024-11-05";
-let transportMode = "content-length";
+let transportMode: TransportMode = "content-length";
 
-function appendTrace(message) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function emptyVisualOptions(): AvailableVisualOptions {
+  return {
+    states: [],
+    emotions: [],
+    emotionDescriptions: {},
+  };
+}
+
+function appendTrace(message: string): void {
   const traceFilePath = resolveVisualMcpRuntime().traceFilePath;
 
   if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
@@ -39,7 +66,7 @@ function appendTrace(message) {
   }
 }
 
-function sendMessage(message) {
+function sendMessage(message: Record<string, unknown>): void {
   const json = JSON.stringify(message);
   const contentLength = Buffer.byteLength(json, "utf8");
 
@@ -55,7 +82,7 @@ function sendMessage(message) {
   process.stdout.write(`Content-Length: ${contentLength}\r\n\r\n${json}`);
 }
 
-function sendSuccess(id, result) {
+function sendSuccess(id: unknown, result: unknown): void {
   sendMessage({
     jsonrpc: "2.0",
     id,
@@ -63,7 +90,7 @@ function sendSuccess(id, result) {
   });
 }
 
-function sendError(id, code, message) {
+function sendError(id: unknown, code: number, message: string): void {
   sendMessage({
     jsonrpc: "2.0",
     id,
@@ -74,16 +101,12 @@ function sendError(id, code, message) {
   });
 }
 
-function readAvailableVisualOptions() {
+function readAvailableVisualOptions(): AvailableVisualOptions {
   const runtime = resolveVisualMcpRuntime();
 
   if (runtime.visualAssetCatalogFilePath.length === 0) {
     appendTrace("visual options unavailable catalogPath=missing");
-    return {
-      states: [],
-      emotions: [],
-      emotionDescriptions: {},
-    };
+    return emptyVisualOptions();
   }
 
   const result = spawnSync(
@@ -100,28 +123,20 @@ function readAvailableVisualOptions() {
     appendTrace(
       `visual options helper failed status=${result.status ?? "null"} stderr=${JSON.stringify(result.stderr ?? "")}`,
     );
-    return {
-      states: [],
-      emotions: [],
-      emotionDescriptions: {},
-    };
+    return emptyVisualOptions();
   }
 
   try {
-    const parsed = JSON.parse(result.stdout.trim());
+    const parsed: unknown = JSON.parse(result.stdout.trim());
 
     if (
-      typeof parsed === "object" &&
-      parsed !== null &&
+      isRecord(parsed) &&
       Array.isArray(parsed.states) &&
       Array.isArray(parsed.emotions)
     ) {
       // emotionDescriptions 는 구버전 helper 호환을 위해 업스면 빈 객체로 폴백.
-      const emotionDescriptions =
-        typeof parsed.emotionDescriptions === "object" &&
-        parsed.emotionDescriptions !== null
-          ? parsed.emotionDescriptions
-          : {};
+      const descriptions = parsed.emotionDescriptions;
+      const emotionDescriptions = isRecord(descriptions) ? descriptions : {};
 
       return {
         states: parsed.states,
@@ -133,14 +148,10 @@ function readAvailableVisualOptions() {
     // Fall through to the empty response.
   }
 
-  return {
-    states: [],
-    emotions: [],
-    emotionDescriptions: {},
-  };
+  return emptyVisualOptions();
 }
 
-function createToolsListResult() {
+function createToolsListResult(): { tools: Record<string, unknown>[] } {
   const runtime = resolveVisualMcpRuntime();
 
   if (runtime.eventQueueDir.length === 0) {
@@ -160,16 +171,6 @@ function createToolsListResult() {
 
   return {
     tools: [
-      {
-        name: "get_available_visual_options",
-        description:
-          "Return the currently mapped visual state and emotion presets from the local app catalog.",
-        inputSchema: {
-          type: "object",
-          properties: {},
-          additionalProperties: false,
-        },
-      },
       {
         name: "set_visual_overlay",
         description: promptHints.overlaySelectionPrompt,
@@ -193,7 +194,7 @@ function createToolsListResult() {
   };
 }
 
-function callVisualOverlayTool(argumentsObject) {
+function callVisualOverlayTool(argumentsObject: unknown): ToolResult {
   const runtime = resolveVisualMcpRuntime();
   const sources = describeVisualMcpRuntimeSources();
 
@@ -201,7 +202,7 @@ function callVisualOverlayTool(argumentsObject) {
     `set_visual_overlay requested eventQueueDir=${runtime.eventQueueDir || "<missing>"} eventQueueDirSource=${sources.eventQueueDirSource} stateFile=${sources.stateFilePath} provider=${runtime.assistantProviderId || "<missing>"}`,
   );
 
-  if (typeof argumentsObject !== "object" || argumentsObject === null) {
+  if (!isRecord(argumentsObject)) {
     return {
       isError: true,
       content: [
@@ -231,7 +232,7 @@ function callVisualOverlayTool(argumentsObject) {
     };
   }
 
-  const payload = {};
+  const payload: { emotion?: string | null; line?: string | null } = {};
 
   if (hasEmotion) {
     const availableOptions = readAvailableVisualOptions();
@@ -328,8 +329,8 @@ function callVisualOverlayTool(argumentsObject) {
   };
 }
 
-function handleRequest(message) {
-  if (typeof message !== "object" || message === null) {
+function handleRequest(message: unknown): void {
+  if (!isRecord(message)) {
     appendTrace("ignore non-object request");
     return;
   }
@@ -355,11 +356,10 @@ function handleRequest(message) {
   }
 
   if (method === "initialize") {
+    const params = message.params;
     const requestedProtocolVersion =
-      typeof message.params === "object" &&
-      message.params !== null &&
-      typeof message.params.protocolVersion === "string"
-        ? message.params.protocolVersion
+      isRecord(params) && typeof params.protocolVersion === "string"
+        ? params.protocolVersion
         : negotiatedProtocolVersion;
 
     negotiatedProtocolVersion = requestedProtocolVersion;
@@ -383,33 +383,10 @@ function handleRequest(message) {
   }
 
   if (method === "tools/call") {
+    const params = message.params;
     const toolName =
-      typeof message.params === "object" &&
-      message.params !== null &&
-      typeof message.params.name === "string"
-        ? message.params.name
-        : null;
-    const argumentsObject =
-      typeof message.params === "object" && message.params !== null
-        ? message.params.arguments
-        : null;
-
-    if (toolName === "get_available_visual_options") {
-      const availableOptions = readAvailableVisualOptions();
-
-      // emotion 카탈로그(설명)는 동적이라 이 도구로 조회한다. 응답 페이로드를 줄이려고
-      // content 한 곳에만 싣고, set_visual_overlay description 과 중복되는 promptHints 와
-      // content 를 그대로 복제하던 structuredContent 는 싣지 않는다.
-      sendSuccess(id, {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(availableOptions),
-          },
-        ],
-      });
-      return;
-    }
+      isRecord(params) && typeof params.name === "string" ? params.name : null;
+    const argumentsObject = isRecord(params) ? params.arguments : null;
 
     if (toolName === "set_visual_overlay") {
       sendSuccess(id, callVisualOverlayTool(argumentsObject));
@@ -425,7 +402,7 @@ function handleRequest(message) {
   }
 }
 
-function processInputBuffer() {
+function processInputBuffer(): void {
   while (true) {
     if (transportMode === "jsonl") {
       const newlineIndex = inputBuffer.indexOf("\n");
@@ -530,7 +507,7 @@ appendTrace(`server start pid=${process.pid} cwd=${process.cwd()}`);
     `runtime resolved provider=${runtime.assistantProviderId || "<missing>"} providerSource=${sources.assistantProviderIdSource} eventQueueDir=${runtime.eventQueueDir || "<missing>"} eventQueueDirSource=${sources.eventQueueDirSource} traceSource=${sources.traceFilePathSource} catalog=${runtime.visualAssetCatalogFilePath || "<missing>"} catalogSource=${sources.visualAssetCatalogFilePathSource} stateFile=${sources.stateFilePath}`,
   );
 }
-process.stdin.on("data", (chunk) => {
+process.stdin.on("data", (chunk: Buffer) => {
   appendTrace(`stdin chunk bytes=${chunk.length}`);
   appendTrace(`stdin chunk preview=${JSON.stringify(chunk.toString("utf8"))}`);
 

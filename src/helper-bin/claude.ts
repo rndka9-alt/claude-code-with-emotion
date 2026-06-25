@@ -1,11 +1,9 @@
-#!/usr/bin/env node
+import { ENV_KEYS } from "../shared/env-keys";
+import { runAssistantCliWrapper } from "./lib/assistant-cli-wrapper";
+import { createVisualToolUsagePrompt } from "./lib/claude-session-prompts";
 
-const { createVisualToolUsagePrompt } = require("./lib/claude-session-prompts");
-const { runAssistantCliWrapper } = require("./lib/assistant-cli-wrapper");
-
-function main() {
-  const hooksSettingsFilePath =
-    process.env.CLAUDE_WITH_EMOTION_HOOKS_SETTINGS_FILE;
+function main(): void {
+  const hooksSettingsFilePath = process.env[ENV_KEYS.HOOKS_SETTINGS_FILE];
   const visualToolUsagePrompt = createVisualToolUsagePrompt();
 
   runAssistantCliWrapper({
@@ -13,7 +11,7 @@ function main() {
     displayName: "Claude",
     traceLabel: "claude-wrapper",
     createRuntimeArgs: () => {
-      const runtimeArgs = [];
+      const runtimeArgs: string[] = [];
 
       if (
         typeof hooksSettingsFilePath === "string" &&

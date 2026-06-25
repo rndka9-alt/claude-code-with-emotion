@@ -16,7 +16,22 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: "./",
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      // helper-bin 소스는 prompt .md 를 문자열로 import 한다(esbuild text loader 와 동일).
+      // vitest 가 그 모듈을 테스트할 수 있도록 .md 를 text 로 변환한다.
+      {
+        name: "load-md-as-text",
+        transform(code: string, id: string) {
+          if (id.endsWith(".md")) {
+            return { code: `export default ${JSON.stringify(code)};`, map: null };
+          }
+
+          return null;
+        },
+      },
+    ],
     define: {
       __BUILD_COMMIT__: JSON.stringify(getGitCommitHash()),
       __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),

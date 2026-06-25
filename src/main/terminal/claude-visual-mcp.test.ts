@@ -296,12 +296,9 @@ describe("claude-visual-mcp", () => {
       "neutral",
       "sad",
     ]);
-    expect(readToolNames(toolsListResponse)).toEqual(
-      expect.arrayContaining([
-        "get_available_visual_options",
-        "set_visual_overlay",
-      ]),
-    );
+    // get_available_visual_options 는 제거됐다. emotion 카탈로그는 세션 시작 시
+    // append-system-prompt 로 1회 주입되므로, MCP 도구는 set_visual_overlay 하나뿐이다.
+    expect(readToolNames(toolsListResponse)).toEqual(["set_visual_overlay"]);
   });
 
   it("writes an emotion overlay through the merged tool call", async () => {

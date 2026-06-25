@@ -1,18 +1,17 @@
-#!/usr/bin/env node
+import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { ENV_KEYS } from "../shared/env-keys";
 
-const fs = require("node:fs");
-const { spawnSync } = require("node:child_process");
-const path = require("node:path");
+interface CodexStatusUpdate {
+  activity: string;
+  intensity: string;
+  line: string;
+  state: string;
+  task: string;
+}
 
-const ENV_KEYS = {
-  ASSISTANT_PROVIDER_ID: "CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID",
-  EVENT_QUEUE_DIR: "CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR",
-  HELPER_BIN_DIR: "CLAUDE_WITH_EMOTION_HELPER_BIN_DIR",
-  HOOK_STATE_FILE: "CLAUDE_WITH_EMOTION_HOOK_STATE_FILE",
-  TRACE_FILE: "CLAUDE_WITH_EMOTION_TRACE_FILE",
-  VISUAL_ASSET_CATALOG_FILE: "CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE",
-};
-const ENV_KEY_BY_RUNTIME_FLAG = {
+const ENV_KEY_BY_RUNTIME_FLAG: Record<string, string> = {
   "--assistant-provider-id": ENV_KEYS.ASSISTANT_PROVIDER_ID,
   "--event-queue-dir": ENV_KEYS.EVENT_QUEUE_DIR,
   "--helper-bin-dir": ENV_KEYS.HELPER_BIN_DIR,
@@ -21,7 +20,11 @@ const ENV_KEY_BY_RUNTIME_FLAG = {
   "--visual-asset-catalog-file": ENV_KEYS.VISUAL_ASSET_CATALOG_FILE,
 };
 
-function readStdin() {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function readStdin(): string {
   try {
     return fs.readFileSync(0, "utf8");
   } catch {
@@ -29,7 +32,7 @@ function readStdin() {
   }
 }
 
-function parseHookInput() {
+function parseHookInput(): Record<string, unknown> {
   const input = readStdin().trim();
 
   if (input.length === 0) {
@@ -37,13 +40,15 @@ function parseHookInput() {
   }
 
   try {
-    return JSON.parse(input);
+    const parsed: unknown = JSON.parse(input);
+
+    return isRecord(parsed) ? parsed : {};
   } catch {
     return {};
   }
 }
 
-function applyRuntimeArgs(argv) {
+function applyRuntimeArgs(argv: string[]): void {
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
     const envKey =
@@ -68,7 +73,7 @@ function applyRuntimeArgs(argv) {
   }
 }
 
-function appendTrace(message) {
+function appendTrace(message: string): void {
   const traceFilePath = process.env[ENV_KEYS.TRACE_FILE];
 
   if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
@@ -84,12 +89,15 @@ function appendTrace(message) {
   }
 }
 
-function collectPayloadIdentityCandidates(value, pathParts = []) {
-  if (pathParts.length > 6 || value === null || typeof value !== "object") {
+function collectPayloadIdentityCandidates(
+  value: unknown,
+  pathParts: string[] = [],
+): string[] {
+  if (pathParts.length > 6 || !isRecord(value)) {
     return [];
   }
 
-  const candidates = [];
+  const candidates: string[] = [];
 
   for (const [key, nestedValue] of Object.entries(value)) {
     const nextPathParts = [...pathParts, key];
@@ -103,11 +111,7 @@ function collectPayloadIdentityCandidates(value, pathParts = []) {
       candidates.push(`${pathText}=${nestedValue.slice(0, 120)}`);
     }
 
-    if (
-      nestedValue !== null &&
-      typeof nestedValue === "object" &&
-      candidates.length < 24
-    ) {
+    if (isRecord(nestedValue) && candidates.length < 24) {
       candidates.push(
         ...collectPayloadIdentityCandidates(nestedValue, nextPathParts),
       );
@@ -121,11 +125,8 @@ function collectPayloadIdentityCandidates(value, pathParts = []) {
   return candidates;
 }
 
-function traceHookInput(hookInput) {
-  const topLevelKeys =
-    hookInput !== null && typeof hookInput === "object"
-      ? Object.keys(hookInput)
-      : [];
+function traceHookInput(hookInput: Record<string, unknown>): void {
+  const topLevelKeys = Object.keys(hookInput);
   const eventName =
     typeof hookInput.hook_event_name === "string"
       ? hookInput.hook_event_name
@@ -147,7 +148,7 @@ function traceHookInput(hookInput) {
   );
 }
 
-function publishStatus(args) {
+function publishStatus(args: string[]): void {
   const helperBinDir = process.env[ENV_KEYS.HELPER_BIN_DIR];
 
   if (typeof helperBinDir === "string" && helperBinDir.length > 0) {
@@ -164,7 +165,9 @@ function publishStatus(args) {
   spawnSync("claude-status", args, { stdio: "ignore" });
 }
 
-function resolveStatusForEvent(hookInput) {
+function resolveStatusForEvent(
+  hookInput: Record<string, unknown>,
+): CodexStatusUpdate | null {
   const eventName =
     typeof hookInput.hook_event_name === "string"
       ? hookInput.hook_event_name
@@ -267,7 +270,7 @@ function resolveStatusForEvent(hookInput) {
   return null;
 }
 
-function main() {
+function main(): void {
   applyRuntimeArgs(process.argv.slice(2));
 
   const hookInput = parseHookInput();

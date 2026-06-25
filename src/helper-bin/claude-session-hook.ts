@@ -1,12 +1,24 @@
-#!/usr/bin/env node
+import fs from "node:fs";
+import { dirname, join } from "node:path";
+import { spawnSync, type SpawnSyncOptions } from "node:child_process";
+import { ENV_KEYS } from "../shared/env-keys";
+import { getHelperBinFilename } from "./lib/helper-bin-resolver";
 
-const fs = require("node:fs");
-const { dirname, join } = require("node:path");
-const { spawnSync } = require("node:child_process");
-const { getHelperBinFilename } = require("./lib/helper-bin-resolver");
+interface HookUpdate {
+  activity: string;
+  emotion?: string;
+  intensity: string;
+  line: string;
+  state: string;
+  task: string;
+}
 
-function appendTrace(message) {
-  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function appendTrace(message: string): void {
+  const traceFilePath = process.env[ENV_KEYS.TRACE_FILE];
 
   if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
     return;
@@ -21,7 +33,7 @@ function appendTrace(message) {
   }
 }
 
-function readStdinText() {
+function readStdinText(): string {
   try {
     return fs.readFileSync(0, "utf8").trim();
   } catch {
@@ -29,15 +41,15 @@ function readStdinText() {
   }
 }
 
-function parsePayload(text) {
+function parsePayload(text: string): Record<string, unknown> | null {
   if (text.length === 0) {
     return null;
   }
 
   try {
-    const parsed = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
 
-    if (typeof parsed === "object" && parsed !== null) {
+    if (isRecord(parsed)) {
       return parsed;
     }
   } catch {
@@ -47,8 +59,8 @@ function parsePayload(text) {
   return null;
 }
 
-function readStringField(payload, keys) {
-  if (typeof payload !== "object" || payload === null) {
+function readStringField(payload: unknown, keys: string[]): string | null {
+  if (!isRecord(payload)) {
     return null;
   }
 
@@ -63,8 +75,8 @@ function readStringField(payload, keys) {
   return null;
 }
 
-function readBooleanField(payload, keys) {
-  if (typeof payload !== "object" || payload === null) {
+function readBooleanField(payload: unknown, keys: string[]): boolean | null {
+  if (!isRecord(payload)) {
     return null;
   }
 
@@ -89,7 +101,11 @@ function readBooleanField(payload, keys) {
   return null;
 }
 
-function summarizeText(text, fallback, prefix) {
+function summarizeText(
+  text: string | null,
+  fallback: string,
+  prefix: string,
+): string {
   if (typeof text !== "string") {
     return fallback;
   }
@@ -106,7 +122,7 @@ function summarizeText(text, fallback, prefix) {
   return `${prefix}${normalizedText}`;
 }
 
-function summarizePrompt(payload) {
+function summarizePrompt(payload: unknown): string {
   return summarizeText(
     readStringField(payload, ["prompt", "user_prompt", "input", "message"]),
     "Reviewing the latest user prompt",
@@ -114,7 +130,7 @@ function summarizePrompt(payload) {
   );
 }
 
-function summarizeTool(payload, fallback) {
+function summarizeTool(payload: unknown, fallback: string): string {
   const toolName = readStringField(payload, [
     "tool_name",
     "toolName",
@@ -129,7 +145,7 @@ function summarizeTool(payload, fallback) {
   return `${fallback} (${toolName})`;
 }
 
-function summarizePermission(payload) {
+function summarizePermission(payload: unknown): string {
   const toolName = readStringField(payload, [
     "tool_name",
     "toolName",
@@ -148,7 +164,7 @@ function summarizePermission(payload) {
   );
 }
 
-function summarizeNotification(payload) {
+function summarizeNotification(payload: unknown): string {
   return summarizeText(
     readStringField(payload, [
       "message",
@@ -162,10 +178,9 @@ function summarizeNotification(payload) {
   );
 }
 
-function summarizePermissionCancellation(pendingPermission) {
+function summarizePermissionCancellation(pendingPermission: unknown): string {
   if (
-    typeof pendingPermission === "object" &&
-    pendingPermission !== null &&
+    isRecord(pendingPermission) &&
     typeof pendingPermission.task === "string" &&
     pendingPermission.task.length > 0
   ) {
@@ -175,7 +190,7 @@ function summarizePermissionCancellation(pendingPermission) {
   return "Permission was not approved";
 }
 
-function summarizeElicitation(payload) {
+function summarizeElicitation(payload: unknown): string {
   return summarizeText(
     readStringField(payload, ["question", "prompt", "message", "text"]),
     "Waiting for additional input",
@@ -188,7 +203,7 @@ function summarizeElicitation(payload) {
 //  - TaskCompleted: task_subject(요약), task_description(상세, optional)
 //  - SubagentStop: last_assistant_message, agent_type, agent_id
 //  - SubagentStart: agent_type, agent_id
-function summarizeBackgroundTask(payload, fallback) {
+function summarizeBackgroundTask(payload: unknown, fallback: string): string {
   return summarizeText(
     readStringField(payload, [
       "task_subject",
@@ -206,18 +221,18 @@ function summarizeBackgroundTask(payload, fallback) {
 // (permission_prompt / idle_prompt / auth_success / elicitation_dialog).
 // 과거엔 notification/type/subtype 를 추정으로 읽엇는데 실제 필드명과 달라서
 // 권한 팝업이 항상 surprised 폴백으로 새던 버그가 잇엇다.
-function isPermissionPromptNotification(payload) {
+function isPermissionPromptNotification(payload: unknown): boolean {
   const notificationType = readStringField(payload, ["notification_type"]);
 
   return notificationType === "permission_prompt";
 }
 
-function isToolInterrupt(payload) {
+function isToolInterrupt(payload: unknown): boolean {
   return readBooleanField(payload, ["is_interrupt"]) === true;
 }
 
-function getHookStateFilePath() {
-  const hookStateFilePath = process.env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE;
+function getHookStateFilePath(): string | null {
+  const hookStateFilePath = process.env[ENV_KEYS.HOOK_STATE_FILE];
 
   if (typeof hookStateFilePath !== "string" || hookStateFilePath.length === 0) {
     return null;
@@ -226,7 +241,7 @@ function getHookStateFilePath() {
   return hookStateFilePath;
 }
 
-function readHookState() {
+function readHookState(): Record<string, unknown> {
   const hookStateFilePath = getHookStateFilePath();
 
   if (hookStateFilePath === null) {
@@ -235,9 +250,9 @@ function readHookState() {
 
   try {
     const text = fs.readFileSync(hookStateFilePath, "utf8");
-    const parsed = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
 
-    if (typeof parsed === "object" && parsed !== null) {
+    if (isRecord(parsed)) {
       return parsed;
     }
   } catch (error) {
@@ -249,7 +264,7 @@ function readHookState() {
   return {};
 }
 
-function writeHookState(nextState) {
+function writeHookState(nextState: Record<string, unknown>): void {
   const hookStateFilePath = getHookStateFilePath();
 
   if (hookStateFilePath === null) {
@@ -270,22 +285,28 @@ function writeHookState(nextState) {
   }
 }
 
-function getPendingPermission(hookState) {
-  if (typeof hookState !== "object" || hookState === null) {
+function getPendingPermission(
+  hookState: unknown,
+): Record<string, unknown> | null {
+  if (!isRecord(hookState)) {
     return null;
   }
 
   const pendingPermission = hookState.pendingPermission;
 
-  if (typeof pendingPermission !== "object" || pendingPermission === null) {
+  if (!isRecord(pendingPermission)) {
     return null;
   }
 
   return pendingPermission;
 }
 
-function buildNextHookState(eventName, payload, hookState) {
-  const nextState = {
+function buildNextHookState(
+  eventName: string,
+  payload: unknown,
+  hookState: Record<string, unknown>,
+): Record<string, unknown> {
+  const nextState: Record<string, unknown> = {
     ...hookState,
     lastEvent: eventName,
   };
@@ -321,8 +342,8 @@ function buildNextHookState(eventName, payload, hookState) {
   return nextState;
 }
 
-function describePayloadForTrace(payload) {
-  if (typeof payload !== "object" || payload === null) {
+function describePayloadForTrace(payload: unknown): string {
+  if (!isRecord(payload)) {
     return "none";
   }
 
@@ -363,7 +384,11 @@ function describePayloadForTrace(payload) {
     .join(" | ");
 }
 
-function createUpdate(eventName, payload, hookState) {
+function createUpdate(
+  eventName: string,
+  payload: unknown,
+  hookState: Record<string, unknown>,
+): HookUpdate | null {
   const pendingPermission = getPendingPermission(hookState);
 
   if (eventName === "SessionStart") {
@@ -618,11 +643,16 @@ function createUpdate(eventName, payload, hookState) {
   return null;
 }
 
-// helperBinDir 가 주입댄 정상 경로에선 node 로 확장자 업는 .cjs 를 직접 실행한다 — 플랫폼 무관.
+// helperBinDir 가 주입댄 정상 경로에선 node 로 확장자 업는 헬퍼를 직접 실행한다 — 플랫폼 무관.
 // helperBinDir 가 누락댄 방어적 폴백에선 PATH 에 설치댄 shim(윈도우는 .cmd)에 기대는데,
 // 윈도우 .cmd 실행엔 shell 경유가 필요.
-function spawnHelperBin(baseName, args, spawnOptions) {
-  const helperBinDir = process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR;
+// 윈도우 분기는 best-effort·미유지보수다(CLAUDE.md Platform Support).
+function spawnHelperBin(
+  baseName: string,
+  args: string[],
+  spawnOptions: SpawnSyncOptions,
+) {
+  const helperBinDir = process.env[ENV_KEYS.HELPER_BIN_DIR];
 
   if (typeof helperBinDir === "string" && helperBinDir.length > 0) {
     const cjsPath = join(helperBinDir, baseName);
@@ -642,7 +672,7 @@ function spawnHelperBin(baseName, args, spawnOptions) {
   };
 }
 
-function publishStatus(update) {
+function publishStatus(update: HookUpdate): void {
   const args = [
     "--state",
     update.state,
@@ -681,7 +711,7 @@ function publishStatus(update) {
   }
 }
 
-function publishVisualOverlayEmotion(emotion) {
+function publishVisualOverlayEmotion(emotion: string): void {
   const { result, command } = spawnHelperBin(
     "claude-visual-state",
     ["--emotion", emotion],
@@ -706,7 +736,7 @@ function publishVisualOverlayEmotion(emotion) {
 // /clear 로 Claude CLI 가 재시작대도 메인 프로세스의 overlay 스토어는 그대로 살아 잇어서
 // 이전 세션의 한마디·감정 에셋이 다음 세션 패널에 그대로 남는다. 세션 경계(SessionStart) 에서
 // overlay 파일에 {"emotion": null, "line": null} 을 찍어 스토어의 visualOverlay 를 통째로 비워준다.
-function resetVisualOverlay() {
+function resetVisualOverlay(): void {
   const { result, command } = spawnHelperBin(
     "claude-visual-state",
     ["--reset"],
@@ -728,7 +758,7 @@ function resetVisualOverlay() {
   }
 }
 
-function main() {
+function main(): void {
   const eventName = process.argv[2];
 
   if (typeof eventName !== "string" || eventName.length === 0) {

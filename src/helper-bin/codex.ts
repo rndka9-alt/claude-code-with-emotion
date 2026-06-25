@@ -1,13 +1,9 @@
-#!/usr/bin/env node
+import { runAssistantCliWrapper } from "./lib/assistant-cli-wrapper";
+import { createVisualToolUsagePrompt } from "./lib/claude-session-prompts";
+import { createCodexHookRuntime } from "./lib/codex-hook-preflight";
+import { createCodexVisualMcpRuntimeArgs } from "./lib/codex-visual-mcp-runtime";
 
-const { runAssistantCliWrapper } = require("./lib/assistant-cli-wrapper");
-const { createVisualToolUsagePrompt } = require("./lib/claude-session-prompts");
-const { createCodexHookRuntime } = require("./lib/codex-hook-preflight");
-const {
-  createCodexVisualMcpRuntimeArgs,
-} = require("./lib/codex-visual-mcp-runtime");
-
-function main() {
+function main(): void {
   let hookRuntimeDescription = "hooks=not-checked";
   const visualToolUsagePrompt = createVisualToolUsagePrompt();
 
@@ -15,12 +11,8 @@ function main() {
     binaryName: "codex",
     displayName: "Codex CLI",
     traceLabel: "codex-wrapper",
-    createRuntimeArgs: ({ realBinary, originalPath, publishStatusUpdate }) => {
-      const hookRuntime = createCodexHookRuntime(
-        realBinary,
-        originalPath,
-        publishStatusUpdate,
-      );
+    createRuntimeArgs: ({ realBinary, originalPath }) => {
+      const hookRuntime = createCodexHookRuntime(realBinary, originalPath);
 
       hookRuntimeDescription = hookRuntime.description;
       const visualMcpRuntimeArgs = createCodexVisualMcpRuntimeArgs();

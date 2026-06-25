@@ -1,21 +1,23 @@
-const { accessSync, constants, statSync } = require("node:fs");
-const path = require("node:path");
+import { accessSync, constants, statSync } from "node:fs";
+import path from "node:path";
 
-// bin/ 스크립트는 .cjs 라 TS 어댑터(src/main/platform/helper-bin-resolver.ts) 를 임포트할 수 업다.
-// 같은 로직을 이 파일에서 복제해서 사용한다. 윈도우·POSIX 대응은 두 곳 모두 손봐야 한다.
+// bin 헬퍼는 별도 Node 프로세스로 실행되어 Electron 의 asar require 패치를 못 쓴다.
+// 외부 바이너리(claude 등)의 PATH 탐색과 우리 헬퍼 파일명 규칙은 플랫폼마다 달라서
+// 이 모듈이 그 차이를 흡수한다. 윈도우·POSIX 대응은 두 분기를 함께 손봐야 한다.
+// 단, 윈도우 분기는 best-effort 로만 존재하며 유지보수·검증되지 않는다(CLAUDE.md Platform Support 참고).
 
 const IS_WINDOWS = process.platform === "win32";
 
 // --- POSIX ---
 
-function splitPosixPathList(value) {
+function splitPosixPathList(value: string | undefined): string[] {
   if (typeof value !== "string" || value.length === 0) {
     return [];
   }
   return value.split(path.delimiter);
 }
 
-function isExecutable(pathname) {
+function isExecutable(pathname: string): boolean {
   try {
     accessSync(pathname, constants.X_OK);
     return true;
@@ -24,7 +26,10 @@ function isExecutable(pathname) {
   }
 }
 
-function findPosixExecutableInPath(binaryName, pathValue) {
+function findPosixExecutableInPath(
+  binaryName: string,
+  pathValue: string | undefined,
+): string | null {
   const segments = splitPosixPathList(pathValue);
 
   for (const segment of segments) {
@@ -42,7 +47,7 @@ function findPosixExecutableInPath(binaryName, pathValue) {
   return null;
 }
 
-function getPosixHelperBinFilename(baseName) {
+function getPosixHelperBinFilename(baseName: string): string {
   return baseName;
 }
 
@@ -51,14 +56,14 @@ function getPosixHelperBinFilename(baseName) {
 const DEFAULT_PATHEXT = ".COM;.EXE;.BAT;.CMD";
 const WINDOWS_LIST_DELIMITER = ";";
 
-function splitWindowsList(value) {
+function splitWindowsList(value: string | undefined): string[] {
   if (typeof value !== "string" || value.length === 0) {
     return [];
   }
   return value.split(WINDOWS_LIST_DELIMITER);
 }
 
-function parsePathExtensions(pathextValue) {
+function parsePathExtensions(pathextValue: string | undefined): string[] {
   const raw =
     typeof pathextValue === "string" && pathextValue.length > 0
       ? pathextValue
@@ -67,19 +72,19 @@ function parsePathExtensions(pathextValue) {
   return splitWindowsList(raw).filter((ext) => ext.length > 0);
 }
 
-function hasExistingPathExt(binaryName, extensions) {
+function hasExistingPathExt(binaryName: string, extensions: string[]): boolean {
   const lowerName = binaryName.toLowerCase();
   return extensions.some((ext) => lowerName.endsWith(ext.toLowerCase()));
 }
 
-function getCandidateNames(binaryName, extensions) {
+function getCandidateNames(binaryName: string, extensions: string[]): string[] {
   if (hasExistingPathExt(binaryName, extensions)) {
     return [binaryName];
   }
   return extensions.map((ext) => `${binaryName}${ext}`);
 }
 
-function isRegularFile(pathname) {
+function isRegularFile(pathname: string): boolean {
   try {
     return statSync(pathname).isFile();
   } catch {
@@ -87,7 +92,10 @@ function isRegularFile(pathname) {
   }
 }
 
-function findWindowsExecutableInPath(binaryName, pathValue) {
+function findWindowsExecutableInPath(
+  binaryName: string,
+  pathValue: string | undefined,
+): string | null {
   const segments = splitWindowsList(pathValue);
   const extensions = parsePathExtensions(process.env.PATHEXT);
 
@@ -108,24 +116,18 @@ function findWindowsExecutableInPath(binaryName, pathValue) {
   return null;
 }
 
-function getWindowsHelperBinFilename(baseName) {
+function getWindowsHelperBinFilename(baseName: string): string {
   return `${baseName}.cmd`;
 }
 
 // --- Platform dispatch ---
 
-const findExecutableInPath = IS_WINDOWS
+export const findExecutableInPath = IS_WINDOWS
   ? findWindowsExecutableInPath
   : findPosixExecutableInPath;
 
-const getHelperBinFilename = IS_WINDOWS
+export const getHelperBinFilename = IS_WINDOWS
   ? getWindowsHelperBinFilename
   : getPosixHelperBinFilename;
 
-const splitPathList = IS_WINDOWS ? splitWindowsList : splitPosixPathList;
-
-module.exports = {
-  findExecutableInPath,
-  getHelperBinFilename,
-  splitPathList,
-};
+export const splitPathList = IS_WINDOWS ? splitWindowsList : splitPosixPathList;

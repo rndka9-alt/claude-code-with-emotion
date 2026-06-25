@@ -1,39 +1,154 @@
-import { EMOTION_PRESETS, STATE_PRESETS } from "../../visual-presets";
+import {
+  EMOTION_PRESETS,
+  STATE_PRESETS,
+  visualEmotionPresetIdSchema,
+  visualStatePresetIdSchema,
+  type VisualEmotionPresetId,
+  type VisualStatePresetId,
+} from "../../visual-presets";
 import type {
   AvailableVisualOptions,
-  VisualAssetCatalog,
+  VisualAssetProviderId,
   VisualEmotionDescriptionOverrides,
 } from "../types/visual-asset-types";
 
-export function collectAvailableVisualOptions(
-  catalog: VisualAssetCatalog,
-): AvailableVisualOptions {
-  const mappedStates = new Set<string>();
-  const mappedEmotions = new Set<string>();
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
-  for (const mapping of catalog.mappings) {
-    if (mapping.state !== undefined) {
-      mappedStates.add(mapping.state);
-    }
-
-    if (mapping.emotion !== undefined) {
-      mappedEmotions.add(mapping.emotion);
-    }
+// codex provider 는 base catalog 위에 providerOverrides.codex 를 덧댄다.
+// claude 는 항상 base 만 사용한다.
+function readProviderOverride(
+  catalog: Record<string, unknown>,
+  providerId: VisualAssetProviderId,
+): Record<string, unknown> | null {
+  if (providerId !== "codex") {
+    return null;
   }
 
+  const providerOverrides = catalog.providerOverrides;
+
+  if (!isRecord(providerOverrides)) {
+    return null;
+  }
+
+  const override = providerOverrides.codex;
+
+  return isRecord(override) ? override : null;
+}
+
+function collectMappingGroups(
+  catalog: Record<string, unknown>,
+  providerOverride: Record<string, unknown> | null,
+  providerUsesBase: boolean,
+  key: "mappings" | "emotionDescriptions",
+): unknown[][] {
+  const groups: unknown[][] = [];
+  const baseValue = catalog[key];
+
+  if (providerUsesBase && Array.isArray(baseValue)) {
+    groups.push(baseValue);
+  }
+
+  const overrideValue = providerOverride === null ? undefined : providerOverride[key];
+
+  if (Array.isArray(overrideValue)) {
+    groups.push(overrideValue);
+  }
+
+  return groups;
+}
+
+// catalog 는 디스크에서 읽은 raw JSON(bin 헬퍼) 또는 메모리 내 catalog(메인) 둘 다 받을 수 있어
+// unknown 으로 받고 zod·타입가드로 좁힌다. emotion/state id 는 visual-presets 의 enum 으로 검증한다.
+export function collectAvailableVisualOptions(
+  catalog: unknown,
+  providerId: VisualAssetProviderId = "claude",
+): AvailableVisualOptions {
   const emotionDescriptions: VisualEmotionDescriptionOverrides = {};
 
-  for (const mapping of catalog.emotionDescriptions) {
-    emotionDescriptions[mapping.emotion] = mapping.description;
+  if (!isRecord(catalog)) {
+    return { states: [], emotions: [], emotionDescriptions };
   }
 
-  return {
-    states: STATE_PRESETS.filter((preset) => mappedStates.has(preset.id)).map(
-      (preset) => preset.id,
-    ),
-    emotions: EMOTION_PRESETS.filter((preset) =>
-      mappedEmotions.has(preset.id),
-    ).map((preset) => preset.id),
-    emotionDescriptions,
-  };
+  const providerOverride = readProviderOverride(catalog, providerId);
+  const providerUsesBase =
+    providerId !== "codex" ||
+    providerOverride === null ||
+    providerOverride.useBaseProviderWhenMissing !== false;
+
+  const mappedStates = new Set<VisualStatePresetId>();
+  const mappedEmotions = new Set<VisualEmotionPresetId>();
+
+  for (const mappings of collectMappingGroups(
+    catalog,
+    providerOverride,
+    providerUsesBase,
+    "mappings",
+  )) {
+    for (const mapping of mappings) {
+      if (!isRecord(mapping)) {
+        continue;
+      }
+
+      const stateResult = visualStatePresetIdSchema.safeParse(mapping.state);
+
+      if (stateResult.success) {
+        mappedStates.add(stateResult.data);
+      }
+
+      const emotionResult = visualEmotionPresetIdSchema.safeParse(
+        mapping.emotion,
+      );
+
+      if (emotionResult.success && emotionResult.data !== "neutral") {
+        mappedEmotions.add(emotionResult.data);
+      }
+    }
+  }
+
+  // 표시 순서는 preset 정의 순서로 안정화한다(매핑 입력 순서에 의존하지 않음).
+  const states = STATE_PRESETS.filter((preset) =>
+    mappedStates.has(preset.id),
+  ).map((preset) => preset.id);
+  const emotions = EMOTION_PRESETS.filter(
+    (preset) => preset.id !== "neutral" && mappedEmotions.has(preset.id),
+  ).map((preset) => preset.id);
+
+  // emotion 설명: 매핑된 emotion 의 기본 설명(EMOTION_PRESETS)을 먼저 깔고,
+  // catalog override 가 있으면 그 위에 덮어쓴다. 커스텀이 없어도 기본 설명이 노출된다.
+  for (const emotion of emotions) {
+    const preset = EMOTION_PRESETS.find((candidate) => candidate.id === emotion);
+
+    if (preset !== undefined) {
+      emotionDescriptions[emotion] = preset.description;
+    }
+  }
+
+  for (const descriptions of collectMappingGroups(
+    catalog,
+    providerOverride,
+    providerUsesBase,
+    "emotionDescriptions",
+  )) {
+    for (const mapping of descriptions) {
+      if (!isRecord(mapping)) {
+        continue;
+      }
+
+      const emotionResult = visualEmotionPresetIdSchema.safeParse(
+        mapping.emotion,
+      );
+
+      if (
+        emotionResult.success &&
+        typeof mapping.description === "string" &&
+        mapping.description.length > 0
+      ) {
+        emotionDescriptions[emotionResult.data] = mapping.description;
+      }
+    }
+  }
+
+  return { states, emotions, emotionDescriptions };
 }

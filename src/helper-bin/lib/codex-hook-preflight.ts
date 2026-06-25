@@ -1,7 +1,13 @@
-const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { ENV_KEYS } from "../../shared/env-keys";
 
-const HOOK_EVENTS = [
+interface CodexHookEvent {
+  event: string;
+  matcher?: string;
+}
+
+const HOOK_EVENTS: ReadonlyArray<CodexHookEvent> = [
   { event: "SessionStart", matcher: "startup|resume|clear" },
   { event: "UserPromptSubmit" },
   { event: "PermissionRequest" },
@@ -11,15 +17,8 @@ const HOOK_EVENTS = [
   { event: "PostCompact" },
   { event: "Stop" },
 ];
-const ENV_KEYS = {
-  ASSISTANT_PROVIDER_ID: "CLAUDE_WITH_EMOTION_ASSISTANT_PROVIDER_ID",
-  EVENT_QUEUE_DIR: "CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR",
-  HELPER_BIN_DIR: "CLAUDE_WITH_EMOTION_HELPER_BIN_DIR",
-  HOOK_STATE_FILE: "CLAUDE_WITH_EMOTION_HOOK_STATE_FILE",
-  TRACE_FILE: "CLAUDE_WITH_EMOTION_TRACE_FILE",
-  VISUAL_ASSET_CATALOG_FILE: "CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE",
-};
-const RUNTIME_FLAG_BY_ENV_KEY = [
+
+const RUNTIME_FLAG_BY_ENV_KEY: ReadonlyArray<[string, string]> = [
   [ENV_KEYS.EVENT_QUEUE_DIR, "--event-queue-dir"],
   [ENV_KEYS.HELPER_BIN_DIR, "--helper-bin-dir"],
   [ENV_KEYS.HOOK_STATE_FILE, "--hook-state-file"],
@@ -27,7 +26,12 @@ const RUNTIME_FLAG_BY_ENV_KEY = [
   [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE, "--visual-asset-catalog-file"],
 ];
 
-function readOutput(value) {
+interface CodexHookRuntime {
+  description: string;
+  runtimeArgs: string[];
+}
+
+function readOutput(value: string | Buffer): string {
   if (typeof value === "string") {
     return value;
   }
@@ -39,18 +43,19 @@ function readOutput(value) {
   return "";
 }
 
-function createCodexEnv(originalPath) {
+function createCodexEnv(originalPath: string | undefined): NodeJS.ProcessEnv {
   return {
     ...process.env,
     PATH: originalPath ?? process.env.PATH ?? "",
   };
 }
 
-function quoteTomlString(value) {
+function quoteTomlString(value: string): string {
   return JSON.stringify(value);
 }
 
-function quoteShellPath(value) {
+function quoteShellPath(value: string): string {
+  // win32 분기는 best-effort·미유지보수다(CLAUDE.md Platform Support).
   if (process.platform === "win32") {
     return `"${value.replaceAll('"', '\\"')}"`;
   }
@@ -58,7 +63,11 @@ function quoteShellPath(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-function appendRuntimeFlag(commandParts, flag, value) {
+function appendRuntimeFlag(
+  commandParts: string[],
+  flag: string,
+  value: string | undefined,
+): void {
   if (typeof value !== "string" || value.length === 0) {
     return;
   }
@@ -66,8 +75,10 @@ function appendRuntimeFlag(commandParts, flag, value) {
   commandParts.push(flag, quoteShellPath(value));
 }
 
-function createHookCommand(env = process.env) {
-  const hookPath = path.join(__dirname, "..", "codex-hook");
+function createHookCommand(env: NodeJS.ProcessEnv = process.env): string {
+  // 번들 후 이 코드는 entry(bin/codex)에 인라인되어 __dirname 이 bin/ 이 된다.
+  // codex-hook 헬퍼도 같은 bin/ 에 놓이므로 형제 경로로 참조한다.
+  const hookPath = path.join(__dirname, "codex-hook");
   const commandParts = [
     quoteShellPath(process.execPath),
     quoteShellPath(hookPath),
@@ -88,8 +99,11 @@ function createHookCommand(env = process.env) {
   return commandParts.join(" ");
 }
 
-function createHookConfigValue(eventConfig, env = process.env) {
-  const fields = [];
+function createHookConfigValue(
+  eventConfig: CodexHookEvent,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const fields: string[] = [];
   const hookCommand = createHookCommand(env);
 
   if (typeof eventConfig.matcher === "string") {
@@ -105,8 +119,8 @@ function createHookConfigValue(eventConfig, env = process.env) {
   return `[{${fields.join(", ")}}]`;
 }
 
-function createHookRuntimeArgs(env = process.env) {
-  const args = [];
+function createHookRuntimeArgs(env: NodeJS.ProcessEnv = process.env): string[] {
+  const args: string[] = [];
 
   for (const eventConfig of HOOK_EVENTS) {
     args.push(
@@ -118,7 +132,7 @@ function createHookRuntimeArgs(env = process.env) {
   return args;
 }
 
-function parseHooksFeatureState(stdout) {
+function parseHooksFeatureState(stdout: string): boolean {
   for (const line of stdout.split(/\r?\n/)) {
     const columns = line.trim().split(/\s+/);
 
@@ -130,7 +144,10 @@ function parseHooksFeatureState(stdout) {
   return false;
 }
 
-function createCodexHookRuntime(realBinary, originalPath) {
+export function createCodexHookRuntime(
+  realBinary: string,
+  originalPath: string | undefined,
+): CodexHookRuntime {
   const env = createCodexEnv(originalPath);
   const versionCheck = spawnSync(realBinary, ["--version"], {
     encoding: "utf8",
@@ -168,7 +185,3 @@ function createCodexHookRuntime(realBinary, originalPath) {
     runtimeArgs: createHookRuntimeArgs(process.env),
   };
 }
-
-module.exports = {
-  createCodexHookRuntime,
-};

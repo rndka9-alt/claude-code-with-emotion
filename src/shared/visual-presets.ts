@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type {
   AssistantEmotionalState,
   AssistantSemanticState,
@@ -5,43 +6,54 @@ import type {
 
 export type VisualPresetCategory = "state" | "emotion";
 
-export type VisualStatePresetId =
-  | "disconnected"
-  | "thinking"
-  | "working"
-  | "waiting"
-  | "permission_wait"
-  | "compacting"
-  | "completed"
-  | "error"
-  | "tool_failed";
+// visual state·emotion id 는 코드에 고정된 정적 집합이라 zod enum 으로 정의한다.
+// 단일 출처에서 런타임 검증(safeParse)과 타입(z.infer)을 함께 도출해, bin 헬퍼와
+// 메인/렌더러가 동일한 유효 id 집합을 공유한다.
+export const VISUAL_STATE_PRESET_IDS = [
+  "disconnected",
+  "thinking",
+  "working",
+  "waiting",
+  "permission_wait",
+  "compacting",
+  "completed",
+  "error",
+  "tool_failed",
+] as const;
 
-export type VisualEmotionPresetId =
-  | "angry"
-  | "annoyed"
-  | "bored"
-  | "confused"
-  | "contemptuous"
-  | "crying"
-  | "curious"
-  | "determined"
-  | "dumbfounded"
-  | "embarrassed"
-  | "excited"
-  | "exhausted"
-  | "happy"
-  | "laughing"
-  | "nervous"
-  | "neutral"
-  | "proud"
-  | "sad"
-  | "scared"
-  | "serious"
-  | "shy"
-  | "smile"
-  | "smirk"
-  | "smug"
-  | "surprised";
+export const visualStatePresetIdSchema = z.enum(VISUAL_STATE_PRESET_IDS);
+export type VisualStatePresetId = z.infer<typeof visualStatePresetIdSchema>;
+
+export const VISUAL_EMOTION_PRESET_IDS = [
+  "angry",
+  "annoyed",
+  "bored",
+  "confused",
+  "contemptuous",
+  "crying",
+  "curious",
+  "determined",
+  "dumbfounded",
+  "embarrassed",
+  "excited",
+  "exhausted",
+  "happy",
+  "laughing",
+  "nervous",
+  "neutral",
+  "proud",
+  "sad",
+  "scared",
+  "serious",
+  "shy",
+  "smile",
+  "smirk",
+  "smug",
+  "surprised",
+] as const;
+
+export const visualEmotionPresetIdSchema = z.enum(VISUAL_EMOTION_PRESET_IDS);
+export type VisualEmotionPresetId = z.infer<typeof visualEmotionPresetIdSchema>;
 
 export interface VisualStatePreset {
   category: "state";

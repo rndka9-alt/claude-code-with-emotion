@@ -1,9 +1,43 @@
-const { spawnSync } = require("node:child_process");
-const fs = require("node:fs");
-const { findExecutableInPath } = require("./helper-bin-resolver");
+import fs from "node:fs";
+import { spawnSync } from "node:child_process";
+import { ENV_KEYS } from "../../shared/env-keys";
+import { findExecutableInPath } from "./helper-bin-resolver";
 
-function appendTrace(traceLabel, message) {
-  const traceFilePath = process.env.CLAUDE_WITH_EMOTION_TRACE_FILE;
+// 상태 패널에 게시하는 한 번의 lifecycle 업데이트.
+export interface AssistantStatusUpdate {
+  activity: string;
+  intensity: string;
+  line: string;
+  providerId?: string;
+  state: string;
+  task: string;
+}
+
+// createRuntimeArgs / describeRuntime 가 받는, 래퍼가 해석한 실행 컨텍스트.
+export interface AssistantRuntimeContext {
+  originalPath: string | undefined;
+  publishStatusUpdate: (status: AssistantStatusUpdate) => void;
+  realBinary: string;
+}
+
+export interface AssistantCliWrapperConfig {
+  binaryName: string;
+  createRuntimeArgs: (context: AssistantRuntimeContext) => string[];
+  describeRuntime: (
+    runtimeArgs: string[],
+    context: AssistantRuntimeContext,
+  ) => string;
+  displayName: string;
+  status: {
+    disconnected: AssistantStatusUpdate;
+    error: AssistantStatusUpdate;
+    starting: AssistantStatusUpdate;
+  };
+  traceLabel: string;
+}
+
+function appendTrace(traceLabel: string, message: string): void {
+  const traceFilePath = process.env[ENV_KEYS.TRACE_FILE];
 
   if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
     return;
@@ -12,13 +46,13 @@ function appendTrace(traceLabel, message) {
   const line = `[${new Date().toISOString()}] [${traceLabel}] ${message}\n`;
 
   try {
-    require("node:fs").appendFileSync(traceFilePath, line, "utf8");
+    fs.appendFileSync(traceFilePath, line, "utf8");
   } catch {
     // Ignore trace write failures inside the wrapper.
   }
 }
 
-function publishStatus(args) {
+function publishStatus(args: string[]): void {
   const statusResult = spawnSync("claude-status", args, {
     stdio: "ignore",
   });
@@ -32,7 +66,7 @@ function publishStatus(args) {
   }
 }
 
-function publishStatusUpdate(status) {
+function publishStatusUpdate(status: AssistantStatusUpdate): void {
   const args = [
     "--state",
     status.state,
@@ -53,10 +87,10 @@ function publishStatusUpdate(status) {
   publishStatus(args);
 }
 
-function runAssistantCliWrapper(config) {
-  const originalPath = process.env.CLAUDE_WITH_EMOTION_ORIGINAL_PATH;
+export function runAssistantCliWrapper(config: AssistantCliWrapperConfig): void {
+  const originalPath = process.env[ENV_KEYS.ORIGINAL_PATH];
   const realBinary = findExecutableInPath(config.binaryName, originalPath);
-  const eventQueueDir = process.env.CLAUDE_WITH_EMOTION_EVENT_QUEUE_DIR;
+  const eventQueueDir = process.env[ENV_KEYS.EVENT_QUEUE_DIR];
   const queueExists =
     typeof eventQueueDir === "string" &&
     eventQueueDir.length > 0 &&
@@ -68,7 +102,7 @@ function runAssistantCliWrapper(config) {
       `failed to resolve real ${config.displayName} binary`,
     );
     process.stderr.write(
-      `Unable to locate the real \`${config.binaryName}\` binary on CLAUDE_WITH_EMOTION_ORIGINAL_PATH.\n`,
+      `Unable to locate the real \`${config.binaryName}\` binary on ${ENV_KEYS.ORIGINAL_PATH}.\n`,
     );
     process.exit(1);
   }
@@ -79,11 +113,11 @@ function runAssistantCliWrapper(config) {
   );
   appendTrace(
     config.traceLabel,
-    `wrapper env eventQueueDir=${eventQueueDir || "<missing>"} queueExists=${queueExists} trace=${process.env.CLAUDE_WITH_EMOTION_TRACE_FILE || "<missing>"} catalog=${process.env.CLAUDE_WITH_EMOTION_VISUAL_ASSET_CATALOG_FILE || "<missing>"} hookState=${process.env.CLAUDE_WITH_EMOTION_HOOK_STATE_FILE || "<missing>"} helperBin=${process.env.CLAUDE_WITH_EMOTION_HELPER_BIN_DIR || "<missing>"}`,
+    `wrapper env eventQueueDir=${eventQueueDir || "<missing>"} queueExists=${queueExists} trace=${process.env[ENV_KEYS.TRACE_FILE] || "<missing>"} catalog=${process.env[ENV_KEYS.VISUAL_ASSET_CATALOG_FILE] || "<missing>"} hookState=${process.env[ENV_KEYS.HOOK_STATE_FILE] || "<missing>"} helperBin=${process.env[ENV_KEYS.HELPER_BIN_DIR] || "<missing>"}`,
   );
   publishStatusUpdate(config.status.starting);
 
-  const runtimeContext = {
+  const runtimeContext: AssistantRuntimeContext = {
     originalPath,
     publishStatusUpdate,
     realBinary,
@@ -132,7 +166,3 @@ function runAssistantCliWrapper(config) {
 
   process.exit(1);
 }
-
-module.exports = {
-  runAssistantCliWrapper,
-};

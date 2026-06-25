@@ -1,13 +1,34 @@
-#!/usr/bin/env node
-
-const fs = require("node:fs");
-const { writeQueueEvent } = require("./lib/event-queue-writer");
-const {
+import fs from "node:fs";
+import { writeQueueEvent } from "./lib/event-queue-writer";
+import {
   describeVisualMcpRuntimeSources,
   resolveVisualMcpRuntime,
-} = require("./lib/claude-visual-mcp-state");
+} from "./lib/claude-visual-mcp-state";
 
-function appendTrace(message) {
+// overlay 큐 이벤트의 페이로드. emotion/line 은 string(설정) 또는 null(해제) 이며,
+// 키 자체가 없으면 해당 축을 건드리지 않는다.
+interface VisualOverlayArgs {
+  emotion?: string | null;
+  line?: string | null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function readOverlayValue(value: unknown): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return undefined;
+}
+
+function appendTrace(message: string): void {
   const traceFilePath = resolveVisualMcpRuntime().traceFilePath;
 
   if (typeof traceFilePath !== "string" || traceFilePath.length === 0) {
@@ -23,12 +44,36 @@ function appendTrace(message) {
   }
 }
 
-function parseArgs(argv) {
-  if (argv.length === 1 && argv[0].trim().startsWith("{")) {
-    return JSON.parse(argv[0]);
+function parseArgs(argv: string[]): VisualOverlayArgs {
+  const first = argv[0];
+
+  if (
+    argv.length === 1 &&
+    typeof first === "string" &&
+    first.trim().startsWith("{")
+  ) {
+    const parsed: unknown = JSON.parse(first);
+
+    if (isRecord(parsed)) {
+      const result: VisualOverlayArgs = {};
+      const emotion = readOverlayValue(parsed.emotion);
+      const line = readOverlayValue(parsed.line);
+
+      if (emotion !== undefined) {
+        result.emotion = emotion;
+      }
+
+      if (line !== undefined) {
+        result.line = line;
+      }
+
+      return result;
+    }
+
+    return {};
   }
 
-  const result = {};
+  const result: VisualOverlayArgs = {};
 
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
@@ -66,7 +111,7 @@ function parseArgs(argv) {
   return result;
 }
 
-async function main() {
+async function main(): Promise<void> {
   const runtime = resolveVisualMcpRuntime();
   const sources = describeVisualMcpRuntimeSources();
   const eventQueueDir = runtime.eventQueueDir;
@@ -87,11 +132,7 @@ async function main() {
 
   const payload = parseArgs(process.argv.slice(2));
 
-  if (
-    payload === null ||
-    typeof payload !== "object" ||
-    (payload.emotion === undefined && payload.line === undefined)
-  ) {
+  if (payload.emotion === undefined && payload.line === undefined) {
     console.error(
       "Usage: claude-visual-state --emotion <emotion> [--line <line>] [--clear-line] [--reset]",
     );

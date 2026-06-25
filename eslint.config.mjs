@@ -8,7 +8,11 @@ export default [
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        project: ["./tsconfig.web.json", "./tsconfig.node.json"],
+        project: [
+          "./tsconfig.web.json",
+          "./tsconfig.node.json",
+          "./tsconfig.helper-bin.json",
+        ],
       },
     },
     plugins: {

@@ -201,21 +201,11 @@ rmSync(stagingDir, { recursive: true, force: true });
 
 // bin/ 스크립트들은 Claude CLI hook·MCP 설정을 통해 외부 프로세스에서 execve 로 직접 실행되므로
 // asar 밖 실제 파일 경로에 놓아야 한다. Contents/Resources/bin/ 에 그대로 배치.
+// 각 헬퍼는 esbuild 로 의존성(zod·src/shared 포함)이 인라인된 self-contained 단일 파일이라
+// asar 밖에서도 추가 모듈 복사 없이 실행된다.
 cpSync(path.join(projectRoot, "bin"), path.join(resourcesPath, "bin"), {
   recursive: true,
   force: true,
 });
-
-// 외부 Node 프로세스로 실행대는 bin/ 스크립트는 Electron 의 asar require 패치를 못 쓰므로,
-// bin/lib 에서 참조하는 공유 런타임 모듈은 asar 밖 상대 경로에도 있어야 한다.
-cpSync(
-  path.join(projectRoot, "dist", "shared"),
-  path.join(resourcesPath, "dist", "shared"),
-  {
-    recursive: true,
-    force: true,
-    filter: (src) => !isTestArtifact(src),
-  },
-);
 
 console.log(`Packaged unsigned macOS app at ${bundlePath}`);
