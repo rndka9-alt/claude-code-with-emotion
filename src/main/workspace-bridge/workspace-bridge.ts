@@ -14,6 +14,7 @@ import { TabDragPreviewWindow } from "../window";
 import { attachRendererDiagnosticListener } from "./renderer-diagnostic-listener";
 import { registerWorkspaceIpcHandlers } from "./workspace-ipc-handlers";
 import { resolveWorkspaceBridgePaths } from "./workspace-bridge-paths";
+import { SessionWindowOwnership } from "./session-window-ownership";
 import { attachWorkspaceWindowSubscriptions } from "./workspace-window-subscriptions";
 import { routeAttachWorkspaceStateToWindowAtPoint } from "./workspace-window-attach-routing";
 
@@ -41,6 +42,7 @@ export function registerWorkspaceBridge({
 }: RegisterWorkspaceBridgeOptions): WorkspaceBridge {
   const workspaceWindows = new Set<BrowserWindow>();
   const detachWorkspaceWindowSubscriptions = new Map<number, () => void>();
+  const sessionWindowOwnership = new SessionWindowOwnership();
   const tabDragPreviewWindow = new TabDragPreviewWindow();
   let isDisposed = false;
   const bridgePaths = {
@@ -74,6 +76,8 @@ export function registerWorkspaceBridge({
       }
     },
     sendTerminalExit: (payload) => {
+      sessionWindowOwnership.releaseSession(payload.sessionId);
+
       for (const workspaceWindow of workspaceWindows) {
         workspaceWindow.webContents.send(TERMINAL_CHANNELS.exit, {
           sessionId: payload.sessionId,
@@ -140,17 +144,33 @@ export function registerWorkspaceBridge({
         visualAssetStore,
       }),
     );
+    // "closed" 이후 BrowserWindow 프로퍼티 접근은 안전하지 않을 수 있어 id 를 미리 잡아둔다.
+    const workspaceWindowId = workspaceWindow.id;
+
     workspaceWindow.on("closed", () => {
       runtimeLog.write(
         "window-lifecycle",
-        `closed fired — detaching workspace window id=${workspaceWindow.id} remaining=${workspaceWindows.size - 1}`,
+        `closed fired — detaching workspace window id=${workspaceWindowId} remaining=${workspaceWindows.size - 1}`,
       );
-      detachWorkspaceWindowSubscriptions.get(workspaceWindow.id)?.();
-      detachWorkspaceWindowSubscriptions.delete(workspaceWindow.id);
+      detachWorkspaceWindowSubscriptions.get(workspaceWindowId)?.();
+      detachWorkspaceWindowSubscriptions.delete(workspaceWindowId);
       workspaceWindows.delete(workspaceWindow);
 
       if (workspaceWindows.size === 0) {
         dispose();
+        return;
+      }
+
+      // 창 하나만 닫힐 때는 그 창이 소유한 세션을 함께 닫는다.
+      // 안 하면 PTY 와 세션별 상태 감시 리소스가 렌더러 없이 앱 종료까지 남는다.
+      for (const sessionId of sessionWindowOwnership.takeSessionsOwnedByWindow(
+        workspaceWindowId,
+      )) {
+        runtimeLog.write(
+          "window-lifecycle",
+          `closing session orphaned by window close session=${sessionId} window=${workspaceWindowId}`,
+        );
+        terminalSessionService.closeSession({ sessionId });
       }
     });
   }
@@ -168,6 +188,12 @@ export function registerWorkspaceBridge({
                 request.assistantSnapshotsBySessionId,
             }),
         attachedWorkspaceState: request.attachedWorkspaceState,
+      },
+      onAttachedToWindow: (targetWindow) => {
+        sessionWindowOwnership.assignSessions(
+          Object.keys(request.attachedWorkspaceState.sessions),
+          targetWindow.id,
+        );
       },
       screenPoint: request.screenPoint,
       sourceWindow: BrowserWindow.fromWebContents(sender),
@@ -195,9 +221,22 @@ export function registerWorkspaceBridge({
     moveTabDragPreview: (request) => {
       tabDragPreviewWindow.move(request.screenPoint);
     },
+    onTerminalSessionBootstrapRequested: (sessionId, sender) => {
+      const ownerWindow = BrowserWindow.fromWebContents(sender);
+
+      if (ownerWindow !== null) {
+        sessionWindowOwnership.assignSessions([sessionId], ownerWindow.id);
+      }
+    },
     openDetachedWorkspaceWindow: (request) => {
       const workspaceWindow = createDetachedWindow(request);
 
+      // 새 창 렌더러가 세션을 다시 bootstrap 하기 전에 원본 창이 닫혀도
+      // 세션이 원본 창 소유로 정리되지 않도록, 창 생성 시점에 소유권을 옮긴다.
+      sessionWindowOwnership.assignSessions(
+        Object.keys(request.initialWorkspaceState.sessions),
+        workspaceWindow.id,
+      );
       runtimeLog.write(
         "window-lifecycle",
         `detached workspace window created id=${workspaceWindow.id}`,

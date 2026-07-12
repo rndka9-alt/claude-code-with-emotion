@@ -53,6 +53,10 @@ interface RegisterWorkspaceIpcHandlersOptions {
   closeCurrentWorkspaceWindow: (sender: WebContents) => void;
   hideTabDragPreview: () => void;
   moveTabDragPreview: (request: WorkspaceTabDragPreviewMoveRequest) => void;
+  onTerminalSessionBootstrapRequested: (
+    sessionId: string,
+    sender: WebContents,
+  ) => void;
   openDetachedWorkspaceWindow: (
     request: OpenDetachedWorkspaceWindowRequest,
   ) => void;
@@ -69,6 +73,7 @@ export function registerWorkspaceIpcHandlers({
   getFocusedWindow,
   hideTabDragPreview,
   moveTabDragPreview,
+  onTerminalSessionBootstrapRequested,
   openDetachedWorkspaceWindow,
   runtimeLog,
   showTabDragPreview,
@@ -216,7 +221,8 @@ export function registerWorkspaceIpcHandlers({
   );
   ipcMain.handle(
     TERMINAL_CHANNELS.bootstrap,
-    async (_event, request: TerminalBootstrapRequest) => {
+    async (event, request: TerminalBootstrapRequest) => {
+      onTerminalSessionBootstrapRequested(request.sessionId, event.sender);
       return terminalSessionService.bootstrapSession(request);
     },
   );

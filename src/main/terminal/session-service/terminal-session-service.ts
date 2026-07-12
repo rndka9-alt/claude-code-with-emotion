@@ -79,6 +79,10 @@ export class TerminalSessionService {
           exitCode: event.exitCode,
           signal: event.signal,
         });
+        // 자연 PTY 종료도 closeSession 경로와 동일하게 상태 감시 리소스를 정리한다.
+        // 안 하면 세션별 fs.watch + 폴링 타이머가 앱 종료까지 남는다.
+        // (이후 getSnapshot 이 오면 ensureSession 이 재생성하므로 조회는 계속 동작한다)
+        this.sessionStatusBridgeRegistry.disposeSession(sessionId);
       },
       options.assistantStatusHelperBinDir,
       options.assistantStatusTraceFilePath,

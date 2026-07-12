@@ -105,6 +105,72 @@ describe("routeAttachWorkspaceStateToWindowAtPoint", () => {
     expect(sourceWindow.webContents.send).not.toHaveBeenCalled();
   });
 
+  it("reports the attach target window before sending the attach state", () => {
+    const sourceWindow = createWorkspaceWindow(1, {
+      height: 300,
+      width: 400,
+      x: 0,
+      y: 0,
+    });
+    const targetWindow = createWorkspaceWindow(2, {
+      height: 300,
+      width: 400,
+      x: 450,
+      y: 0,
+    });
+    const callOrder: string[] = [];
+    const onAttachedToWindow = vi.fn(() => {
+      callOrder.push("onAttachedToWindow");
+    });
+
+    vi.mocked(targetWindow.webContents.send).mockImplementation(() => {
+      callOrder.push("send");
+    });
+
+    const didRoute = routeAttachWorkspaceStateToWindowAtPoint({
+      attachedRequest: {
+        attachedWorkspaceState: createWorkspaceState("attached"),
+      },
+      onAttachedToWindow,
+      screenPoint: {
+        x: 500,
+        y: 120,
+      },
+      sourceWindow,
+      workspaceWindows: [sourceWindow, targetWindow],
+    });
+
+    expect(didRoute).toBe(true);
+    expect(onAttachedToWindow).toHaveBeenCalledWith(targetWindow);
+    expect(callOrder).toEqual(["onAttachedToWindow", "send"]);
+  });
+
+  it("does not report an attach target when no window matches", () => {
+    const sourceWindow = createWorkspaceWindow(1, {
+      height: 300,
+      width: 400,
+      x: 0,
+      y: 0,
+    });
+    const onAttachedToWindow = vi.fn();
+
+    const didRoute = routeAttachWorkspaceStateToWindowAtPoint({
+      attachedRequest: {
+        attachedWorkspaceState: createWorkspaceState("attached"),
+      },
+      onAttachedToWindow,
+      screenPoint: {
+        x: 100,
+        y: 120,
+      },
+      sourceWindow,
+      workspaceWindows: [sourceWindow],
+    });
+
+    expect(didRoute).toBe(false);
+    expect(onAttachedToWindow).not.toHaveBeenCalled();
+  });
+
   it("does not route attach state back to the source window", () => {
     const sourceWindow = createWorkspaceWindow(1, {
       height: 300,
