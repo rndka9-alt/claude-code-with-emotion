@@ -191,11 +191,9 @@ export class TerminalSessionManager {
       existingSession.runtime.resize(size.cols, size.rows);
       existingSession.emulatorState.resize(size.cols, size.rows);
 
-      const snapshot = existingSession.outputStore.getSnapshot();
-
       return {
         outputSnapshot: await existingSession.emulatorState.getSnapshot(),
-        outputVersion: snapshot.version,
+        outputVersion: existingSession.outputStore.getVersion(),
       };
     }
 
@@ -277,11 +275,9 @@ export class TerminalSessionManager {
       runtime.write(initialCommandInput);
     }
 
-    const snapshot = outputStore.getSnapshot();
-
     return {
       outputSnapshot: await emulatorState.getSnapshot(),
-      outputVersion: snapshot.version,
+      outputVersion: outputStore.getVersion(),
     };
   }
 

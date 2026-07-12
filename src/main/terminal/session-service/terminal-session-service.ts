@@ -22,6 +22,7 @@ import {
 import type { VisualMcpSetupTargetId } from "../../../shared/mcp-setup-bridge";
 import { createTerminalSessionManager } from "../session";
 import { AssistantSessionStatusBridgeRegistry } from "./assistant-session-status-bridge-registry";
+import { clearStaleTerminalOutputLogs } from "./session-artifacts";
 import { writeVisualMcpState } from "./visual-mcp-state";
 
 interface TerminalSessionServiceOptions {
@@ -47,6 +48,9 @@ export class TerminalSessionService {
       options.userDataPath,
       "assistant-event-queue",
     );
+    clearStaleTerminalOutputLogs(options.terminalOutputRootDir, (message) => {
+      options.runtimeLog.write("terminal-output-cleanup", message);
+    });
     this.sessionStatusBridgeRegistry = new AssistantSessionStatusBridgeRegistry(
       {
         eventQueueRootDir: this.eventQueueRootDir,

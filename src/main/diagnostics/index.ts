@@ -1,5 +1,9 @@
-export { createRuntimeLog, resolveRuntimeLogPath } from "./runtime-log";
-export type { RuntimeLog } from "./runtime-log";
+export {
+  createRuntimeLog,
+  resolveRuntimeLogPath,
+  rotateRuntimeLogIfNeeded,
+} from "./runtime-log";
+export type { RuntimeLog, RuntimeLogRotationOptions } from "./runtime-log";
 export {
   createForensicsRecorder,
   ForensicsModeStore,
