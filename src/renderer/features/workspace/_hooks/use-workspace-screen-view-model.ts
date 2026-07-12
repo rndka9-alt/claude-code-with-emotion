@@ -373,7 +373,7 @@ export function useWorkspaceScreenViewModel(): WorkspaceScreenViewModel {
   const { notifiedTabIds, dismissNotification } = useTabNotifications(
     state.tabs.map((tab) => ({
       id: tab.id,
-      notificationSessionId: tab.primarySessionId,
+      notificationSessionIds: getTabSessionIds(tab),
     })),
     state.activeTabId,
   );

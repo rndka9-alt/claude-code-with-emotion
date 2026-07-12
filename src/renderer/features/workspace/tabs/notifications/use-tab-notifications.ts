@@ -3,6 +3,8 @@ import type { AssistantSemanticState } from "../../../../../shared/assistant-sta
 
 /**
  * 비활성 탭에서 "유저가 봐야 할" 상태로 전환되면 알림을 띄운다.
+ * 분할 pane 의 보조 세션도 승인 대기·에러를 낼 수 있으므로,
+ * 탭의 primary 세션 하나가 아니라 탭에 속한 모든 세션을 구독해 탭 단위로 합친다.
  * 탭을 활성화하거나 명시적으로 dismiss 하면 알림이 사라진다.
  */
 
@@ -20,7 +22,7 @@ export interface TabNotifications {
 }
 
 export function useTabNotifications(
-  tabs: ReadonlyArray<{ id: string; notificationSessionId: string | null }>,
+  tabs: ReadonlyArray<{ id: string; notificationSessionIds: readonly string[] }>,
   activeTabId: string,
 ): TabNotifications {
   const [notifiedTabIds, setNotifiedTabIds] = useState<ReadonlySet<string>>(
@@ -33,7 +35,7 @@ export function useTabNotifications(
   // 타이틀 등 속성 변경은 구독에 영향이 없으므로 불필요한 해제·재생성을 방지한다.
   const tabIdsKey = tabs.map((tab) => tab.id).join("\0");
   const notificationTargetsKey = tabs
-    .map((tab) => `${tab.id}:${tab.notificationSessionId ?? ""}`)
+    .map((tab) => `${tab.id}:${tab.notificationSessionIds.join(",")}`)
     .join("\0");
 
   // 탭 활성화 시 해당 탭 알림 자동 제거
@@ -52,27 +54,20 @@ export function useTabNotifications(
     if (bridge === undefined) return;
 
     const unsubscribers = tabs.flatMap((tab) => {
-      if (tab.notificationSessionId === null) {
-        return [];
-      }
+      return tab.notificationSessionIds.map((sessionId) => {
+        return bridge.onSnapshot({ sessionId }, (snapshot) => {
+          if (tab.id === activeTabIdRef.current) return;
 
-      return [
-        bridge.onSnapshot(
-          { sessionId: tab.notificationSessionId },
-          (snapshot) => {
-            if (tab.id === activeTabIdRef.current) return;
-
-            if (ATTENTION_STATES.has(snapshot.state)) {
-              setNotifiedTabIds((current) => {
-                if (current.has(tab.id)) return current;
-                const next = new Set(current);
-                next.add(tab.id);
-                return next;
-              });
-            }
-          },
-        ),
-      ];
+          if (ATTENTION_STATES.has(snapshot.state)) {
+            setNotifiedTabIds((current) => {
+              if (current.has(tab.id)) return current;
+              const next = new Set(current);
+              next.add(tab.id);
+              return next;
+            });
+          }
+        });
+      });
     });
 
     return () => {
