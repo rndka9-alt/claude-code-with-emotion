@@ -1,26 +1,17 @@
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import path from "node:path";
+import {
+  collectAvailableVisualOptions,
+  type AvailableVisualOptions,
+} from "../shared/visual-assets";
 import { createVisualPromptHints } from "./lib/claude-visual-mcp-prompts";
 import {
-  createVisualMcpChildEnv,
   describeVisualMcpRuntimeSources,
   resolveVisualMcpRuntime,
 } from "./lib/claude-visual-mcp-state";
+import { writeQueueEvent } from "./lib/event-queue-writer";
 
 const SERVER_NAME = "claude-code-with-emotion-visuals";
 const SERVER_VERSION = "0.1.0";
-const helperDir = __dirname;
-const nodeRuntimePath = process.execPath;
-// 번들 후 이 entry 는 bin/ 에 놓이고 형제 헬퍼(claude-status, claude-visual-state)도 같은 bin/ 에 있다.
-const statusHelperPath = path.join(helperDir, "claude-status");
-const visualStateHelperPath = path.join(helperDir, "claude-visual-state");
-
-interface AvailableVisualOptions {
-  emotionDescriptions: Record<string, unknown>;
-  emotions: string[];
-  states: string[];
-}
 
 interface ToolTextContent {
   text: string;
@@ -101,6 +92,8 @@ function sendError(id: unknown, code: number, message: string): void {
   });
 }
 
+// 과거엔 claude-status 헬퍼를 spawnSync 로 띄워 카탈로그를 조회했지만, 매 턴 호출되는
+// 경로라 자식 프로세스 비용이 아까워 카탈로그 파일을 직접 읽는다(세션 프롬프트 빌더와 같은 방식).
 function readAvailableVisualOptions(): AvailableVisualOptions {
   const runtime = resolveVisualMcpRuntime();
 
@@ -109,46 +102,19 @@ function readAvailableVisualOptions(): AvailableVisualOptions {
     return emptyVisualOptions();
   }
 
-  const result = spawnSync(
-    nodeRuntimePath,
-    [statusHelperPath, "--list-visual-options"],
-    {
-      cwd: process.cwd(),
-      env: createVisualMcpChildEnv(process.env),
-      encoding: "utf8",
-    },
-  );
+  try {
+    const text = fs.readFileSync(runtime.visualAssetCatalogFilePath, "utf8");
+    const parsed: unknown = JSON.parse(text);
+    const providerId =
+      runtime.assistantProviderId === "codex" ? "codex" : "claude";
 
-  if (result.status !== 0) {
+    return collectAvailableVisualOptions(parsed, providerId);
+  } catch (error) {
     appendTrace(
-      `visual options helper failed status=${result.status ?? "null"} stderr=${JSON.stringify(result.stderr ?? "")}`,
+      `visual options catalog read failed error=${error instanceof Error ? error.message : String(error)}`,
     );
     return emptyVisualOptions();
   }
-
-  try {
-    const parsed: unknown = JSON.parse(result.stdout.trim());
-
-    if (
-      isRecord(parsed) &&
-      Array.isArray(parsed.states) &&
-      Array.isArray(parsed.emotions)
-    ) {
-      // emotionDescriptions 는 구버전 helper 호환을 위해 업스면 빈 객체로 폴백.
-      const descriptions = parsed.emotionDescriptions;
-      const emotionDescriptions = isRecord(descriptions) ? descriptions : {};
-
-      return {
-        states: parsed.states,
-        emotions: parsed.emotions,
-        emotionDescriptions,
-      };
-    }
-  } catch {
-    // Fall through to the empty response.
-  }
-
-  return emptyVisualOptions();
 }
 
 function createToolsListResult(): { tools: Record<string, unknown>[] } {
@@ -291,27 +257,32 @@ function callVisualOverlayTool(argumentsObject: unknown): ToolResult {
     }
   }
 
-  const result = spawnSync(
-    nodeRuntimePath,
-    [visualStateHelperPath, JSON.stringify(payload)],
-    {
-      cwd: process.cwd(),
-      env: createVisualMcpChildEnv(process.env),
-      encoding: "utf8",
-    },
-  );
-
-  if (result.status !== 0) {
-    appendTrace(
-      `set_visual_overlay helper failed status=${result.status ?? "null"} stderr=${JSON.stringify(result.stderr ?? "")} stdout=${JSON.stringify(result.stdout ?? "")}`,
-    );
+  if (runtime.eventQueueDir.length === 0) {
+    appendTrace("missing event queue dir; refusing visual overlay write");
     return {
       isError: true,
       content: [
         {
           type: "text",
-          text:
-            result.stderr || result.stdout || "Failed to write visual overlay",
+          text: "Event queue directory must be set.",
+        },
+      ],
+    };
+  }
+
+  try {
+    writeQueueEvent(runtime.eventQueueDir, { type: "overlay", ...payload });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to write visual overlay";
+
+    appendTrace(`set_visual_overlay write failed error=${message}`);
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: message,
         },
       ],
     };

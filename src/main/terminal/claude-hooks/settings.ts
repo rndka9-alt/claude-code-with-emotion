@@ -129,10 +129,7 @@ export function createClaudeHooksSettings(
   }
 
   const visualMcpServerName = "claude-code-with-emotion-visuals";
-  const visualMcpToolNames = [
-    "get_available_visual_options",
-    "set_visual_overlay",
-  ];
+  const visualMcpToolNames = ["set_visual_overlay"];
 
   return {
     permissions: {

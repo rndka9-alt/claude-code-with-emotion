@@ -1,8 +1,8 @@
 import {
   EMOTION_PRESETS,
   STATE_PRESETS,
-  visualEmotionPresetIdSchema,
-  visualStatePresetIdSchema,
+  isVisualEmotionPresetId,
+  isVisualStatePresetId,
   type VisualEmotionPresetId,
   type VisualStatePresetId,
 } from "../../visual-presets";
@@ -60,7 +60,7 @@ function collectMappingGroups(
 }
 
 // catalog 는 디스크에서 읽은 raw JSON(bin 헬퍼) 또는 메모리 내 catalog(메인) 둘 다 받을 수 있어
-// unknown 으로 받고 zod·타입가드로 좁힌다. emotion/state id 는 visual-presets 의 enum 으로 검증한다.
+// unknown 으로 받고 타입가드로 좁힌다. emotion/state id 는 visual-presets 의 가드로 검증한다.
 export function collectAvailableVisualOptions(
   catalog: unknown,
   providerId: VisualAssetProviderId = "claude",
@@ -91,18 +91,19 @@ export function collectAvailableVisualOptions(
         continue;
       }
 
-      const stateResult = visualStatePresetIdSchema.safeParse(mapping.state);
-
-      if (stateResult.success) {
-        mappedStates.add(stateResult.data);
+      if (
+        typeof mapping.state === "string" &&
+        isVisualStatePresetId(mapping.state)
+      ) {
+        mappedStates.add(mapping.state);
       }
 
-      const emotionResult = visualEmotionPresetIdSchema.safeParse(
-        mapping.emotion,
-      );
-
-      if (emotionResult.success && emotionResult.data !== "neutral") {
-        mappedEmotions.add(emotionResult.data);
+      if (
+        typeof mapping.emotion === "string" &&
+        isVisualEmotionPresetId(mapping.emotion) &&
+        mapping.emotion !== "neutral"
+      ) {
+        mappedEmotions.add(mapping.emotion);
       }
     }
   }
@@ -136,16 +137,13 @@ export function collectAvailableVisualOptions(
         continue;
       }
 
-      const emotionResult = visualEmotionPresetIdSchema.safeParse(
-        mapping.emotion,
-      );
-
       if (
-        emotionResult.success &&
+        typeof mapping.emotion === "string" &&
+        isVisualEmotionPresetId(mapping.emotion) &&
         typeof mapping.description === "string" &&
         mapping.description.length > 0
       ) {
-        emotionDescriptions[emotionResult.data] = mapping.description;
+        emotionDescriptions[mapping.emotion] = mapping.description;
       }
     }
   }

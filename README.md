@@ -10,7 +10,7 @@ This app wraps Claude Code in an Electron shell and wires together terminal hook
 - `node-pty` shell sessions that bootstrap inside the selected workspace and expose typed terminal IPC through Electron `main` / `preload` / renderer boundaries
 - A session-level `claude` wrapper that injects Claude hook settings and visual-tool usage prompts before launching the real Claude Code CLI
 - Internal helper commands on session `PATH`, including `claude-status` and `claude-visual-state`, so Claude or the user can update semantic state, overlay emotion, and one-line copy from inside the shell
-- A user-scope stdio MCP server, `bin/claude-visual-mcp`, that exposes visual option discovery and overlay updates to Claude Code
+- A user-scope stdio MCP server, `bin/claude-visual-mcp`, that exposes visual overlay updates to Claude Code
 - Bottom status panel that resolves semantic state plus optional emotion into app-owned visuals, status lines, and avatar assets
 - In-app visual asset manager for importing local image assets, setting a default asset, mapping state and emotion presets, and editing per-state lines / per-emotion descriptions
 - Persisted visual asset catalog and imported asset library under Electron `userData`, with content-hash reuse and automatic pruning of unreferenced assets
@@ -231,12 +231,11 @@ bin/claude-visual-mcp
 
 Current tools:
 
-- `get_available_visual_options`
 - `set_visual_overlay` (set `emotion`, `line`, or both; pass `emotion: "neutral"` or `line: null` to clear)
 
-The MCP surface splits its guidance across dedicated prompt files in `bin/prompts/`, so emotion selection and one-line copy rules can evolve independently without bloating the server script.
+The tool description stays minimal to keep per-session token cost low. Usage guidance for the emotion and one-line tools lives in prompt files under `src/helper-bin/prompts/`, bundled into the helper binaries and injected once per session.
 
-When Claude is launched through an embedded terminal, the wrapper appends a session-level visual-tool usage prompt, loaded from `bin/prompts/`, so Claude gets explicit guidance about when to call the emotion and one-line tools.
+When Claude is launched through an embedded terminal, the wrapper appends that session-level visual-tool usage prompt, including the currently mapped emotion catalog, so Claude gets explicit guidance about when to call the overlay tool.
 
 The app expects the visual MCP server to be installed once at Claude's `user` scope. If that setup is missing, the status panel shows an install prompt and can run the one-time Claude MCP registration for you.
 
@@ -245,8 +244,8 @@ The app expects the visual MCP server to be installed once at Claude's `user` sc
 The local visual MCP server is intended to live at Claude's `user` scope.
 
 - If the status panel still shows the install prompt, the one-time user-scope setup has not completed yet.
-- The globally registered server stays effectively dormant outside the app because it reads a runtime state file from the app's `userData` directory before exposing tools.
-- App-managed terminal sessions refresh that runtime state file as they bootstrap, so the MCP helper knows which overlay file and catalog to use.
+- The globally registered server stays effectively dormant outside the app because the overlay event queue location only comes from the session environment that app-managed terminals inject.
+- App-managed terminal sessions also refresh a runtime state file under the app's `userData` directory, which the MCP helper uses as a fallback for the visual asset catalog and trace paths.
 
 ## Verification
 
@@ -297,6 +296,6 @@ If terminal bootstrapping fails, check the same log for `terminal-helper` entrie
 - `bin/claude-status`: semantic status helper command injected into terminal sessions
 - `bin/claude-visual-state`: overlay-only helper command injected into terminal sessions
 - `bin/claude-session-hook`: Claude hook entrypoint used by the injected hook settings
-- `bin/claude-visual-mcp`: stdio MCP server for visual option discovery and overlay updates
-- `bin/prompts`: prompt fragments used by the wrapper and MCP server
+- `bin/claude-visual-mcp`: stdio MCP server for visual overlay updates
+- `src/helper-bin/prompts`: prompt fragments bundled into the session wrapper
 - `scripts/package-macos.mjs`: local unsigned macOS app packaging script

@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type {
   AssistantEmotionalState,
   AssistantSemanticState,
@@ -6,9 +5,10 @@ import type {
 
 export type VisualPresetCategory = "state" | "emotion";
 
-// visual state·emotion id 는 코드에 고정된 정적 집합이라 zod enum 으로 정의한다.
-// 단일 출처에서 런타임 검증(safeParse)과 타입(z.infer)을 함께 도출해, bin 헬퍼와
-// 메인/렌더러가 동일한 유효 id 집합을 공유한다.
+// visual state·emotion id 는 코드에 고정된 정적 집합이라 as const tuple 로 정의한다.
+// 타입은 tuple 에서 도출하고 런타임 검증은 isVisual*PresetId 가드가 담당한다.
+// zod enum 을 쓰지 않는 이유: 이 파일은 bin/claude-visual-mcp 에 번들되는데
+// zod 가 딸려 들어가면 번들이 17KB -> 328KB 로 커진다.
 export const VISUAL_STATE_PRESET_IDS = [
   "disconnected",
   "thinking",
@@ -21,8 +21,7 @@ export const VISUAL_STATE_PRESET_IDS = [
   "tool_failed",
 ] as const;
 
-export const visualStatePresetIdSchema = z.enum(VISUAL_STATE_PRESET_IDS);
-export type VisualStatePresetId = z.infer<typeof visualStatePresetIdSchema>;
+export type VisualStatePresetId = (typeof VISUAL_STATE_PRESET_IDS)[number];
 
 export const VISUAL_EMOTION_PRESET_IDS = [
   "angry",
@@ -52,8 +51,7 @@ export const VISUAL_EMOTION_PRESET_IDS = [
   "surprised",
 ] as const;
 
-export const visualEmotionPresetIdSchema = z.enum(VISUAL_EMOTION_PRESET_IDS);
-export type VisualEmotionPresetId = z.infer<typeof visualEmotionPresetIdSchema>;
+export type VisualEmotionPresetId = (typeof VISUAL_EMOTION_PRESET_IDS)[number];
 
 export interface VisualStatePreset {
   category: "state";
@@ -315,7 +313,9 @@ export const EMOTION_PRESETS: ReadonlyArray<VisualEmotionPreset> = [
   },
 ];
 
-export function isVisualStatePresetId(value: string): boolean {
+export function isVisualStatePresetId(
+  value: string,
+): value is VisualStatePresetId {
   return STATE_PRESETS.some((preset) => preset.id === value);
 }
 

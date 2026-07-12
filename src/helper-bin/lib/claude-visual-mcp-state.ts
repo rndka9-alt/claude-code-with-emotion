@@ -134,25 +134,3 @@ export function describeVisualMcpRuntimeSources(
           : "missing",
   };
 }
-
-export function createVisualMcpChildEnv(
-  env: NodeJS.ProcessEnv = process.env,
-): NodeJS.ProcessEnv {
-  const runtime = resolveVisualMcpRuntime(env);
-
-  return {
-    ...env,
-    ...(runtime.traceFilePath.length > 0
-      ? { [ENV_KEYS.TRACE_FILE]: runtime.traceFilePath }
-      : {}),
-    ...(runtime.visualAssetCatalogFilePath.length > 0
-      ? { [ENV_KEYS.VISUAL_ASSET_CATALOG_FILE]: runtime.visualAssetCatalogFilePath }
-      : {}),
-    ...(runtime.eventQueueDir.length > 0
-      ? { [ENV_KEYS.EVENT_QUEUE_DIR]: runtime.eventQueueDir }
-      : {}),
-    ...(runtime.assistantProviderId.length > 0
-      ? { [ENV_KEYS.ASSISTANT_PROVIDER_ID]: runtime.assistantProviderId }
-      : {}),
-  };
-}
