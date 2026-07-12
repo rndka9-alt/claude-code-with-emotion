@@ -1,7 +1,8 @@
 import path from "node:path";
-import type {
-  AssistantStatusSnapshot,
-  AssistantStatusSnapshotEvent,
+import {
+  createDefaultAssistantStatusSnapshot,
+  type AssistantStatusSnapshot,
+  type AssistantStatusSnapshotEvent,
 } from "../../../shared/assistant-status";
 import type { RuntimeLog } from "../../diagnostics";
 import { AssistantEventQueueBridge, AssistantStatusStore } from "../../status";
@@ -36,14 +37,13 @@ export class AssistantSessionStatusBridgeRegistry {
   }
 
   getSnapshot(sessionId: string): AssistantStatusSnapshot {
-    this.ensureSession(sessionId);
-
     const statusStore = this.sessionStatusStores.get(sessionId);
 
+    // 종료·정리된 세션의 늦은 조회가 fs.watch 와 폴링 타이머를 재생성해
+    // dispose 기회 없이 남는 것을 막기 위해, 조회 경로에서는 세션을 만들지 않는다.
+    // 세션 생성은 bootstrapSession 의 ensureSession 이 전담한다.
     if (statusStore === undefined) {
-      throw new Error(
-        `Assistant status store was not created for session ${sessionId}.`,
-      );
+      return createDefaultAssistantStatusSnapshot(Date.now());
     }
 
     return statusStore.getSnapshot();
@@ -63,8 +63,10 @@ export class AssistantSessionStatusBridgeRegistry {
       `dispose session=${sessionId} queue=${eventQueueDir}`,
     );
     this.sessionEventQueueBridges.get(sessionId)?.stop();
-    this.sessionStatusUnsubscribes.get(sessionId)?.();
+    // store.dispose() 는 pending emit 을 flush 하므로 구독 해제보다 먼저 불러
+    // 마지막 스냅샷(예: exit overlay clear)이 구독자에게 전달되게 한다.
     this.sessionStatusStores.get(sessionId)?.dispose();
+    this.sessionStatusUnsubscribes.get(sessionId)?.();
     this.sessionEventQueueBridges.delete(sessionId);
     this.sessionStatusUnsubscribes.delete(sessionId);
     this.sessionStatusStores.delete(sessionId);

@@ -228,6 +228,11 @@ export function registerWorkspaceBridge({
         sessionWindowOwnership.assignSessions([sessionId], ownerWindow.id);
       }
     },
+    // 수동 close 는 manager 가 exit 구독을 먼저 정리하고 kill 해서 exit 콜백이 안 온다.
+    // 여기서 장부를 해제하지 않으면 닫힌 세션 ID 가 창을 닫을 때까지 누적된다.
+    onTerminalSessionCloseRequested: (sessionId) => {
+      sessionWindowOwnership.releaseSession(sessionId);
+    },
     openDetachedWorkspaceWindow: (request) => {
       const workspaceWindow = createDetachedWindow(request);
 

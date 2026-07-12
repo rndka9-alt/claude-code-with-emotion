@@ -57,6 +57,7 @@ interface RegisterWorkspaceIpcHandlersOptions {
     sessionId: string,
     sender: WebContents,
   ) => void;
+  onTerminalSessionCloseRequested: (sessionId: string) => void;
   openDetachedWorkspaceWindow: (
     request: OpenDetachedWorkspaceWindowRequest,
   ) => void;
@@ -74,6 +75,7 @@ export function registerWorkspaceIpcHandlers({
   hideTabDragPreview,
   moveTabDragPreview,
   onTerminalSessionBootstrapRequested,
+  onTerminalSessionCloseRequested,
   openDetachedWorkspaceWindow,
   runtimeLog,
   showTabDragPreview,
@@ -241,6 +243,7 @@ export function registerWorkspaceIpcHandlers({
   ipcMain.handle(
     TERMINAL_CHANNELS.close,
     (_event, request: TerminalCloseRequest) => {
+      onTerminalSessionCloseRequested(request.sessionId);
       terminalSessionService.closeSession(request);
     },
   );

@@ -99,7 +99,14 @@ export class AssistantStatusStore {
   }
 
   dispose(): void {
-    this.clearStateThrottleTimer();
+    // pending throttle 타이머가 있다는 건 마지막 변경이 아직 구독자에게 안 나갔다는 뜻이다.
+    // 세션 exit 직후의 overlay clear 처럼 정리 직전에 들어온 변경이 증발하지 않도록
+    // 정리 전에 즉시 전달한다.
+    if (this.stateThrottleTimer !== null) {
+      this.clearStateThrottleTimer();
+      this.emit();
+    }
+
     this.clearEmotionTtlTimer();
     this.listeners.clear();
   }

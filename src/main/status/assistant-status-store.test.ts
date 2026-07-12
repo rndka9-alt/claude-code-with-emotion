@@ -54,6 +54,36 @@ describe("AssistantStatusStore", () => {
     expect(store.getSnapshot().line).toBe("Base state");
   });
 
+  it("delivers the last pending throttled change when disposed", () => {
+    vi.useFakeTimers();
+    try {
+      const store = new AssistantStatusStore(1_000);
+      const listener = vi.fn();
+
+      store.subscribe(listener);
+      store.applyUpdate(
+        {
+          state: "working",
+          line: "Base state",
+          currentTask: "Normal work",
+        },
+        "test",
+      );
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      // throttle 윈도우 안의 변경은 trailing emit 으로만 예약된다.
+      store.applyVisualOverlay({ line: null }, "session-exit");
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      store.dispose();
+
+      expect(listener).toHaveBeenCalledTimes(2);
+      expect(listener.mock.lastCall?.[0].source).toBe("session-exit");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps overlay emotion alive across state changes while TTL is active", () => {
     vi.useFakeTimers();
     try {
