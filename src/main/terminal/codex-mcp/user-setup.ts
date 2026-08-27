@@ -2,78 +2,15 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { ENV_KEYS } from "../../../shared/env-keys";
 import type { VisualMcpSetupTargetStatus } from "../../../shared/mcp-setup-bridge";
-import {
-  getPlatformHelperBinResolver,
-  joinPathList,
-  splitPathList,
-} from "../../platform";
+import { getEffectivePath, getPlatformHelperBinResolver } from "../../platform";
 
 const VISUAL_MCP_SERVER_NAME = "claude-code-with-emotion-visuals";
 const CODEX_DISPLAY_NAME = "Codex CLI";
 const CODEX_TARGET_ID = "codex";
 
-let loginShellPathCache: string | null | undefined = undefined;
-
 interface CodexBinaryResolution {
   errorMessage: string | null;
   path: string | null;
-}
-
-function resolveLoginShellPath(): string | null {
-  if (loginShellPathCache !== undefined) {
-    return loginShellPathCache;
-  }
-
-  if (process.platform === "win32") {
-    loginShellPathCache = null;
-    return loginShellPathCache;
-  }
-
-  const shell = process.env.SHELL ?? "/bin/zsh";
-  const result = spawnSync(shell, ["-ilc", 'printf %s "$PATH"'], {
-    encoding: "utf8",
-    timeout: 3000,
-  });
-
-  if (result.status !== 0 || typeof result.stdout !== "string") {
-    loginShellPathCache = null;
-    return loginShellPathCache;
-  }
-
-  const discovered = result.stdout.trim();
-
-  loginShellPathCache = discovered.length > 0 ? discovered : null;
-  return loginShellPathCache;
-}
-
-function mergePathLists(primary: string, secondary: string): string {
-  const seen = new Set<string>();
-  const merged: string[] = [];
-
-  for (const segment of [
-    ...splitPathList(primary),
-    ...splitPathList(secondary),
-  ]) {
-    if (segment.length === 0 || seen.has(segment)) {
-      continue;
-    }
-
-    seen.add(segment);
-    merged.push(segment);
-  }
-
-  return joinPathList(merged);
-}
-
-function getEffectivePath(): string {
-  const initialPath = process.env.PATH ?? "";
-  const loginPath = resolveLoginShellPath();
-
-  if (loginPath === null) {
-    return initialPath;
-  }
-
-  return mergePathLists(loginPath, initialPath);
 }
 
 function resolveCodexBinary(
