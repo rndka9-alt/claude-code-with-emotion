@@ -208,4 +208,10 @@ cpSync(path.join(projectRoot, "bin"), path.join(resourcesPath, "bin"), {
   force: true,
 });
 
-console.log(`Packaged unsigned macOS app at ${bundlePath}`);
+// 번들 조립(실행파일 rename·Info.plist 수정·asar 주입)이 Electron 템플릿의 원본 서명을 무효화하므로 ad-hoc 재서명으로 다시 봉인한다.
+console.log("Signing app bundle (ad-hoc)…");
+execFileSync("codesign", ["--force", "--deep", "--sign", "-", bundlePath], {
+  stdio: "inherit",
+});
+
+console.log(`Packaged macOS app at ${bundlePath}`);
