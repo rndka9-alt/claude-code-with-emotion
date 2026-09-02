@@ -1,5 +1,12 @@
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
+import {
+  closestCenter,
   MouseSensor,
   useSensor,
   useSensors,
@@ -18,6 +25,7 @@ import {
   createAutoScrollController,
   type AutoScrollController,
 } from "./internal/auto-scroll";
+import { createDetachAwareCollisionDetection } from "./internal/detach-aware-collision-detection";
 import {
   shouldDetachTabOnDrop,
   type PointerClientPosition,
@@ -60,6 +68,14 @@ export function useTabDragReorder(
       },
     }),
   );
+  const collisionDetection = useMemo(
+    () =>
+      createDetachAwareCollisionDetection({
+        getStripElement: () => stripRef.current,
+        reorderCollisionDetection: closestCenter,
+      }),
+    [],
+  );
 
   useEffect(() => {
     const autoScrollController = createAutoScrollController({
@@ -81,8 +97,14 @@ export function useTabDragReorder(
         return;
       }
 
-      edgeClientXRef.current = event.clientX;
-      autoScrollController.update(event.clientX);
+      // 분리 영역에서는 자동 스크롤도 멈춰 탭 스트립이 그대로 머물게 한다
+      edgeClientXRef.current = shouldDetachActiveTab(
+        stripRef.current,
+        pointerPositionRef.current,
+      )
+        ? null
+        : event.clientX;
+      autoScrollController.update(edgeClientXRef.current);
       updateTabDragPreview({
         activeTabId: activeDragTabIdRef.current,
         isVisibleRef: isTabDragPreviewVisibleRef,
@@ -120,6 +142,7 @@ export function useTabDragReorder(
 
   return {
     activeDragTabId,
+    collisionDetection,
     dragOverlayTab:
       activeDragTabId === null
         ? null

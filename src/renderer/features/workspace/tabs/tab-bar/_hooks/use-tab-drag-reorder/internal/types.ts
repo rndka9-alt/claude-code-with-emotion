@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import type {
+  CollisionDetection,
   DragCancelEvent,
   DragEndEvent,
   DragOverEvent,
@@ -11,6 +12,7 @@ import type { WorkspaceTab } from "../../../../../model";
 
 export interface TabDragReorderHandlers {
   activeDragTabId: string | null;
+  collisionDetection: CollisionDetection;
   dragOverlayTab: WorkspaceTab | null;
   handleDragCancel: (event: DragCancelEvent) => void;
   handleDragEnd: (event: DragEndEvent) => void;

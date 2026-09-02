@@ -1,14 +1,17 @@
 const TAB_DETACH_SAFE_DISTANCE_PX = 96;
 
-export interface PointerClientPosition {
+export interface PointerClientPoint {
   clientX: number;
   clientY: number;
+}
+
+export interface PointerClientPosition extends PointerClientPoint {
   screenX: number;
   screenY: number;
 }
 
 interface TabDetachDropZoneInput {
-  pointerPosition: PointerClientPosition | null;
+  pointerPosition: PointerClientPoint | null;
   stripRect: DOMRectReadOnly;
 }
 

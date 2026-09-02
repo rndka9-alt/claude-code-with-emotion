@@ -10,8 +10,6 @@ describe("shouldDetachTabOnDrop", () => {
         pointerPosition: {
           clientX: 80,
           clientY: 90,
-          screenX: 480,
-          screenY: 190,
         },
         stripRect,
       }),
@@ -24,8 +22,6 @@ describe("shouldDetachTabOnDrop", () => {
         pointerPosition: {
           clientX: 80,
           clientY: -24,
-          screenX: 480,
-          screenY: 76,
         },
         stripRect,
       }),
@@ -38,8 +34,6 @@ describe("shouldDetachTabOnDrop", () => {
         pointerPosition: {
           clientX: -24,
           clientY: 16,
-          screenX: 376,
-          screenY: 116,
         },
         stripRect,
       }),
@@ -52,8 +46,6 @@ describe("shouldDetachTabOnDrop", () => {
         pointerPosition: {
           clientX: 80,
           clientY: 150,
-          screenX: 480,
-          screenY: 250,
         },
         stripRect,
       }),
@@ -66,8 +58,6 @@ describe("shouldDetachTabOnDrop", () => {
         pointerPosition: {
           clientX: 520,
           clientY: 16,
-          screenX: 920,
-          screenY: 116,
         },
         stripRect,
       }),

@@ -15,6 +15,24 @@ function requireParentElement(element: HTMLElement): HTMLElement {
   return element.parentElement;
 }
 
+function resolveTabOffsetX(container: HTMLElement): number {
+  const transform = container.style.transform;
+
+  if (transform === "") {
+    return 0;
+  }
+
+  const match = /^translate3d\((-?[\d.]+)px, /.exec(transform);
+
+  if (match === null) {
+    throw new Error(`Unexpected tab transform: ${transform}`);
+  }
+
+  const [, offsetX] = match;
+
+  return Number(offsetX);
+}
+
 function installDetachedWorkspaceWindowBridge() {
   const hideTabDragPreview = vi.fn();
   const moveTabDragPreview = vi.fn();
@@ -382,6 +400,132 @@ describe("App tab reordering", () => {
       expect(hideTabDragPreview).toHaveBeenCalledTimes(1);
       expect(openDetachedWorkspaceWindow).not.toHaveBeenCalled();
       expect(screen.getAllByRole("tab")).toHaveLength(2);
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect =
+        originalGetBoundingClientRect;
+      Reflect.deleteProperty(window, "claudeApp");
+    }
+  });
+
+  it("keeps the other tabs in place while a dragged tab hovers in the detach zone", async () => {
+    const { showTabDragPreview } = installDetachedWorkspaceWindowBridge();
+
+    render(<App />);
+
+    fireEvent.keyDown(window, {
+      key: "t",
+      metaKey: true,
+    });
+
+    const firstTab = screen.getByRole("tab", {
+      name: "new session 1 · claude-code-with-emotion",
+    });
+    const secondTab = screen.getByRole("tab", {
+      name: "new session 2 · claude-code-with-emotion",
+    });
+    const firstTabContainer = requireParentElement(firstTab);
+    const secondTabContainer = requireParentElement(secondTab);
+    const strip = screen.getByRole("tablist", {
+      name: "Terminal sessions",
+    });
+    const stripRect = new DOMRect(0, 0, 420, 32);
+    const tabRects = new Map<HTMLElement, DOMRect>([
+      [firstTabContainer, new DOMRect(0, 0, 180, 28)],
+      [secondTabContainer, new DOMRect(182, 0, 180, 28)],
+    ]);
+    const originalGetBoundingClientRect =
+      HTMLElement.prototype.getBoundingClientRect;
+
+    HTMLElement.prototype.getBoundingClientRect =
+      function getBoundingClientRect(): DOMRect {
+        if (!(this instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        if (this === strip) {
+          return stripRect;
+        }
+
+        const container =
+          this.getAttribute("role") === "presentation"
+            ? this
+            : this.closest('[role="presentation"]');
+
+        if (!(container instanceof HTMLElement)) {
+          return new DOMRect(0, 0, 0, 0);
+        }
+
+        return tabRects.get(container) ?? new DOMRect(0, 0, 0, 0);
+      };
+
+    try {
+      act(() => {
+        fireEvent.mouseDown(firstTab, {
+          button: 0,
+          buttons: 1,
+          clientX: 40,
+          clientY: 12,
+          screenX: 440,
+          screenY: 112,
+        });
+      });
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 60,
+          clientY: 12,
+          screenX: 460,
+          screenY: 112,
+        });
+      });
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 270,
+          clientY: 12,
+          screenX: 670,
+          screenY: 112,
+        });
+      });
+      expect(resolveTabOffsetX(secondTabContainer)).toBeLessThan(0);
+
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 270,
+          clientY: 150,
+          screenX: 670,
+          screenY: 250,
+        });
+      });
+      expect(showTabDragPreview).toHaveBeenCalledTimes(1);
+      expect(resolveTabOffsetX(secondTabContainer)).toBe(0);
+
+      act(() => {
+        fireEvent.mouseMove(document, {
+          buttons: 1,
+          clientX: 270,
+          clientY: 12,
+          screenX: 670,
+          screenY: 112,
+        });
+      });
+      expect(resolveTabOffsetX(secondTabContainer)).toBeLessThan(0);
+
+      act(() => {
+        fireEvent.mouseUp(document, {
+          clientX: 270,
+          clientY: 12,
+          screenX: 670,
+          screenY: 112,
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByRole("tab")[0]).toHaveAccessibleName(
+          "new session 2 · claude-code-with-emotion",
+        );
+      });
     } finally {
       HTMLElement.prototype.getBoundingClientRect =
         originalGetBoundingClientRect;

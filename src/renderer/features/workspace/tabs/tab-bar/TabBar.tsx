@@ -1,5 +1,5 @@
 import { type ReactElement, useEffect } from "react";
-import { closestCenter, DndContext, DragOverlay } from "@dnd-kit/core";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
   horizontalListSortingStrategy,
@@ -51,6 +51,7 @@ export function TabBar({
   } = useTabTitleEditor(onRenameTab);
   const {
     activeDragTabId,
+    collisionDetection,
     dragOverlayTab,
     handleDragCancel,
     handleDragEnd,
@@ -107,7 +108,7 @@ export function TabBar({
     <header className="px-2 pt-1">
       <DndContext
         autoScroll={false}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection}
         onDragCancel={handleDragCancel}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
